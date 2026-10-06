@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Control — Brand</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Instrument+Serif:ital@1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+<style>
+:root{--black:#050505;--board:#0d0d0f;--ink:#f2f2ef;--grey:#8a8f98;--line:rgba(255,255,255,.12);--volt:#c8ff00;--display:"Syne",sans-serif;--serif:"Instrument Serif",serif;--body:"Inter",sans-serif;--mono:"JetBrains Mono",monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--black);color:var(--ink);font-family:var(--body);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding:0 56px}
+section{padding:96px 0;border-top:1px solid var(--line)}
+h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-height:.95;margin:0}
+h1{font-size:clamp(3rem,7vw,6.5rem)}h2{font-size:2.4rem;margin-bottom:.6em}
+em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--volt);font-size:1.08em}
+.mono{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase}
+.kicker{color:var(--volt);display:flex;align-items:center;gap:10px;margin-bottom:2em}.kicker::after{content:"";width:40px;height:1px;background:var(--volt);opacity:.6}
+.grid{display:grid;gap:2px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.cell{background:var(--board);padding:40px;min-height:260px;display:flex;flex-direction:column;justify-content:space-between}
+.cell.light{background:var(--ink);color:var(--black)}.cell.volt{background:var(--volt);color:var(--black)}
+.cell small{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--grey)}.cell.light small,.cell.volt small{color:rgba(0,0,0,.55)}
+p.lead{font-size:1.15rem;color:rgba(255,255,255,.78);max-width:60ch}
+/* ---- the board: the graphic device ---- */
+.board{display:inline-flex;align-items:center;gap:0;background:var(--board);border:1px solid var(--line);font-family:var(--mono);text-transform:uppercase;letter-spacing:.18em;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%)}
+.board>*{padding:.7em 1em}.board b{font-weight:700;color:var(--volt)}.board span{color:var(--grey);border-left:1px solid var(--line)}
+.board.big{font-size:1.4rem}.board.big b{font-family:var(--display);font-weight:800;letter-spacing:-.02em;font-size:2.6rem;padding:.25em .5em}
+.board.onlight{background:var(--black);border-color:var(--black)}
+/* lockups */
+.lockup{display:inline-flex;align-items:center;gap:16px}.lockup svg{width:44px;height:44px}.lockup .name{font-family:var(--display);font-weight:800;font-size:1.5rem;letter-spacing:-.03em;line-height:1}.lockup .tag{font-family:var(--mono);font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--grey);margin-top:4px}
+.stack{display:flex;flex-direction:column;align-items:flex-start;gap:14px}.stack svg{width:72px;height:72px}
+.swatch{aspect-ratio:1;display:flex;flex-direction:column;justify-content:flex-end;padding:20px}.swatch b{font-family:var(--display);font-size:1.1rem}.swatch span{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em}
+.type-sample{display:grid;grid-template-columns:200px 1fr;gap:40px;padding:28px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.cut{clip-path:polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,0 100%)}
+.voice{display:grid;grid-template-columns:1fr 1fr;gap:2px}.voice div{background:var(--board);padding:28px}.voice .no{color:var(--grey);text-decoration:line-through;text-decoration-color:#ff2d2d}.voice .yes{font-weight:600}
+.card{background:var(--ink);color:var(--black);aspect-ratio:1.75;padding:28px;display:flex;flex-direction:column;justify-content:space-between}
+.banner{background:var(--black);border:1px solid var(--line);aspect-ratio:4;padding:40px;display:flex;align-items:center;justify-content:space-between}
+@media(max-width:900px){.g2,.g3,.g4,.voice{grid-template-columns:1fr}.type-sample{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<section style="border:0;padding-top:120px">
+  <div class="wrap">
+    <p class="kicker mono">Launch Control — Brand system v1</p>
+    <h1>Built to read with the <em>engine turned off.</em></h1>
+    <p class="lead" style="margin-top:1.5em">One idea runs through everything: Launch Control is the pit wall. The pit wall talks to the car with a board. So the brand is a board: a hard-cut black plate with a volt message on it. Every number, label and tag on anything we make is a pit board.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker mono">01 — The mark</p>
+    <div class="grid g3">
+      <div class="cell volt"><small>The board</small><svg viewBox="0 0 64 64" width="120" height="120"><path d="M6 0h40l18 18v40a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V6a6 6 0 0 1 6-6z" fill="#050505"/><path d="M14 12h12v26h26v12H14z" fill="#c8ff00"/><rect x="32" y="12" width="18" height="6" fill="#c8ff00"/></svg><small>Volt board · black message. Primary.</small></div>
+      <div class="cell"><small>On carbon</small><svg viewBox="0 0 64 64" width="120" height="120"><path d="M6 0h40l18 18v40a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V6a6 6 0 0 1 6-6z" fill="#c8ff00"/><path d="M14 12h12v26h26v12H14z" fill="#050505"/><rect x="32" y="12" width="18" height="6" fill="#050505"/></svg><small>The L is the wall: its foot runs the full width. The slot is where the message goes. The corner is cut at the moment of release.</small></div>
+      <div class="cell light"><small>Single colour</small><svg viewBox="0 0 64 64" width="120" height="120"><path d="M6 0h40l18 18v40a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V6a6 6 0 0 1 6-6z" fill="#050505"/><path d="M14 12h12v26h26v12H14z" fill="#f2f2ef"/><rect x="32" y="12" width="18" height="6" fill="#f2f2ef"/></svg><small>Embroidery, print, favicon at 16px.</small></div>
+    </div>
+    <div class="grid g2" style="margin-top:2px">
+      <div class="cell"><small>Horizontal lockup</small><div class="lockup"><svg viewBox="0 0 64 64"><path d="M6 0h40l18 18v40a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V6a6 6 0 0 1 6-6z" fill="#c8ff00"/><path d="M14 12h12v26h26v12H14z" fill="#050505"/><rect x="32" y="12" width="18" height="6" fill="#050505"/></svg><div><div class="name">Launch Control</div><div class="tag">Business development · the pit wall</div></div></div><small>Nav, documents, email signature.</small></div>
+      <div class="cell"><small>Stacked lockup</small><div class="stack"><svg viewBox="0 0 64 64"><path d="M6 0h40l18 18v40a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V6a6 6 0 0 1 6-6z" fill="#c8ff00"/><path d="M14 12h12v26h26v12H14z" fill="#050505"/><rect x="32" y="12" width="18" height="6" fill="#050505"/></svg><div><div class="name" style="font-family:var(--display);font-weight:800;font-size:2rem;letter-spacing:-.03em;line-height:.95">Launch<br>Control</div></div></div><small>Social avatars, merch, decks.</small></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker mono">02 — The device: the board</p>
+    <p class="lead">A pit board is black, hard-edged, and says one thing in big letters. Ours carries the release cut from the mark. It holds every stat, every label, every tag. It is what makes a Launch Control page recognisable with nothing else on it.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:40px;align-items:center">
+      <div class="board big"><b>P1</b><span>Lead gen</span></div>
+      <div class="board big"><b>1,240</b><span>Prospects tracked</span></div>
+      <div class="board big"><b>+38%</b><span>Response rate</span></div>
+      <div class="board"><b>Box</b><span>Stage 2 · Growth retainer</span></div>
+      <div class="board"><b>Lap 07</b><span>Create opportunities</span></div>
+      <div class="board"><b>Go</b></div>
+    </div>
+    <div class="grid g2" style="margin-top:40px">
+      <div class="cell light"><small>On light</small><div style="display:flex;gap:12px;flex-wrap:wrap"><div class="board onlight"><b>P1</b><span>Lead gen</span></div><div class="board onlight"><b>Go</b></div></div><small>The board never changes colour. Black plate, volt message, grey label.</small></div>
+      <div class="cell"><small>The cut</small><div class="cut" style="background:var(--volt);height:120px;width:100%"></div><small>The release cut from the mark's corner: used on image crops, blocks, buttons. Never on the left side. Never both corners.</small></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker mono">03 — Type</p>
+    <div class="type-sample"><small class="mono" style="color:var(--grey)">Headline · Syne 800</small><div style="font-family:var(--display);font-weight:800;font-size:3.6rem;letter-spacing:-.03em;line-height:.95">You've got the car.<br><em>We're the pit wall.</em></div></div>
+    <div class="type-sample"><small class="mono" style="color:var(--grey)">The turn · Instrument Serif italic, volt</small><div style="font-size:1.1rem;color:rgba(255,255,255,.78)">One phrase per headline turns italic and volt. It is the message on the board. Never more than one. Never a full sentence.</div></div>
+    <div class="type-sample"><small class="mono" style="color:var(--grey)">Body · Inter</small><div style="font-size:1.1rem;color:rgba(255,255,255,.78);max-width:60ch">We find the market, find the people, build the system, contact them, track them, follow up, and create opportunities. Sentence case. Short sentences. Full stops.</div></div>
+    <div class="type-sample"><small class="mono" style="color:var(--grey)">Board · JetBrains Mono, caps, 0.12–0.18em</small><div class="mono" style="color:var(--volt);font-size:.85rem">Prospects tracked · Sector 04 · Box box · P1</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker mono">04 — Colour</p>
+    <div class="grid g4">
+      <div class="swatch" style="background:#050505;border:1px solid var(--line)"><b>Carbon</b><span>#050505 · ground</span></div>
+      <div class="swatch" style="background:#0d0d0f;border:1px solid var(--line)"><b>Board</b><span>#0D0D0F · plates</span></div>
+      <div class="swatch" style="background:#c8ff00;color:#050505"><b>Volt</b><span>#C8FF00 · the message</span></div>
+      <div class="swatch" style="background:#f2f2ef;color:#050505"><b>Chalk</b><span>#F2F2EF · type, light ground</span></div>
+    </div>
+    <p class="lead" style="margin-top:32px">Volt is the message, never the ground. It is used for the turn in a headline, the number on a board, the one button that matters. If a page is more than 10% volt, something is wrong. Grey <span class="mono" style="color:var(--grey)">#8A8F98</span> for labels. Red <span style="color:#ff2d2d">#FF2D2D</span> exists for one word only: an error.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker mono">05 — Voice</p>
+    <p class="lead">The pit wall doesn't hype. It tells the driver what's happening and what to do next. Short. Specific. Numbers over adjectives. Second person. Full stops.</p>
+    <div class="voice" style="margin-top:32px">
+      <div><small class="mono" style="color:var(--grey)">Not this</small><p class="no">Unlock exponential growth with our cutting-edge, end-to-end business development solutions.</p></div>
+      <div><small class="mono" style="color:var(--grey)">This</small><p class="yes">You've got the car. We're the pit wall.</p></div>
+      <div><small class="mono" style="color:var(--grey)">Not this</small><p class="no">Our team of passionate experts leverages best-in-class tools.</p></div>
+      <div><small class="mono" style="color:var(--grey)">This</small><p class="yes">We find them. We contact them. We track every one.</p></div>
+      <div><small class="mono" style="color:var(--grey)">Not this</small><p class="no">Thank you for your submission! Someone will reach out shortly.</p></div>
+      <div><small class="mono" style="color:var(--grey)">This</small><p class="yes">Received. You'll hear from us within one business hour, 8–6 Phoenix.</p></div>
+      <div><small class="mono" style="color:var(--grey)">Not this</small><p class="no">Oops! Something went wrong.</p></div>
+      <div><small class="mono" style="color:var(--grey)">This</small><p class="yes">Didn't send. Try again, or email us directly.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker mono">06 — Does it survive without the engine?</p>
+    <div class="grid g2">
+      <div class="card cut"><div class="lockup"><svg viewBox="0 0 64 64"><path d="M6 0h40l18 18v40a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V6a6 6 0 0 1 6-6z" fill="#050505"/><path d="M14 12h12v26h26v12H14z" fill="#f2f2ef"/><rect x="32" y="12" width="18" height="6" fill="#f2f2ef"/></svg><div><div class="name">Launch Control</div></div></div><div><div style="font-family:var(--display);font-weight:800;font-size:1.3rem;letter-spacing:-.02em">Eris Dothard</div><div class="mono" style="color:rgba(0,0,0,.55)">Pit wall · launchcontrol.co</div></div><div style="display:flex;gap:8px"><div class="board onlight" style="font-size:.6rem"><b>Go</b></div><div class="board onlight" style="font-size:.6rem"><b>P1</b><span>BD systems</span></div></div></div>
+      <div class="banner cut"><div><div style="font-family:var(--display);font-weight:800;font-size:2.2rem;letter-spacing:-.03em;line-height:.95">We build the system<br>that finds your <em>next customer.</em></div></div><div class="board big"><b>Go</b></div></div>
+    </div>
+    <p class="lead" style="margin-top:32px">Business card and LinkedIn banner, no 3D, no photography. If these read as Launch Control, the brand exists. The engine on the website is then one expression of it, not the identity.</p>
+  </div>
+</section>
+<div class="wrap" style="padding-bottom:80px"><p class="mono" style="color:var(--grey)">Launch Control · brand system v1 · powered by Syntra AI</p></div>
+</body>
+</html>

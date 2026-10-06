@@ -25,13 +25,8 @@
   <header class="nav">
     <div class="nav__inner">
       <a href="#top" class="logo" aria-label="Launch Control home">
-        <svg class="logo__mark" viewBox="0 0 40 40" aria-hidden="true">
-          <rect width="40" height="40" rx="4" fill="currentColor"/>
-          <path d="M8 9h6v16h9v6H8z" fill="#0a0a0a"/>
-          <path d="M31 9h-9c-1.5 0-2.7 1.2-2.7 2.7v4.6h6V15h5.7V9z" fill="#0a0a0a"/>
-          <path d="M-2 44 44 -2" stroke="#0a0a0a" stroke-width="3"/>
-        </svg>
-        <span>Launch Control</span>
+        <svg class="logo__mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M6 0h40l18 18v40a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V6a6 6 0 0 1 6-6z" fill="#c8ff00"/><path d="M14 12h12v26h26v12H14z" fill="#050505"/><rect x="32" y="12" width="18" height="6" fill="#050505"/></svg>
+        <span>Launch Control<small>Business development · the pit wall</small></span>
       </a>
       <div class="hud mono" aria-hidden="true">
         <span><small>Assembly</small><b data-hud="asm">000%</b></span>
@@ -68,11 +63,11 @@
         </div>
       </div>
       <!-- TODO: real numbers; same values drive the Proof beat -->
-      <ul class="strip mono">
-        <li><b>Hyper Racer USA</b><small>first build</small></li>
-        <li><b data-count="1240">0</b><small>prospects tracked</small></li>
-        <li><b><span data-count="38">0</span>%</b><small>response rate</small></li>
-        <li><b data-count="47">0</b><small>opportunities created</small></li>
+      <ul class="strip">
+        <li class="board"><b>P1</b><span>First build · Hyper Racer USA</span></li>
+        <li class="board"><b data-count="1240">0</b><span>Prospects tracked</span></li>
+        <li class="board"><b>+<span data-count="38">0</span>%</b><span>Response rate</span></li>
+        <li class="board"><b data-count="47">0</b><span>Opportunities</span></li>
       </ul>
     </section>
 
@@ -91,10 +86,10 @@
           <p class="kicker mono">02 — The bottom end</p>
           <h2>The parts that <em>do the work.</em></h2>
           <p>Lead generation and outbound. We find the market, find the people and get the conversations started. Eight pistons, one crank, every stroke logged.</p>
-          <ol class="steps">
+          <ol class="steps laps">
             <li>Find the market</li><li>Find the people</li><li>Build the system</li><li>Contact them</li><li>Track them</li><li>Follow up</li><li><em>Create opportunities</em></li>
           </ol>
-          <p class="hint mono">Hover a part to see what it is</p>
+          <p class="hint mono">Point at a part. The board tells you what it does.</p>
         </div>
       </div>
     </section>
@@ -124,15 +119,15 @@
           <p>The ECU. Every lead, every touch, every follow-up, wired to one system. We built the master once; you get your own version, loaded with prospects from day one.</p>
           <table class="telemetry mono">
             <tbody>
-              <tr><td>Lead database</td><td class="ok">online</td></tr>
-              <tr><td>Pipeline &amp; status</td><td class="ok">online</td></tr>
-              <tr><td>Contact history &amp; follow-up</td><td class="ok">online</td></tr>
-              <tr><td>Outreach tracking</td><td class="ok">online</td></tr>
-              <tr><td>Forms, inbound, reporting</td><td class="ok">online</td></tr>
-              <tr><td>Client-specific modules</td><td class="warn">custom</td></tr>
+              <tr><td>Lead database</td><td><span class="board small"><b>Go</b></span></td></tr>
+              <tr><td>Pipeline &amp; status</td><td><span class="board small"><b>Go</b></span></td></tr>
+              <tr><td>Contact history &amp; follow-up</td><td><span class="board small"><b>Go</b></span></td></tr>
+              <tr><td>Outreach tracking</td><td><span class="board small"><b>Go</b></span></td></tr>
+              <tr><td>Forms, inbound, reporting</td><td><span class="board small"><b>Go</b></span></td></tr>
+              <tr><td>Client-specific modules</td><td><span class="board small"><b class="warn">Box</b></span></td></tr>
             </tbody>
           </table>
-          <p class="hint mono">This site runs on it. Every inquiry lands in our own CRM.</p>
+          <p class="hint mono">This site runs on it. Every inquiry you send lands in our own board.</p>
         </div>
       </div>
     </section>
@@ -143,10 +138,10 @@
         <p class="kicker mono">05 — Proof</p>
         <h2 class="h-big">Hyper Racer USA. <em>The first build.</em></h2>
         <dl class="numbers">
-          <div><dt><span data-count="1240">0</span></dt><dd class="mono">prospects tracked</dd></div>
-          <div><dt><span data-count="186">0</span></dt><dd class="mono">dealers &amp; partners targeted</dd></div>
-          <div><dt><span data-count="38">0</span><i>%</i></dt><dd class="mono">outreach response rate</dd></div>
-          <div><dt><span data-count="47">0</span></dt><dd class="mono">opportunities created</dd></div>
+          <div><dt><span data-count="1240">0</span></dt><dd class="board"><span>Prospects tracked</span></dd></div>
+          <div><dt><span data-count="186">0</span></dt><dd class="board"><span>Dealers &amp; partners targeted</span></dd></div>
+          <div><dt><span data-count="38">0</span><i>%</i></dt><dd class="board"><span>Outreach response rate</span></dd></div>
+          <div><dt><span data-count="47">0</span></dt><dd class="board"><span>Opportunities created</span></dd></div>
         </dl>
         <p class="proof-copy">Launch Control is the engine we built and ran for Hyper Racer USA: CRM, outreach, lead generation, messaging, website, dealer and partner targeting, follow-up. Now it's a repeatable build. <a href="case-studies/hyper-racer.html">Read the case study →</a></p>
       </div>
@@ -159,21 +154,21 @@
         <h2 class="h-big">Pick your <em>stage.</em></h2>
         <div class="tiers">
           <article class="tier">
-            <p class="mono tier__stage">Stage 1</p>
+            <p class="board tier__stage"><b>Box</b><span>Stage 1</span></p>
             <h3>Launch Package</h3>
             <p class="price">$10–15K <span class="mono">one-time</span></p>
             <ul><li>CRM deployment &amp; customization</li><li>Pipeline structure</li><li>Lead-generation setup</li><li>Positioning &amp; messaging</li><li>Website / landing page work</li><li>Initial prospect database</li></ul>
             <a href="#contact" class="btn btn--ghost" data-plan="launch">Build the engine</a>
           </article>
           <article class="tier tier--featured">
-            <p class="mono tier__stage">Stage 2 — most popular</p>
+            <p class="board tier__stage"><b>Box</b><span>Stage 2 · most popular</span></p>
             <h3>Growth Retainer</h3>
             <p class="price">$5–10K <span class="mono">/ month</span></p>
             <ul><li>Ongoing lead generation</li><li>Outbound business development</li><li>Follow-up management</li><li>CRM management</li><li>Strategy &amp; optimization</li></ul>
             <a href="#contact" class="btn btn--volt" data-plan="growth">Run the engine</a>
           </article>
           <article class="tier">
-            <p class="mono tier__stage">Stage 3</p>
+            <p class="board tier__stage"><b>Box</b><span>Stage 3</span></p>
             <h3>Full Growth Partner</h3>
             <p class="price">$10–15K+ <span class="mono">/ month</span></p>
             <ul><li>Your external growth &amp; BD department</li><li>Everything in Growth Retainer</li><li>Market entry &amp; partnerships</li><li>Commission / performance options</li></ul>

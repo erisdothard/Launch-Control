@@ -114,7 +114,7 @@ if (form) {
       if (!ok) valid = false;
     });
     if (!valid) {
-      status.textContent = "Name, company and a valid email are required.";
+      status.textContent = "Need a name, a company and a working email.";
       status.classList.add("err");
       return;
     }
@@ -135,11 +135,11 @@ if (form) {
         console.info("[Launch Control] CRM_ENDPOINT not set. Lead:", lead);
       }
       form.reset();
-      status.textContent = "Received. We're back to you within one business day.";
+      status.textContent = "Received. You'll hear from us within one business hour, 8–6 Phoenix.";
       status.classList.add("ok");
     } catch (err) {
       console.error(err);
-      status.textContent = "Something went wrong. Try again or email us directly.";
+      status.textContent = "Didn't send. Try again, or email us directly.";
       status.classList.add("err");
     } finally {
       submit.disabled = false;

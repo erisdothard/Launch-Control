@@ -24,6 +24,8 @@ const MODEL_URL = ""; // e.g. "assets/models/engine.glb". Empty = procedural eng
 
 const VOLT = new THREE.Color("#c8ff00");
 const canvas = document.getElementById("gl");
+// ?nogl renders the page with the engine off: the brand has to hold on its own.
+if (new URLSearchParams(location.search).has("nogl")) { canvas.remove(); throw new Error("engine disabled by ?nogl"); }
 const isMobile = matchMedia("(max-width: 720px)").matches;
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const hotspot = document.querySelector(".hotspot");
