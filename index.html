@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Launch Control | You've got the car. We're the pit wall.</title>
-  <meta name="description" content="Launch Control builds and operates business development systems for performance brands: lead generation, outbound, CRM and sales infrastructure. Find. Track. Convert.">
+  <title>Launch Control | We build the business development engine</title>
+  <meta name="description" content="Launch Control builds and operates business development engines for performance brands: lead generation, outbound, CRM and sales infrastructure. You've got the car. We're the pit wall.">
   <meta name="theme-color" content="#050505">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,11 +17,12 @@
 </head>
 <body>
 
-  <!-- ============ THE CIRCUIT (WebGL) ============ -->
+  <!-- ============ THE ENGINE (WebGL) ============ -->
   <canvas id="gl" aria-hidden="true"></canvas>
   <div class="grain" aria-hidden="true"></div>
+  <div class="hotspot mono" hidden aria-hidden="true"><b></b><span></span><small></small></div>
 
-  <!-- ============ HUD ============ -->
+  <!-- ============ NAV / HUD ============ -->
   <header class="nav">
     <div class="nav__inner">
       <a href="#top" class="logo" aria-label="Launch Control home">
@@ -35,20 +36,21 @@
       </a>
       <button class="nav__toggle" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
       <nav class="nav__links">
-        <a href="#pitwall">Pit Wall</a>
-        <a href="#system">System</a>
+        <a href="#build">The Engine</a>
         <a href="#proof">Proof</a>
         <a href="#pricing">Pricing</a>
-        <a href="#contact" class="btn btn--volt btn--sm">Start Your Engine</a>
+        <a href="#contact">Contact</a>
+        <!-- data-booking: set BOOKING_URL in js/main.js; falls back to the form -->
+        <a href="#contact" class="btn btn--volt btn--sm" data-booking>Book a pit stop</a>
       </nav>
     </div>
     <div class="hud__bar"><i data-hud="bar"></i></div>
   </header>
 
   <aside class="hud hud--left mono" aria-hidden="true">
-    <div><small>SPEED</small><b data-hud="speed">000</b></div>
+    <div><small>ASSEMBLY</small><b data-hud="asm">000%</b></div>
     <div><small>SECTOR</small><b data-hud="sector">S01</b></div>
-    <div><small>DIST</small><b data-hud="dist">0.00 KM</b></div>
+    <div><small>RPM</small><b data-hud="rpm">0000</b></div>
   </aside>
 
   <aside class="hud hud--right mono" aria-hidden="true">
@@ -58,11 +60,13 @@
     <br>FOLLOW-UPS <b data-ticker="followups">0</b>
   </aside>
 
-  <!-- ============ CONTENT (floats over the circuit) ============ -->
+  <!-- sticky CTA, appears from the services beat down -->
+  <a href="#contact" class="sticky-cta btn btn--volt" data-booking hidden>Book a 20-min pit stop</a>
+
   <main id="top">
 
-    <!-- 1 HERO -->
-    <section class="sector sector--hero" data-sector data-gather="0">
+    <!-- 0 HERO: engine fully exploded -->
+    <section class="sector sector--hero" data-sector>
       <div class="wrap">
         <p class="mono label"><span class="blink">●</span> BUSINESS DEVELOPMENT &amp; GROWTH SYSTEMS</p>
         <h1 class="display">
@@ -70,192 +74,189 @@
           <span class="line"><span>the car.</span></span>
           <span class="line line--volt"><span>We're the pit wall.</span></span>
         </h1>
-        <p class="sub">
-          We build and run the business development machine for performance brands:
-          the people, the pipeline and the follow-up that turn a great product into deals.
-        </p>
+        <p class="sub">We build and run the business development engine for performance brands. Scroll, and watch it get built.</p>
         <div class="ctas">
-          <a href="#contact" class="btn btn--volt">Start Your Engine</a>
-          <a href="#proof" class="btn btn--outline">See the Hyper Racer build</a>
+          <a href="#contact" class="btn btn--volt" data-booking>Book a 20-min pit stop</a>
+          <a href="#proof" class="btn btn--outline">The Hyper Racer build</a>
         </div>
-        <p class="mono scrollhint">SCROLL TO DRIVE ↓</p>
+        <!-- TODO: real numbers. Same values drive the proof section counters. -->
+        <ul class="proofstrip mono">
+          <li><b>HYPER RACER USA</b><small>FIRST BUILD</small></li>
+          <li><b data-count="1240">0</b><small>PROSPECTS TRACKED</small></li>
+          <li><b><span data-count="38">0</span>%</b><small>RESPONSE RATE</small></li>
+          <li><b data-count="47">0</b><small>OPPORTUNITIES</small></li>
+        </ul>
       </div>
     </section>
 
-    <!-- 2 PIT WALL -->
-    <section class="sector" id="pitwall" data-sector data-gather="0.15">
-      <div class="wrap panel">
-        <p class="mono label">01 // THE PIT WALL</p>
-        <h2 class="display">The drivers get the glory.<br>The race is won on the pit wall.</h2>
-        <p class="big">
-          Brands like Hyper Racer and Gumball don't have a product problem. They have a pipeline
-          problem: nobody is systematically finding dealers, partners, sponsors and customers, and
-          nobody is chasing them down.
-        </p>
-        <p>
-          Launch Control is the strategy team behind the team. We find the people, build the system,
-          work the outreach and track every conversation until it turns into business. Not a marketing
-          agency. Your business development engine.
-        </p>
-      </div>
-    </section>
-
-    <!-- 3 SEQUENCE -->
-    <section class="sector" id="sequence" data-sector data-gather="1">
-      <div class="wrap panel panel--wide">
-        <p class="mono label">02 // THE SEQUENCE</p>
-        <h2 class="display">Seven gates. Every client. Every time.</h2>
-        <p class="muted">Every prospect in the field gets pulled into the pipeline and driven through all seven.</p>
-        <ol class="board">
-          <li class="board__row"><span class="mono board__pos">G1</span><span class="board__name">Find the market</span><span class="mono board__gap">WHERE THE MONEY IS</span></li>
-          <li class="board__row"><span class="mono board__pos">G2</span><span class="board__name">Find the people</span><span class="mono board__gap">DECISION MAKERS</span></li>
-          <li class="board__row"><span class="mono board__pos">G3</span><span class="board__name">Build the system</span><span class="mono board__gap">CRM + PIPELINE</span></li>
-          <li class="board__row"><span class="mono board__pos">G4</span><span class="board__name">Contact them</span><span class="mono board__gap">OUTREACH</span></li>
-          <li class="board__row"><span class="mono board__pos">G5</span><span class="board__name">Track them</span><span class="mono board__gap">EVERY TOUCH LOGGED</span></li>
-          <li class="board__row"><span class="mono board__pos">G6</span><span class="board__name">Follow up</span><span class="mono board__gap">UNTIL THEY ANSWER</span></li>
-          <li class="board__row board__row--volt"><span class="mono board__pos">G7</span><span class="board__name">Create opportunities</span><span class="mono board__gap">CHECKERED FLAG</span></li>
-        </ol>
-      </div>
-    </section>
-
-    <!-- 4 SERVICES -->
-    <section class="sector" id="services" data-sector data-gather="1">
-      <div class="wrap panel panel--wide">
-        <p class="mono label">03 // WHAT WE DO</p>
-        <h2 class="display">We don't hand you a strategy deck and disappear.</h2>
-        <div class="grid">
-          <article class="card"><span class="mono card__num">01</span><h3>Lead Generation</h3><p>Dealers, distributors, partners, sponsors, investors, customers. Whoever your business needs, we find them.</p></article>
-          <article class="card"><span class="mono card__num">02</span><h3>Outbound BD</h3><p>Decision makers identified, prospect lists built, outreach written, follow-ups managed, opportunities qualified.</p></article>
-          <article class="card"><span class="mono card__num">03</span><h3>CRM &amp; Sales Infrastructure</h3><p>The system that keeps every lead organized so nothing dies in a spreadsheet, an inbox or someone's memory.</p></article>
-          <article class="card"><span class="mono card__num">04</span><h3>Positioning &amp; Messaging</h3><p>How you explain what you do, who you target, and the message that actually gets a reply.</p></article>
-          <article class="card"><span class="mono card__num">05</span><h3>Web &amp; Digital</h3><p>Websites, landing pages, lead forms and sales materials built to support outreach, not just look good.</p></article>
-          <article class="card"><span class="mono card__num">06</span><h3>Growth Strategy</h3><p>Finding where the real opportunities are, then going after them with you.</p></article>
+    <!-- 1 PROBLEM: block seats -->
+    <section class="sector" id="problem" data-sector>
+      <div class="wrap">
+        <div class="panel">
+          <p class="mono label">01 // THE PROBLEM</p>
+          <h2 class="display">Great car.<br>No engine behind it.</h2>
+          <p class="big">Brands like Hyper Racer and Gumball don't have a product problem. They have a pipeline problem: nobody is systematically finding dealers, partners, sponsors and customers, and nobody is chasing them down.</p>
+          <p>Leads live in inboxes and spreadsheets. Follow-up slips. The site doesn't convert. That's what we fix, and this is how we build it.</p>
         </div>
       </div>
     </section>
 
-    <!-- 5 SYSTEM -->
-    <section class="sector" id="system" data-sector data-gather="1">
-      <div class="wrap panel panel--wide split">
-        <div>
-          <p class="mono label">04 // THE SYSTEM</p>
+    <!-- 2 BUILD: crank + pistons -->
+    <section class="sector" id="build" data-sector>
+      <div class="wrap">
+        <div class="panel">
+          <p class="mono label">02 // THE BOTTOM END</p>
+          <h2 class="display">The parts that do the work.</h2>
+          <p class="big">Lead generation and outbound. We find the market, find the people, and get the conversations started. Eight pistons, one crank, every stroke logged.</p>
+          <ol class="board board--compact">
+            <li class="board__row"><span class="mono board__pos">01</span><span class="board__name">Find the market</span></li>
+            <li class="board__row"><span class="mono board__pos">02</span><span class="board__name">Find the people</span></li>
+            <li class="board__row"><span class="mono board__pos">03</span><span class="board__name">Build the system</span></li>
+            <li class="board__row"><span class="mono board__pos">04</span><span class="board__name">Contact them</span></li>
+            <li class="board__row"><span class="mono board__pos">05</span><span class="board__name">Track them</span></li>
+            <li class="board__row"><span class="mono board__pos">06</span><span class="board__name">Follow up</span></li>
+            <li class="board__row board__row--volt"><span class="mono board__pos">07</span><span class="board__name">Create opportunities</span></li>
+          </ol>
+          <p class="mono muted hint">HOVER A PART TO SEE WHAT IT IS</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 TOP END: heads + intake -->
+    <section class="sector" id="services" data-sector>
+      <div class="wrap">
+        <div class="panel">
+          <p class="mono label">03 // THE TOP END</p>
+          <h2 class="display">How attention gets in.</h2>
+          <p class="big">Positioning, messaging, website, landing pages, sales materials. The intake. If it doesn't breathe, nothing downstream matters.</p>
+          <ul class="list">
+            <li><b>Positioning &amp; messaging</b> Who you target and what makes them reply.</li>
+            <li><b>Web &amp; digital</b> Built to feed the pipeline, not to look nice.</li>
+            <li><b>Sales materials</b> Decks, one-pagers, dealer packs that close.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 SYSTEM: harness + ECU -->
+    <section class="sector" id="system" data-sector>
+      <div class="wrap">
+        <div class="panel">
+          <p class="mono label">04 // THE BRAIN</p>
           <h2 class="display">Your own Launch Control CRM.</h2>
-          <p class="big">We built the master system once. Every client gets their own customized version, deployed fast and loaded with prospects from day one.</p>
-          <p>It's the same system we run Launch Control on. Every inquiry from this website lands in it. We use our own product to sell our own company.</p>
-        </div>
-        <div class="telemetry">
-          <div class="telemetry__bar mono"><span class="blink">●</span> MODULES // LIVE</div>
+          <p class="big">The ECU. Every lead, every touch, every follow-up, wired to one system. We built the master once; you get your own customized version, loaded with prospects from day one.</p>
           <table class="telemetry__table mono">
             <tbody>
               <tr><td>Lead database</td><td class="ok">ONLINE</td></tr>
-              <tr><td>Prospect classifications</td><td class="ok">ONLINE</td></tr>
-              <tr><td>Pipeline management</td><td class="ok">ONLINE</td></tr>
-              <tr><td>Lead status &amp; follow-up</td><td class="ok">ONLINE</td></tr>
-              <tr><td>Contact history</td><td class="ok">ONLINE</td></tr>
+              <tr><td>Pipeline &amp; status</td><td class="ok">ONLINE</td></tr>
+              <tr><td>Contact history &amp; follow-up</td><td class="ok">ONLINE</td></tr>
               <tr><td>Outreach tracking</td><td class="ok">ONLINE</td></tr>
-              <tr><td>Forms &amp; inbound</td><td class="ok">ONLINE</td></tr>
-              <tr><td>Reporting / dashboard</td><td class="ok">ONLINE</td></tr>
+              <tr><td>Forms, inbound, reporting</td><td class="ok">ONLINE</td></tr>
               <tr><td>Client-specific modules</td><td class="warn">CUSTOM</td></tr>
             </tbody>
           </table>
+          <p class="mono muted hint">THIS SITE RUNS ON IT. EVERY INQUIRY LANDS IN OUR OWN CRM.</p>
         </div>
       </div>
     </section>
 
-    <!-- 6 PROOF -->
-    <section class="sector" id="proof" data-sector data-gather="1">
-      <div class="wrap panel panel--wide split">
-        <div>
+    <!-- 5 PROOF: headers + turbo -->
+    <section class="sector" id="proof" data-sector>
+      <div class="wrap">
+        <div class="panel">
           <p class="mono label">05 // PROOF</p>
-          <h2 class="display">Hyper Racer USA.<br>The prototype.</h2>
-          <p class="big">Launch Control started as the business development system we built and operated for Hyper Racer USA: CRM, outreach, lead generation, messaging, website, dealer and partner targeting, follow-up. All of it.</p>
-          <a href="case-studies/hyper-racer.html" class="btn btn--volt">Read the case study</a>
-        </div>
-        <dl class="laps">
-          <!-- TODO: replace data-count values with real Hyper Racer numbers -->
-          <div><dt class="display"><span data-count="1240">0</span></dt><dd class="mono">PROSPECTS TRACKED</dd></div>
-          <div><dt class="display"><span data-count="186">0</span></dt><dd class="mono">DEALERS &amp; PARTNERS</dd></div>
-          <div><dt class="display"><span data-count="38">0</span>%</dt><dd class="mono">RESPONSE RATE</dd></div>
-          <div><dt class="display"><span data-count="47">0</span></dt><dd class="mono">OPPORTUNITIES</dd></div>
-        </dl>
-      </div>
-    </section>
-
-    <!-- 7 PRICING -->
-    <section class="sector" id="pricing" data-sector data-gather="1">
-      <div class="wrap panel panel--wide">
-        <p class="mono label">06 // PRICING</p>
-        <h2 class="display">Three ways to race with us.</h2>
-        <div class="grid tiers">
-          <article class="tier">
-            <span class="mono tier__stage">STAGE 1</span>
-            <h3 class="display">Launch Package</h3>
-            <p class="tier__price display">$10K–15K <span class="mono">ONE-TIME</span></p>
-            <ul><li>CRM deployment &amp; customization</li><li>Pipeline structure</li><li>Lead-generation setup</li><li>Positioning &amp; messaging</li><li>Website / landing page work</li><li>Initial prospect database</li></ul>
-            <a href="#contact" class="btn btn--outline" data-plan="launch">Build the system</a>
-          </article>
-          <article class="tier tier--featured">
-            <span class="mono tier__stage">STAGE 2 // MOST POPULAR</span>
-            <h3 class="display">Growth Retainer</h3>
-            <p class="tier__price display">$5K–10K <span class="mono">/ MONTH</span></p>
-            <ul><li>Ongoing lead generation</li><li>Outbound business development</li><li>Follow-up management</li><li>CRM management</li><li>Strategy &amp; optimization</li></ul>
-            <a href="#contact" class="btn btn--volt" data-plan="growth">Run the pipeline</a>
-          </article>
-          <article class="tier">
-            <span class="mono tier__stage">STAGE 3</span>
-            <h3 class="display">Full Growth Partner</h3>
-            <p class="tier__price display">$10K–15K+ <span class="mono">/ MONTH</span></p>
-            <ul><li>Your external growth &amp; BD department</li><li>Everything in Growth Retainer</li><li>Market entry &amp; partnerships</li><li>Commission / performance options</li></ul>
-            <a href="#contact" class="btn btn--outline" data-plan="partner">Go full partner</a>
-          </article>
+          <h2 class="display">Hyper Racer USA.<br>The first build.</h2>
+          <p class="big">Launch Control is the engine we built and ran for Hyper Racer USA: CRM, outreach, lead generation, messaging, website, dealer and partner targeting, follow-up. Now it's a repeatable build.</p>
+          <dl class="laps">
+            <div><dt class="display"><span data-count="1240">0</span></dt><dd class="mono">PROSPECTS TRACKED</dd></div>
+            <div><dt class="display"><span data-count="186">0</span></dt><dd class="mono">DEALERS &amp; PARTNERS</dd></div>
+            <div><dt class="display"><span data-count="38">0</span>%</dt><dd class="mono">RESPONSE RATE</dd></div>
+            <div><dt class="display"><span data-count="47">0</span></dt><dd class="mono">OPPORTUNITIES</dd></div>
+          </dl>
+          <a href="case-studies/hyper-racer.html" class="btn btn--outline">Read the case study</a>
         </div>
       </div>
     </section>
 
-    <!-- 8 CONTACT -->
-    <section class="sector sector--last" id="contact" data-sector data-gather="1">
-      <div class="wrap panel panel--wide split">
-        <div>
-          <p class="mono label">07 // LIGHTS OUT</p>
-          <h2 class="display">Start your engine.</h2>
-          <p class="big">Tell us about the brand. Every inquiry goes straight into our own Launch Control CRM and we're back to you within one business day.</p>
-          <ul class="chips">
-            <li>Motorsports</li><li>Automotive</li><li>Performance &amp; aftermarket</li><li>Events &amp; rallies</li><li>Lifestyle brands</li><li>B2B</li>
-          </ul>
-          <p class="mono muted">FIND · TRACK · CONVERT</p>
+    <!-- 6 PRICING: complete engine idles above -->
+    <section class="sector sector--pricing" id="pricing" data-sector>
+      <div class="wrap">
+        <div class="panel panel--wide">
+          <p class="mono label">06 // THREE BUILDS</p>
+          <h2 class="display">Pick your stage.</h2>
+          <div class="grid tiers">
+            <article class="tier">
+              <span class="mono tier__stage">STAGE 1</span>
+              <h3 class="display">Launch Package</h3>
+              <p class="tier__price display">$10K–15K <span class="mono">ONE-TIME</span></p>
+              <ul><li>CRM deployment &amp; customization</li><li>Pipeline structure</li><li>Lead-generation setup</li><li>Positioning &amp; messaging</li><li>Website / landing page work</li><li>Initial prospect database</li></ul>
+              <a href="#contact" class="btn btn--outline" data-plan="launch">Build the engine</a>
+            </article>
+            <article class="tier tier--featured">
+              <span class="mono tier__stage">STAGE 2 // MOST POPULAR</span>
+              <h3 class="display">Growth Retainer</h3>
+              <p class="tier__price display">$5K–10K <span class="mono">/ MONTH</span></p>
+              <ul><li>Ongoing lead generation</li><li>Outbound business development</li><li>Follow-up management</li><li>CRM management</li><li>Strategy &amp; optimization</li></ul>
+              <a href="#contact" class="btn btn--volt" data-plan="growth">Run the engine</a>
+            </article>
+            <article class="tier">
+              <span class="mono tier__stage">STAGE 3</span>
+              <h3 class="display">Full Growth Partner</h3>
+              <p class="tier__price display">$10K–15K+ <span class="mono">/ MONTH</span></p>
+              <ul><li>Your external growth &amp; BD department</li><li>Everything in Growth Retainer</li><li>Market entry &amp; partnerships</li><li>Commission / performance options</li></ul>
+              <a href="#contact" class="btn btn--outline" data-plan="partner">Go full partner</a>
+            </article>
+          </div>
         </div>
-        <form class="form" id="lead-form" novalidate>
-          <div class="form__row">
-            <label>Name<input type="text" name="name" required autocomplete="name"></label>
-            <label>Company<input type="text" name="company" required autocomplete="organization"></label>
-          </div>
-          <div class="form__row">
-            <label>Email<input type="email" name="email" required autocomplete="email"></label>
-            <label>Phone<input type="tel" name="phone" autocomplete="tel"></label>
-          </div>
-          <div class="form__row">
-            <label>Industry<input type="text" name="industry" placeholder="Motorsports, automotive..."></label>
-            <label>Stage
-              <select name="plan">
-                <option value="">Not sure yet</option>
-                <option value="launch">Stage 1: Launch Package</option>
-                <option value="growth">Stage 2: Growth Retainer</option>
-                <option value="partner">Stage 3: Full Growth Partner</option>
-              </select>
-            </label>
-          </div>
-          <label>What do you need most?<textarea name="message" rows="4" placeholder="Dealers, sponsors, partners, a CRM, a site that actually converts..."></textarea></label>
-          <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-          <button type="submit" class="btn btn--volt">Send it</button>
-          <p class="form__status mono" role="status" aria-live="polite"></p>
-        </form>
       </div>
+    </section>
 
+    <!-- 7 IGNITION: contact -->
+    <section class="sector sector--last" id="contact" data-sector>
+      <div class="wrap">
+        <div class="panel panel--wide split">
+          <div>
+            <p class="mono label">07 // IGNITION</p>
+            <h2 class="display">Start your engine.</h2>
+            <p class="big">Tell us about the brand. Book a 20-minute pit stop, or send the form. Either way it lands in our own CRM and you hear back within one business hour, 8–6 Phoenix time.</p>
+            <a href="#contact" class="btn btn--volt" data-booking>Book a 20-min pit stop</a>
+            <p class="mono muted hint">OR SEND IT →</p>
+            <ul class="chips">
+              <li>Motorsports</li><li>Automotive</li><li>Performance &amp; aftermarket</li><li>Events &amp; rallies</li><li>Lifestyle brands</li><li>B2B</li>
+            </ul>
+          </div>
+          <form class="form" id="lead-form" novalidate>
+            <div class="form__row">
+              <label>Name<input type="text" name="name" required autocomplete="name"></label>
+              <label>Company<input type="text" name="company" required autocomplete="organization"></label>
+            </div>
+            <div class="form__row">
+              <label>Email<input type="email" name="email" required autocomplete="email"></label>
+              <label>Phone<input type="tel" name="phone" autocomplete="tel"></label>
+            </div>
+            <div class="form__row">
+              <label>Industry<input type="text" name="industry" placeholder="Motorsports, automotive..."></label>
+              <label>Stage
+                <select name="plan">
+                  <option value="">Not sure yet</option>
+                  <option value="launch">Stage 1: Launch Package</option>
+                  <option value="growth">Stage 2: Growth Retainer</option>
+                  <option value="partner">Stage 3: Full Growth Partner</option>
+                </select>
+              </label>
+            </div>
+            <label>What do you need most?<textarea name="message" rows="4" placeholder="Dealers, sponsors, partners, a CRM, a site that actually converts..."></textarea></label>
+            <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+            <button type="submit" class="btn btn--volt">Send it</button>
+            <p class="form__status mono" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
       <footer class="footer">
         <div class="wrap footer__inner">
           <span class="mono muted">&copy; <span id="year"></span> LAUNCH CONTROL</span>
           <nav class="footer__links mono">
-            <a href="#pitwall">PIT WALL</a><a href="#system">SYSTEM</a><a href="case-studies/hyper-racer.html">CASE STUDY</a><a href="#pricing">PRICING</a>
+            <a href="#build">ENGINE</a><a href="case-studies/hyper-racer.html">CASE STUDY</a><a href="#pricing">PRICING</a><a href="#contact">CONTACT</a>
           </nav>
           <p class="mono powered">POWERED BY <a href="https://www.syntraai.tech" rel="noopener">SYNTRA AI</a></p>
         </div>
@@ -265,6 +266,6 @@
   </main>
 
   <script src="js/main.js"></script>
-  <script type="module" src="js/scene.js"></script>
+  <script type="module" src="js/engine.js"></script>
 </body>
 </html>

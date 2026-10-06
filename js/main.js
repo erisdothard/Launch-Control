@@ -5,6 +5,9 @@
 // endpoint once it exists. While empty, submissions are logged to the console.
 const CRM_ENDPOINT = "";
 
+// Calendar booking link (Calendly, Cal.com, ...). Empty = every "book" button goes to the form.
+const BOOKING_URL = "";
+
 // HUD numbers. Replace with live values from the CRM when wired up.
 const TICKER = { prospects: 1240, outreach: 3811, followups: 46 };
 
@@ -26,6 +29,24 @@ if (toggle && links) {
       toggle.setAttribute("aria-expanded", "false");
     })
   );
+}
+
+/* ---------- Booking buttons ---------- */
+document.querySelectorAll("[data-booking]").forEach((a) => {
+  if (BOOKING_URL) { a.href = BOOKING_URL; a.target = "_blank"; a.rel = "noopener"; }
+});
+
+/* ---------- Sticky CTA: show from the services beat until the contact form is on screen ---------- */
+const sticky = document.querySelector(".sticky-cta");
+const servicesEl = document.getElementById("services");
+const contactEl = document.getElementById("contact");
+if (sticky && servicesEl && contactEl) {
+  const update = () => {
+    const past = servicesEl.getBoundingClientRect().top < innerHeight * 0.5;
+    const atContact = contactEl.getBoundingClientRect().top < innerHeight * 0.7;
+    sticky.hidden = !(past && !atContact);
+  };
+  addEventListener("scroll", update, { passive: true }); update();
 }
 
 /* ---------- HUD ticker ---------- */
