@@ -1,27 +1,20 @@
-// Launch Control: site scripts
+// Launch Control: page scripts (nav, HUD ticker, section reveals, lead form).
+// The WebGL circuit lives in scene.js.
 
 // Where inbound inquiries go. Point this at the Launch Control CRM intake
 // endpoint once it exists. While empty, submissions are logged to the console.
 const CRM_ENDPOINT = "";
 
-// Ticker numbers. Replace with live values from the CRM when wired up.
-const TICKER = { prospects: 1240, outreach: 3811, followups: 46, opps: 23 };
+// HUD numbers. Replace with live values from the CRM when wired up.
+const TICKER = { prospects: 1240, outreach: 3811, followups: 46 };
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-document.querySelectorAll("#year").forEach((el) => {
-  el.textContent = new Date().getFullYear();
-});
+document.querySelectorAll("#year").forEach((el) => (el.textContent = new Date().getFullYear()));
 
 /* ---------- Nav ---------- */
-const nav = document.querySelector(".nav");
 const toggle = document.querySelector(".nav__toggle");
 const links = document.querySelector(".nav__links");
-
-const onScroll = () => nav && nav.classList.toggle("scrolled", window.scrollY > 40);
-onScroll();
-window.addEventListener("scroll", onScroll, { passive: true });
-
 if (toggle && links) {
   toggle.addEventListener("click", () => {
     const open = links.classList.toggle("open");
@@ -35,79 +28,26 @@ if (toggle && links) {
   );
 }
 
-/* ---------- Hero: video if present, canvas placeholder otherwise ---------- */
-const hero = document.querySelector(".hero");
-const video = document.querySelector(".hero__video");
-const canvas = document.querySelector(".hero__canvas");
-
-if (video) {
-  // Only show the video once we know a source actually loaded.
-  video.addEventListener("loadeddata", () => hero.classList.add("has-video"));
-  video.addEventListener("error", () => hero.classList.remove("has-video"), true);
-}
-
-if (canvas && !reduceMotion) {
-  // "Light trails at speed": streaks converging on a vanishing point.
-  // Pure placeholder until real footage lands in assets/hero.mp4.
-  const ctx = canvas.getContext("2d");
-  let w, h, streaks = [];
-
-  const resize = () => {
-    w = canvas.width = canvas.offsetWidth * devicePixelRatio;
-    h = canvas.height = canvas.offsetHeight * devicePixelRatio;
-  };
-  const spawn = () => ({
-    angle: Math.random() * Math.PI * 2,
-    dist: Math.random() * 0.2,
-    speed: 0.004 + Math.random() * 0.012,
-    width: (0.5 + Math.random() * 1.5) * devicePixelRatio,
-    volt: Math.random() < 0.18,
-  });
-
-  resize();
-  window.addEventListener("resize", resize);
-  for (let i = 0; i < 160; i++) streaks.push({ ...spawn(), dist: Math.random() });
-
-  const draw = () => {
-    ctx.fillStyle = "rgba(10,10,10,0.35)";
-    ctx.fillRect(0, 0, w, h);
-    const cx = w * 0.62, cy = h * 0.42, maxR = Math.hypot(w, h);
-    for (const s of streaks) {
-      const r0 = s.dist * maxR, r1 = (s.dist + s.speed * 6) * maxR;
-      const a = Math.min(1, s.dist * 2.2);
-      ctx.strokeStyle = s.volt ? `rgba(200,255,0,${a})` : `rgba(255,255,255,${a * 0.6})`;
-      ctx.lineWidth = s.width * (0.4 + s.dist);
-      ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(s.angle) * r0, cy + Math.sin(s.angle) * r0);
-      ctx.lineTo(cx + Math.cos(s.angle) * r1, cy + Math.sin(s.angle) * r1);
-      ctx.stroke();
-      s.dist += s.speed * (0.5 + s.dist * 2);
-      if (s.dist > 1) Object.assign(s, spawn());
-    }
-    requestAnimationFrame(draw);
-  };
-  draw();
-}
-
-/* ---------- Ticker ---------- */
+/* ---------- HUD ticker ---------- */
 document.querySelectorAll("[data-ticker]").forEach((el) => {
   const v = TICKER[el.dataset.ticker];
   if (v != null) el.textContent = v.toLocaleString();
 });
 
-/* ---------- Scroll reveal + stripes + counters ---------- */
+/* ---------- Section reveal + counters ---------- */
 const countUp = (el) => {
   const target = Number(el.dataset.count);
   if (reduceMotion) { el.textContent = target.toLocaleString(); return; }
   const start = performance.now(), dur = 1400;
   const tick = (now) => {
     const p = Math.min(1, (now - start) / dur);
-    const eased = 1 - Math.pow(1 - p, 3);
-    el.textContent = Math.round(target * eased).toLocaleString();
+    el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))).toLocaleString();
     if (p < 1) requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
 };
+
+document.querySelectorAll(".board__row").forEach((row, i) => row.style.setProperty("--i", i));
 
 const io = new IntersectionObserver(
   (entries) => {
@@ -118,28 +58,33 @@ const io = new IntersectionObserver(
       io.unobserve(e.target);
     });
   },
-  { threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
+  { threshold: 0.2 }
 );
-document.querySelectorAll(".reveal, .stripe--top, .board__row").forEach((el) => io.observe(el));
+document.querySelectorAll(".sector").forEach((el) => io.observe(el));
+// Belt and braces: also reveal on scroll position, so a slow frame never leaves a panel hidden.
+const sectors = [...document.querySelectorAll(".sector")];
+const revealByScroll = () => {
+  sectors.forEach((s) => {
+    if (s.classList.contains("in")) return;
+    if (s.getBoundingClientRect().top < innerHeight * 0.8) { s.classList.add("in"); s.querySelectorAll("[data-count]").forEach(countUp); io.unobserve(s); }
+  });
+};
+addEventListener("scroll", revealByScroll, { passive: true });
+revealByScroll();
 
 /* ---------- Pricing buttons preselect the stage ---------- */
 const form = document.getElementById("lead-form");
 document.querySelectorAll("[data-plan]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    if (form) form.elements.plan.value = btn.dataset.plan;
-  });
+  btn.addEventListener("click", () => { if (form) form.elements.plan.value = btn.dataset.plan; });
 });
 
 /* ---------- Lead form -> CRM ---------- */
 if (form) {
   const status = form.querySelector(".form__status");
-
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     status.className = "form__status mono";
-
-    // Honeypot: bots fill hidden fields, humans don't
-    if (form.elements.website.value) return;
+    if (form.elements.website.value) return; // honeypot
 
     let valid = true;
     form.querySelectorAll("[required]").forEach((field) => {
@@ -161,14 +106,9 @@ if (form) {
 
     const submit = form.querySelector("button[type=submit]");
     submit.disabled = true;
-
     try {
       if (CRM_ENDPOINT) {
-        const res = await fetch(CRM_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(lead),
-        });
+        const res = await fetch(CRM_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(lead) });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
       } else {
         console.info("[Launch Control] CRM_ENDPOINT not set. Lead:", lead);

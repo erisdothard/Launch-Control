@@ -5,32 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hyper Racer USA | Launch Control Case Study</title>
   <meta name="description" content="How Launch Control built and operated the CRM, outreach and lead-generation system for Hyper Racer USA.">
-  <meta name="theme-color" content="#0a0a0a">
+  <meta name="theme-color" content="#050505">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    /* case study runs without the WebGL circuit: static dark grid */
+    body { background: var(--black) linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 100% 64px, linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 64px 100%; }
+    .sector { min-height: 0; padding: 60px 0; }
+    .sector:first-child { padding-top: 160px; }
+  </style>
 </head>
 <body>
-
-  <header class="nav scrolled">
-    <div class="wrap nav__inner">
+  <header class="nav">
+    <div class="nav__inner">
       <a href="../index.html" class="logo" aria-label="Launch Control home">
-        <svg class="logo__mark" viewBox="0 0 40 40" aria-hidden="true">
-          <rect width="40" height="40" rx="4" fill="currentColor"/>
-          <path d="M8 9h6v16h9v6H8z" fill="#0a0a0a"/>
-          <path d="M31 9h-9c-1.5 0-2.7 1.2-2.7 2.7v4.6h6V15h5.7V9z" fill="#0a0a0a"/>
-          <path d="M-2 44 44 -2" stroke="#0a0a0a" stroke-width="3"/>
-        </svg>
+        <svg class="logo__mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="4" fill="currentColor"/><path d="M8 9h6v16h9v6H8z" fill="#0a0a0a"/><path d="M31 9h-9c-1.5 0-2.7 1.2-2.7 2.7v4.6h6V15h5.7V9z" fill="#0a0a0a"/><path d="M-2 44 44 -2" stroke="#0a0a0a" stroke-width="3"/></svg>
         <span>LAUNCH<em>CONTROL</em></span>
       </a>
-      <button class="nav__toggle" aria-label="Open menu" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
+      <button class="nav__toggle" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
       <nav class="nav__links">
         <a href="../index.html#pitwall">Pit Wall</a>
-        <a href="../index.html#system">The System</a>
+        <a href="../index.html#system">System</a>
         <a href="../index.html#pricing">Pricing</a>
         <a href="../index.html#contact" class="btn btn--volt btn--sm">Start Your Engine</a>
       </nav>
@@ -38,97 +36,71 @@
   </header>
 
   <main>
-    <section class="section section--black" style="padding-top:160px">
-      <div class="stripe stripe--diag" aria-hidden="true"></div>
+    <section class="sector">
       <div class="wrap">
         <p class="mono label">CASE STUDY // AUTOMOTIVE &amp; MOTORSPORTS</p>
         <h1 class="display">Hyper Racer USA.<br><span class="line--volt">The prototype.</span></h1>
-        <p class="big" style="max-width:640px">
-          The complete business development system Launch Control was born from, built and
-          operated end to end.
-        </p>
+        <p class="big" style="max-width:640px">The complete business development system Launch Control was born from, built and operated end to end.</p>
       </div>
     </section>
 
-    <section class="section section--white">
-      <div class="wrap split">
-        <div>
-          <p class="mono label reveal">01 // THE GRID</p>
-          <h2 class="display reveal">Where they started</h2>
-        </div>
-        <div class="reveal">
-          <p class="big">[TODO: Where Hyper Racer USA was before. A strong product, a clear market, no system for finding dealers and partners, leads scattered across inboxes and spreadsheets, follow-up falling through.]</p>
-        </div>
+    <section class="sector">
+      <div class="wrap panel panel--wide split">
+        <div><p class="mono label">01 // THE GRID</p><h2 class="display">Where they started</h2></div>
+        <p class="big">[TODO: Where Hyper Racer USA was before. A strong product, a clear market, no system for finding dealers and partners, leads scattered across inboxes and spreadsheets, follow-up falling through.]</p>
       </div>
     </section>
 
-    <section class="section section--black">
-      <div class="wrap split">
-        <div>
-          <p class="mono label reveal">02 // THE BUILD</p>
-          <h2 class="display reveal">What we built</h2>
-        </div>
-        <ol class="board reveal" style="margin-top:0">
-          <li class="board__row"><span class="mono board__pos">01</span><span class="board__name" style="font-size:1.6rem">Custom CRM</span><span class="mono board__gap">LEADS · PIPELINE · HISTORY</span></li>
-          <li class="board__row"><span class="mono board__pos">02</span><span class="board__name" style="font-size:1.6rem">Lead-gen methodology</span><span class="mono board__gap">DEALERS · PARTNERS · CUSTOMERS</span></li>
-          <li class="board__row"><span class="mono board__pos">03</span><span class="board__name" style="font-size:1.6rem">Outreach &amp; follow-up</span><span class="mono board__gap">CADENCE · TRACKING</span></li>
-          <li class="board__row"><span class="mono board__pos">04</span><span class="board__name" style="font-size:1.6rem">Positioning &amp; messaging</span><span class="mono board__gap">WHO · WHAT · WHY</span></li>
-          <li class="board__row"><span class="mono board__pos">05</span><span class="board__name" style="font-size:1.6rem">Website &amp; lead capture</span><span class="mono board__gap">INBOUND → CRM</span></li>
+    <section class="sector">
+      <div class="wrap panel panel--wide">
+        <p class="mono label">02 // THE BUILD</p>
+        <h2 class="display">What we built</h2>
+        <ol class="board">
+          <li class="board__row"><span class="mono board__pos">01</span><span class="board__name">Custom CRM</span><span class="mono board__gap">LEADS · PIPELINE · HISTORY</span></li>
+          <li class="board__row"><span class="mono board__pos">02</span><span class="board__name">Lead-gen methodology</span><span class="mono board__gap">DEALERS · PARTNERS · CUSTOMERS</span></li>
+          <li class="board__row"><span class="mono board__pos">03</span><span class="board__name">Outreach &amp; follow-up</span><span class="mono board__gap">CADENCE · TRACKING</span></li>
+          <li class="board__row"><span class="mono board__pos">04</span><span class="board__name">Positioning &amp; messaging</span><span class="mono board__gap">WHO · WHAT · WHY</span></li>
+          <li class="board__row"><span class="mono board__pos">05</span><span class="board__name">Website &amp; lead capture</span><span class="mono board__gap">INBOUND → CRM</span></li>
         </ol>
       </div>
     </section>
 
-    <section class="section section--white">
-      <div class="wrap split">
-        <div>
-          <p class="mono label reveal">03 // THE RACE</p>
-          <h2 class="display reveal">How we ran it</h2>
-        </div>
-        <div class="reveal">
-          <p class="big">[TODO: Day-to-day operation. Prospect research, outreach volume, follow-up cadence, qualification, weekly reporting.]</p>
-        </div>
+    <section class="sector">
+      <div class="wrap panel panel--wide split">
+        <div><p class="mono label">03 // THE RACE</p><h2 class="display">How we ran it</h2></div>
+        <p class="big">[TODO: Day-to-day operation. Prospect research, outreach volume, follow-up cadence, qualification, weekly reporting.]</p>
       </div>
     </section>
 
-    <section class="section section--volt">
-      <div class="wrap">
-        <p class="mono label reveal">04 // THE RESULT</p>
-        <h2 class="display reveal">The numbers</h2>
-        <dl class="laps reveal" style="grid-template-columns:repeat(4,1fr)">
+    <section class="sector">
+      <div class="wrap panel panel--wide">
+        <p class="mono label">04 // THE RESULT</p>
+        <h2 class="display">The numbers</h2>
+        <dl class="laps" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
           <!-- TODO: replace data-count values with real Hyper Racer numbers -->
           <div><dt class="display"><span data-count="1240">0</span></dt><dd class="mono">PROSPECTS TRACKED</dd></div>
-          <div><dt class="display"><span data-count="186">0</span></dt><dd class="mono">DEALERS &amp; PARTNERS TARGETED</dd></div>
-          <div><dt class="display"><span data-count="38">0</span>%</dt><dd class="mono">OUTREACH RESPONSE RATE</dd></div>
-          <div><dt class="display"><span data-count="47">0</span></dt><dd class="mono">OPPORTUNITIES CREATED</dd></div>
+          <div><dt class="display"><span data-count="186">0</span></dt><dd class="mono">DEALERS &amp; PARTNERS</dd></div>
+          <div><dt class="display"><span data-count="38">0</span>%</dt><dd class="mono">RESPONSE RATE</dd></div>
+          <div><dt class="display"><span data-count="47">0</span></dt><dd class="mono">OPPORTUNITIES</dd></div>
         </dl>
       </div>
     </section>
 
-    <section class="section section--black">
-      <div class="wrap">
-        <p class="mono label reveal">05 // YOUR TURN</p>
-        <h2 class="display reveal">Everything we built for Hyper Racer<br>is now the Launch Control framework.</h2>
-        <p class="big reveal" style="max-width:640px">We duplicate it, customize it to your business, load it with leads and start working.</p>
-        <a href="../index.html#contact" class="btn btn--volt reveal">Start your engine</a>
+    <section class="sector sector--last">
+      <div class="wrap panel panel--wide">
+        <p class="mono label">05 // YOUR TURN</p>
+        <h2 class="display">Everything we built for Hyper Racer<br>is now the Launch Control framework.</h2>
+        <p class="big" style="max-width:640px">We duplicate it, customize it to your business, load it with leads and start working.</p>
+        <a href="../index.html#contact" class="btn btn--volt">Start your engine</a>
       </div>
+      <footer class="footer">
+        <div class="wrap footer__inner">
+          <span class="mono muted">&copy; <span id="year"></span> LAUNCH CONTROL</span>
+          <p class="mono powered">POWERED BY <a href="https://www.syntraai.tech" rel="noopener">SYNTRA AI</a></p>
+        </div>
+      </footer>
     </section>
   </main>
-
-  <footer class="footer">
-    <div class="wrap footer__inner">
-      <a href="../index.html" class="logo">
-        <svg class="logo__mark" viewBox="0 0 40 40" aria-hidden="true">
-          <rect width="40" height="40" rx="4" fill="currentColor"/>
-          <path d="M8 9h6v16h9v6H8z" fill="#0a0a0a"/>
-          <path d="M31 9h-9c-1.5 0-2.7 1.2-2.7 2.7v4.6h6V15h5.7V9z" fill="#0a0a0a"/>
-          <path d="M-2 44 44 -2" stroke="#0a0a0a" stroke-width="3"/>
-        </svg>
-        <span>LAUNCH<em>CONTROL</em></span>
-      </a>
-      <p class="mono powered">POWERED BY <a href="https://www.syntraai.tech" rel="noopener">SYNTRA AI</a></p>
-    </div>
-    <div class="wrap"><p class="mono copyright">&copy; <span id="year"></span> LAUNCH CONTROL. ALL RIGHTS RESERVED.</p></div>
-  </footer>
 
   <script src="../js/main.js"></script>
 </body>
