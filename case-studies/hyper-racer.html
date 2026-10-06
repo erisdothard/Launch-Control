@@ -3,119 +3,80 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hyper Racer USA — Launch Control case study</title>
-  <meta name="description" content="How Launch Control built and operated the CRM, outreach and lead-generation engine for Hyper Racer USA.">
-  <meta name="theme-color" content="#050505">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Instrument+Serif:ital@1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Build sheet — Launch Control</title>
+  <meta name="description" content="The first Launch Control build: the CRM, outreach and lead-generation operation built and run for a US race-car distributor.">
+  <meta name="theme-color" content="#f4f2ec">
+  <link rel="stylesheet" href="../css/fonts.css">
+  <link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../css/styles.css">
   <style>
-    /* static page: no WebGL, so the beats are shorter and always visible */
-    .beat { min-height: 0; padding: 72px 0; }
-    .beat.in .copy, .copy { opacity: 1; transform: none; max-width: 640px; }
-    .copy::before { display: none; }
-    .case-hero { padding-top: 180px; }
-    .case-hero h1 { max-width: 14ch; }
-    .rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
-    .numbers { grid-template-columns: repeat(4, 1fr); opacity: 1; transform: none; }
-    .todo { color: var(--grey); font-style: italic; }
-    @media (max-width: 960px) { .numbers { grid-template-columns: 1fr 1fr; } }
+    .sheet--split { min-height: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: start; }
+    .sheet--split .copy { grid-column: 2; max-width: 60ch; }
+    .sheet--split h2 { grid-column: 1; font-size: clamp(2rem, 4vw, 3.4rem); }
+    .todo { color: var(--ink-3); font-style: italic; }
+    @media (max-width: 900px) { .sheet--split h2, .sheet--split .copy { grid-column: 1; } }
   </style>
 </head>
 <body>
-  <div class="vignette" aria-hidden="true"></div>
-  <div class="grain" aria-hidden="true"></div>
+<header class="masthead">
+  <a href="../index.html" class="lockup" aria-label="Launch Control"><img src="../assets/mark.svg" alt="" width="40" height="40"><span>Launch<br>Control</span></a>
+  <div class="board" data-board-static="Build sheet"></div>
+  <nav class="masthead__nav">
+    <a href="../index.html#work">What we do</a>
+    <a href="../index.html#pricing">Pricing</a>
+    <a href="../index.html#contact" class="cta" data-booking>Book a pit stop</a>
+  </nav>
+  <button class="masthead__menu" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>
+</header>
 
-  <header class="nav">
-    <div class="nav__inner">
-      <a href="../index.html" class="logo" aria-label="Launch Control home">
-        <svg class="logo__mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M6 0h40l18 18v40a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V6a6 6 0 0 1 6-6z" fill="#c8ff00"/><path d="M14 12h12v26h26v12H14z" fill="#050505"/><rect x="32" y="12" width="18" height="6" fill="#050505"/></svg>
-        <span>Launch Control<small>Business development · the pit wall</small></span>
-      </a>
-      <button class="nav__toggle" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
-      <nav class="nav__links">
-        <a href="../index.html#build">The engine</a>
-        <a href="../index.html#pricing">Pricing</a>
-        <a href="../index.html#contact" class="btn btn--volt btn--sm" data-booking>Book a pit stop</a>
-      </nav>
+<main>
+  <section class="sheet sheet--hero" style="min-height:0; grid-template-columns: 1fr; align-content:start">
+    <div class="hero__type"><h1 style="font-size:clamp(3.2rem,8vw,7.5rem)"><span>Build sheet.</span><span class="ink-rule">The first one.</span></h1></div>
+    <div class="hero__aside"><p class="lede">The business development operation Launch Control was born from, built and run end to end for a US race-car distributor.</p></div>
+  </section>
+
+  <section class="sheet sheet--split">
+    <h2>Where they started</h2>
+    <div class="copy"><p class="todo">[To write: a strong product, a clear market, no system for finding dealers and partners, leads scattered across inboxes and spreadsheets, follow-up falling through.]</p></div>
+  </section>
+
+  <section class="sheet sheet--split">
+    <h2>What we built</h2>
+    <div class="copy">
+      <ol class="laps" style="margin-top:0">
+        <li>Custom CRM: leads, pipeline, contact history</li>
+        <li>Lead-generation method for dealers, partners, customers</li>
+        <li>Outreach process and follow-up cadence</li>
+        <li>Positioning and messaging</li>
+        <li>Website and lead capture, inbound straight to the CRM</li>
+      </ol>
     </div>
-  </header>
+  </section>
 
-  <main>
-    <section class="beat case-hero">
-      <div class="wrap">
-        <p class="kicker mono">Case study — automotive &amp; motorsports</p>
-        <h1>Hyper Racer USA. <em>The first build.</em></h1>
-        <p class="sub" style="animation:none;opacity:1">The complete business development engine Launch Control was born from, built and operated end to end.</p>
-      </div>
-    </section>
+  <section class="sheet sheet--split">
+    <h2>How we ran it</h2>
+    <div class="copy"><p class="todo">[To write: day-to-day operation. Prospect research, outreach volume, follow-up cadence, qualification, weekly reporting.]</p></div>
+  </section>
 
-    <div class="wrap"><hr class="rule"></div>
+  <section class="sheet sheet--proof">
+    <h2>The numbers.</h2>
+    <dl class="results">
+      <div><dt><span data-count="1240">0</span></dt><dd>prospects tracked</dd></div>
+      <div><dt><span data-count="186">0</span></dt><dd>dealers and partners targeted</dd></div>
+      <div><dt><span data-count="38">0</span>%</dt><dd>outreach response rate</dd></div>
+      <div><dt><span data-count="47">0</span></dt><dd>opportunities created</dd></div>
+    </dl>
+    <p class="proof__lede">Everything built here is now the Launch Control framework. We duplicate it, fit it to your business, load it with prospects and start working.</p>
+    <p style="margin-top:28px"><a href="../index.html#contact" class="cta" data-booking>Book a 20-minute pit stop</a></p>
+  </section>
 
-    <section class="beat">
-      <div class="wrap copy">
-        <p class="kicker mono">01 — The grid</p>
-        <h2>Where they <em>started.</em></h2>
-        <p class="todo">[TODO: Where Hyper Racer USA was before. A strong product, a clear market, no system for finding dealers and partners, leads scattered across inboxes and spreadsheets, follow-up falling through.]</p>
-      </div>
-    </section>
-
-    <section class="beat">
-      <div class="wrap copy">
-        <p class="kicker mono">02 — The build</p>
-        <h2>What we <em>built.</em></h2>
-        <ol class="steps">
-          <li>Custom CRM: leads, pipeline, contact history</li>
-          <li>Lead-generation methodology for dealers, partners, customers</li>
-          <li>Outreach process and follow-up cadence</li>
-          <li>Positioning and messaging</li>
-          <li>Website and lead capture, inbound straight to the CRM</li>
-        </ol>
-      </div>
-    </section>
-
-    <section class="beat">
-      <div class="wrap copy">
-        <p class="kicker mono">03 — The race</p>
-        <h2>How we <em>ran it.</em></h2>
-        <p class="todo">[TODO: Day-to-day operation. Prospect research, outreach volume, follow-up cadence, qualification, weekly reporting.]</p>
-      </div>
-    </section>
-
-    <section class="beat">
-      <div class="wrap">
-        <p class="kicker mono">04 — The result</p>
-        <h2 class="h-big">The <em>numbers.</em></h2>
-        <dl class="numbers">
-          <!-- TODO: real values -->
-          <div><dt><span data-count="1240">0</span></dt><dd class="mono">prospects tracked</dd></div>
-          <div><dt><span data-count="186">0</span></dt><dd class="mono">dealers &amp; partners targeted</dd></div>
-          <div><dt><span data-count="38">0</span><i>%</i></dt><dd class="mono">outreach response rate</dd></div>
-          <div><dt><span data-count="47">0</span></dt><dd class="mono">opportunities created</dd></div>
-        </dl>
-      </div>
-    </section>
-
-    <section class="beat">
-      <div class="wrap copy">
-        <p class="kicker mono">05 — Your turn</p>
-        <h2>Everything we built for Hyper Racer is now <em>the framework.</em></h2>
-        <p>We duplicate it, customize it to your business, load it with leads and start working.</p>
-        <a href="../index.html#contact" class="btn btn--volt" data-booking>Book a 20-min pit stop</a>
-      </div>
-    </section>
-
-    <div class="wrap">
-      <footer class="footer mono" style="margin-top:40px">
-        <span>© <span id="year"></span> Launch Control</span>
-        <nav><a href="../index.html#build">Engine</a><a href="../index.html#pricing">Pricing</a><a href="../index.html#contact">Contact</a></nav>
-        <span>Powered by <a href="https://www.syntraai.tech" rel="noopener">Syntra AI</a></span>
-      </footer>
-    </div>
-  </main>
-
-  <script src="../js/main.js"></script>
+  <footer class="colophon">
+    <span>© <span id="year"></span> Launch Control</span>
+    <nav><a href="../index.html#work">What we do</a><a href="../index.html#pricing">Pricing</a><a href="../index.html#contact">Contact</a></nav>
+    <span>Powered by <a href="https://www.syntraai.tech" rel="noopener">Syntra AI</a></span>
+  </footer>
+</main>
+<script src="../js/main.js"></script>
+<script src="../js/board.js"></script>
 </body>
 </html>

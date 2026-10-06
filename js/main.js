@@ -16,8 +16,8 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
 document.querySelectorAll("#year").forEach((el) => (el.textContent = new Date().getFullYear()));
 
 /* ---------- Nav ---------- */
-const toggle = document.querySelector(".nav__toggle");
-const links = document.querySelector(".nav__links");
+const toggle = document.querySelector(".masthead__menu");
+const links = document.querySelector(".masthead__nav");
 if (toggle && links) {
   toggle.addEventListener("click", () => {
     const open = links.classList.toggle("open");
@@ -38,7 +38,7 @@ document.querySelectorAll("[data-booking]").forEach((a) => {
 
 /* ---------- Sticky CTA: show from the services beat until the contact form is on screen ---------- */
 const sticky = document.querySelector(".sticky-cta");
-const servicesEl = document.getElementById("services");
+const servicesEl = document.getElementById("messaging");
 const contactEl = document.getElementById("contact");
 if (sticky && servicesEl && contactEl) {
   const update = () => {
@@ -81,9 +81,9 @@ const io = new IntersectionObserver(
   },
   { threshold: 0.2 }
 );
-document.querySelectorAll(".beat").forEach((el) => io.observe(el));
+document.querySelectorAll(".sheet").forEach((el) => io.observe(el));
 // Belt and braces: also reveal on scroll position, so a slow frame never leaves a panel hidden.
-const sectors = [...document.querySelectorAll(".beat")];
+const sectors = [...document.querySelectorAll(".sheet")];
 const revealByScroll = () => {
   sectors.forEach((s) => {
     if (s.classList.contains("in")) return;
@@ -104,7 +104,7 @@ if (form) {
   const status = form.querySelector(".form__status");
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    status.className = "form__status mono";
+    status.className = "form__status";
     if (form.elements.website.value) return; // honeypot
 
     let valid = true;

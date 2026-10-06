@@ -22,34 +22,34 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
 const MODEL_URL = ""; // e.g. "assets/models/engine.glb". Empty = procedural engine.
 
-const VOLT = new THREE.Color("#c8ff00");
+const VOLT = new THREE.Color("#e4572e"); // the one signal: marshal orange-red
+const isMobile = matchMedia("(max-width: 900px)").matches;
 const canvas = document.getElementById("gl");
 // ?nogl renders the page with the engine off: the brand has to hold on its own.
-if (new URLSearchParams(location.search).has("nogl")) { canvas.remove(); throw new Error("engine disabled by ?nogl"); }
-const isMobile = matchMedia("(max-width: 720px)").matches;
+if (new URLSearchParams(location.search).has("nogl") || isMobile) { canvas.remove(); throw new Error("engine off: " + (isMobile ? "mobile" : "?nogl")); }
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const hotspot = document.querySelector(".hotspot");
+const hotspot = null;
 
 /* ================= Renderer / scene ================= */
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
 renderer.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 1.5 : 1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.82;
+renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color("#050505");
-scene.fog = new THREE.FogExp2(0x050505, 0.055);
+scene.background = new THREE.Color("#f4f2ec");
+scene.fog = new THREE.FogExp2(0xf4f2ec, 0.05);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-scene.environmentIntensity = 0.22;
+scene.environmentIntensity = 0.6;
 
 const camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, 0.1, 80);
 
 // Studio lighting: one hard key from high right with shadows, a cool fill, a volt rim from behind.
-const key = new THREE.DirectionalLight(0xfff4e6, 1.7);
+const key = new THREE.DirectionalLight(0xfff7ec, 2.4);
 key.position.set(6, 9, 4);
 key.castShadow = true;
 key.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048);
@@ -58,12 +58,12 @@ key.shadow.camera.right = key.shadow.camera.top = 9;
 key.shadow.camera.near = 1; key.shadow.camera.far = 30;
 key.shadow.bias = -0.0008; key.shadow.normalBias = 0.02; key.shadow.radius = 4;
 scene.add(key);
-const fill = new THREE.DirectionalLight(0x6f86a8, 0.45); fill.position.set(-7, 3, 2); scene.add(fill);
-const rim = new THREE.SpotLight(VOLT, 22, 40, Math.PI / 5, 0.6, 1.2); rim.position.set(-5, 4, -8); rim.target.position.set(0, 0, 0); scene.add(rim, rim.target);
-scene.add(new THREE.AmbientLight(0xffffff, 0.05));
+const fill = new THREE.DirectionalLight(0xdfe6f0, 0.9); fill.position.set(-7, 3, 2); scene.add(fill);
+const rim = new THREE.SpotLight(0xffffff, 10, 40, Math.PI / 5, 0.6, 1.2); rim.position.set(-5, 4, -8); rim.target.position.set(0, 0, 0); scene.add(rim, rim.target);
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
 // Floor: dark studio sweep. Receives the shadow pool; fog eats the edges.
-const floor = new THREE.Mesh(new THREE.CircleGeometry(40, 64), new THREE.MeshStandardMaterial({ color: 0x0c0c0d, roughness: 0.95, metalness: 0 }));
+const floor = new THREE.Mesh(new THREE.CircleGeometry(40, 64), new THREE.ShadowMaterial({ opacity: 0.18 }));
 floor.rotation.x = -Math.PI / 2; floor.position.y = -2.3; floor.receiveShadow = true;
 scene.add(floor);
 // Ignition pulse ring on the floor (invisible until it fires)
@@ -101,12 +101,12 @@ const brushRough = (() => {
 
 /* ================= Materials ================= */
 const M = {
-  cast: new THREE.MeshPhysicalMaterial({ color: 0x2a2c30, metalness: 0.75, roughness: 0.72, roughnessMap: castRough, bumpMap: castBump, bumpScale: 0.012 }),
-  castDark: new THREE.MeshPhysicalMaterial({ color: 0x151618, metalness: 0.7, roughness: 0.8, roughnessMap: castRough, bumpMap: castBump, bumpScale: 0.01 }),
+  cast: new THREE.MeshPhysicalMaterial({ color: 0x3a3d42, metalness: 0.75, roughness: 0.72, roughnessMap: castRough, bumpMap: castBump, bumpScale: 0.012 }),
+  castDark: new THREE.MeshPhysicalMaterial({ color: 0x24262a, metalness: 0.7, roughness: 0.8, roughnessMap: castRough, bumpMap: castBump, bumpScale: 0.01 }),
   alu: new THREE.MeshPhysicalMaterial({ color: 0x6e737a, metalness: 1.0, roughness: 0.46, roughnessMap: brushRough, anisotropy: 0.6 }),
   machined: new THREE.MeshPhysicalMaterial({ color: 0xaeb3b8, metalness: 1.0, roughness: 0.3, clearcoat: 0.25, clearcoatRoughness: 0.3 }),
   steel: new THREE.MeshPhysicalMaterial({ color: 0x6a6f76, metalness: 1.0, roughness: 0.32 }),
-  black: new THREE.MeshPhysicalMaterial({ color: 0x0a0a0b, metalness: 0.4, roughness: 0.55, clearcoat: 0.8, clearcoatRoughness: 0.25 }),
+  black: new THREE.MeshPhysicalMaterial({ color: 0x141311, metalness: 0.4, roughness: 0.55, clearcoat: 0.8, clearcoatRoughness: 0.25 }),
   rubber: new THREE.MeshStandardMaterial({ color: 0x0b0b0c, metalness: 0, roughness: 0.95 }),
   volt: new THREE.MeshStandardMaterial({ color: 0x0a0a0a, emissive: VOLT, emissiveIntensity: 0, metalness: 0.2, roughness: 0.4 }),
   hot: new THREE.MeshPhysicalMaterial({ color: 0x4a4f57, metalness: 1.0, roughness: 0.38, emissive: 0xff5a1a, emissiveIntensity: 0 }),
@@ -303,11 +303,11 @@ engine.traverse((o) => { if (o.isMesh) { let p = o; while (p && !p.userData.part
 /* ================= Camera script ================= */
 // Alternates the engine between sides so the page isn't one template: look.x negative puts the engine right of frame.
 const SHOTS = [
-  { t: 0.00, pos: [10.4, 3.6, 14.6], look: [-3.2, 1.0, 0], fov: 34 },
+  { t: 0.00, pos: [10.8, 3.4, 15.8], look: [-4.2, 0.9, 0], fov: 32 },
   { t: 0.16, pos: [1.5, 1.2, 12.5], look: [0.0, -0.2, 0], fov: 36 },
-  { t: 0.30, pos: [-6.4, -0.6, 9.4], look: [1.6, -0.5, 0], fov: 40 },
-  { t: 0.46, pos: [3.6, 5.8, 8.8], look: [-1.8, 1.0, 0], fov: 38 },
-  { t: 0.60, pos: [-4.4, 4.2, 9.8], look: [1.6, 0.9, 0.4], fov: 38 },
+  { t: 0.30, pos: [6.4, -0.6, 9.4], look: [-2.2, -0.5, 0], fov: 40 },
+  { t: 0.46, pos: [-3.6, 5.8, 8.8], look: [2.4, 1.0, 0], fov: 38 },
+  { t: 0.60, pos: [4.4, 4.2, 9.8], look: [-2.2, 0.9, 0.4], fov: 38 },
   { t: 0.72, pos: [9.2, 1.6, 6.0], look: [0.4, 0.0, 0.4], fov: 40 },
   { t: 0.84, pos: [0.0, 2.8, 12.6], look: [0, -1.7, 0], fov: 34 },
   { t: 1.00, pos: [3.6, 2.4, 10.8], look: [0.2, -1.6, 0], fov: 36 },
@@ -350,7 +350,7 @@ const setHover = (name) => {
   if (!name) { hotspot.hidden = true; return; }
   const P = PARTS[name]; hotspot.querySelector("b").textContent = P.label; hotspot.querySelector("span").textContent = P.service; hotspot.querySelector("small").textContent = P.note; hotspot.hidden = false;
 };
-const hud = { asm: document.querySelector("[data-hud=asm]"), sector: document.querySelector("[data-hud=sector]"), rpm: document.querySelector("[data-hud=rpm]"), bar: document.querySelector("[data-hud=bar]") };
+const hud = {};
 const sections = [...document.querySelectorAll("[data-sector]")];
 
 /* ================= Frame ================= */
@@ -378,7 +378,7 @@ function frame(now) {
 
   const turn = 1 - ease(THREE.MathUtils.clamp(p / 0.3, 0, 1));
   engine.rotation.y = Math.sin(t * 0.15) * 0.25 * turn + state.mx * 0.05; engine.rotation.x = state.my * -0.02;
-  engine.position.x = (isMobile ? 0.6 : 2.6) * (1 - ease(THREE.MathUtils.clamp(p / 0.16, 0, 1)));
+  engine.position.x = 0;
 
   const fireTarget = p > 0.88 ? THREE.MathUtils.clamp((p - 0.88) / 0.08, 0, 1) : 0;
   state.fire += (fireTarget - state.fire) * (1 - Math.exp(-dt * 3)); const fire = state.fire;
@@ -391,8 +391,8 @@ function frame(now) {
   M.volt.emissiveIntensity = 0.35 * harnessK + 1.4 * fire * (0.75 + 0.25 * Math.sin(t * 9));
   M.wire.emissiveIntensity = M.volt.emissiveIntensity * 0.7;
   M.hot.emissiveIntensity = fire * (0.28 + 0.1 * Math.sin(t * 6)); M.hot.color.copy(hotCol).lerp(hotFire, fire * 0.7);
-  pulse.material.uniforms.uT.value = t; pulse.material.uniforms.uFire.value = fire;
-  rim.intensity = 22 + fire * 40;
+  pulse.material.uniforms.uT.value = t; pulse.material.uniforms.uFire.value = fire * 0.5;
+  rim.intensity = 10 + fire * 20;
   engine.traverse((o) => { if (o.userData.spin) o.rotation.y += dt * (2 + fire * 40); });
   if (bloom) bloom.strength = 0.14 + fire * 0.35;
 
@@ -407,7 +407,7 @@ function frame(now) {
   if ((pointerDirty || hovered) && !isMobile && state.px) {
     pointerDirty = false; ndc.set((state.px / innerWidth) * 2 - 1, -(state.py / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
     const hit = ray.intersectObject(engine, true)[0];
-    const overUI = document.elementFromPoint(state.px, state.py)?.closest(".copy, .nav, .hud, form, .tiers, .statement, .numbers");
+    const overUI = document.elementFromPoint(state.px, state.py)?.closest(".copy, .masthead, form, .tiers, .statement, .results, .timing, .hero__type, .hero__aside");
     setHover(hit && !overUI ? hit.object.userData.part : null);
   }
   if (hovered && hotspot && !hotspot.hidden) { box.setFromObject(groups[hovered]).getCenter(tmpV).project(camera); hotspot.style.transform = `translate(${(tmpV.x * 0.5 + 0.5) * innerWidth + 18}px, ${(-tmpV.y * 0.5 + 0.5) * innerHeight - 18}px)`; }

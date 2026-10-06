@@ -7,19 +7,19 @@
 Marketing site for Launch Control. It doubles as the portfolio and the sales tool: every inquiry
 from the contact form lands in our own Launch Control CRM.
 
-## Brand
+## Brand: the timing sheet
 
-Full system: **`brand/index.html`** (mark, lockups, the board device, type, colour, voice, card and banner).
+Full system: **`brand/index.html`**.
 
-- **Idea:** Launch Control is the pit wall. The pit wall talks to the car with a board. Everything is a board.
-- **Mark:** a pit board with the top-right corner cut at the moment of release; the L's foot runs the
-  full width (the wall); one letter slot (the message). `assets/mark.svg`, also the favicon.
-- **Device:** the board. Black plate, volt message, grey label, release cut. Every stat, label and tag.
-- **Type:** Syne 800 headlines; one phrase per headline turns Instrument Serif italic in volt; Inter body;
-  JetBrains Mono on boards.
-- **Colour:** Carbon `#050505`, Board `#0D0D0F`, Volt `#C8FF00` (the message, never the ground), Chalk `#F2F2EF`.
-- **Voice:** the pit wall doesn't hype. Short, specific, numbers over adjectives, full stops.
-- **Test:** `index.html?nogl` renders the site with the engine off. The brand has to hold there first.
+- **Idea:** Launch Control is the pit wall. The pit wall runs on paper and a board: lap times on a
+  sheet, one message on black tiles held over the wall. The brand is those two objects.
+- **Mark:** a pit board. Two tiles read LC; the dashed row is the empty message slot; one flag tile. `assets/mark.svg`.
+- **Device:** the board, and it works. `js/board.js` renders letter tiles; the masthead board flips
+  to name the section in view (`data-board` on each sheet). `[data-board-static]` renders tiles once.
+- **Type:** Big Shoulders 900 headlines (signage), Source Serif for reading, JetBrains Mono on boards.
+  All self-hosted in `assets/fonts/` (OFL).
+- **Colour:** Paper `#F4F2EC`, Sheet `#EBE8DF`, Ink `#141311`, Flag `#E4572E` (one signal, never a ground).
+- **Voice:** the pit wall tells the driver what's happening and what to do next. Short. Numbers over adjectives.
 
 ## The Engine (WebGL)
 
@@ -32,7 +32,8 @@ scroll**; the scrollbar is the playhead, nothing hijacks native scroll. At the e
   shadows, volt rim, depth of field, vignette, grain. Hover a part for a board naming the service it stands for.
 - **Drop in a modelled GLB:** name its top-level nodes after `PART_ORDER` and set `MODEL_URL`. Draco decoder
   is vendored.
-- Reduced-motion gets a still; no WebGL gets the brand without the engine. Mobile: tighter explode, no post.
+- Lit for a light bench: warm key with shadows, shadow-catcher floor, paper fog. Phones (<=900px) and
+  `?nogl` get the sheet alone: copy spans the full width there, so the engine stays off.
 - Three.js vendored in `assets/vendor/` and resolved through an import map. No CDN, no build step.
 
 ## Conversion layer
@@ -47,6 +48,8 @@ scroll**; the scrollbar is the playhead, nothing hijacks native scroll. At the e
 ```
 index.html                    Home (eight beats over the engine)
 brand/index.html              Brand system
+js/board.js                   The pit board (live + static tiles)
+assets/og-src.html            Source for assets/og.png (render at 1200x630)
 case-studies/hyper-racer.html Case study (static)
 css/styles.css                All styles (tokens in :root, board device at the bottom)
 js/engine.js                  WebGL engine
@@ -68,6 +71,5 @@ python3 -m http.server 8000   # http://localhost:8000
 - [ ] Real numbers: `data-count` values in index.html and the case study
 - [ ] Case study `[TODO]` copy, or anonymise/remove Hyper Racer if that changes
 - [ ] Modelled engine GLB via `MODEL_URL`
-- [ ] Self-host the four fonts
 - [ ] Trademark check on "Launch Control" (a Tampa SaaS uses the name)
-- [ ] Open Graph image (use the banner from the brand sheet), analytics
+- [ ] Analytics
