@@ -81,9 +81,9 @@ const io = new IntersectionObserver(
   },
   { threshold: 0.2 }
 );
-document.querySelectorAll(".sector").forEach((el) => io.observe(el));
+document.querySelectorAll(".beat").forEach((el) => io.observe(el));
 // Belt and braces: also reveal on scroll position, so a slow frame never leaves a panel hidden.
-const sectors = [...document.querySelectorAll(".sector")];
+const sectors = [...document.querySelectorAll(".beat")];
 const revealByScroll = () => {
   sectors.forEach((s) => {
     if (s.classList.contains("in")) return;
