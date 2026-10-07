@@ -20,7 +20,7 @@ export const ENGINE_GLB = "/models/engine-v2.glb";
 export const ENGINE_GLB_MOBILE = "/models/engine-v2-mobile.glb";
 export const DRACO_PATH = "/draco/";
 
-export type EngineModelProps = { visible?: boolean; url?: string };
+export type EngineModelProps = { visible?: boolean; url?: string; onReady?: () => void };
 
 /** Scene-root part names (prefix match) that are castings. Names come from the Blender export. */
 const CASTINGS = ["Block", "HeadL", "HeadR", "Priekin", "Galvos", "galvos", "tepalo", "Cylinder.000", "UZ SITO"];
@@ -35,10 +35,13 @@ function topLevelName(o: THREE.Object3D): string {
 }
 
 export const EngineModel = forwardRef<EngineHandle, EngineModelProps>(function EngineModel(
-  { visible = true, url = ENGINE_GLB },
+  { visible = true, url = ENGINE_GLB, onReady },
   ref,
 ) {
   const { scene } = useGLTF(url, DRACO_PATH);
+  useEffect(() => {
+    onReady?.();
+  }, [onReady, scene]);
   const tmp = useMemo(() => new THREE.Vector3(), []);
 
   const rigs = useMemo(() => {

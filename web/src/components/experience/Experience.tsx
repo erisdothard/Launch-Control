@@ -15,6 +15,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { preload } from "react-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { site } from "@/content/site";
@@ -79,7 +80,13 @@ function hasWebGL(): boolean {
 /** Canvas opacity once the content has taken over. */
 const CANVAS_DIM = 0.5;
 
+/** Served from the HTML head so the two big files start before any script runs. */
+const ENGINE_URL = "/models/engine-v2.glb";
+const HDRI_URL = "/hdr/machine_shop_01_1k.hdr";
+
 export function Experience() {
+  preload(ENGINE_URL, { as: "fetch", crossOrigin: "anonymous" });
+  preload(HDRI_URL, { as: "fetch", crossOrigin: "anonymous" });
   const [mode, setMode] = useState<Mode>("pending");
   const [engine, setEngine] = useState<EngineSource>("glb");
   const [fxQuality, setFxQuality] = useState<FxQuality | null>("mid");
