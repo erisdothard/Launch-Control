@@ -83,8 +83,17 @@ export function attachSpin(el: HTMLElement): () => void {
 }
 
 /** Per-frame inertia and settle. Call from the scene's useFrame with the frame delta. */
-export function stepSpin(dt: number) {
+export function stepSpin(rawDt: number) {
   const s = engineSpin;
+  // A non-finite delta (seen on some first frames) would poison every rotation from then on.
+  if (!Number.isFinite(rawDt) || rawDt <= 0) return;
+  const dt = Math.min(rawDt, 0.1);
+  if (!Number.isFinite(s.yaw) || !Number.isFinite(s.pitch) || !Number.isFinite(s.vyaw) || !Number.isFinite(s.vpitch)) {
+    s.yaw = 0;
+    s.pitch = 0;
+    s.vyaw = 0;
+    s.vpitch = 0;
+  }
   if (s.dragging) return;
   s.yaw += s.vyaw * dt;
   s.pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, s.pitch + s.vpitch * dt));
