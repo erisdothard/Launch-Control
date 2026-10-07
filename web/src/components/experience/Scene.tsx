@@ -12,7 +12,7 @@
   Track C reads scrollState.{p,rpm,combustion,fog,launch,time}.
 */
 
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { ScreenQuad } from "@react-three/drei";
@@ -67,7 +67,7 @@ function preToneMapped(hex: string): THREE.Color {
  * produced a black environment depending on which asset arrived first. Eager and explicit
  * is deterministic. Suspends on the loader, so it sits in its own Suspense.
  */
-function EnvironmentMap({ url }: { url: string }) {
+function EnvironmentMap({ url, onReady }: { url: string; onReady?: () => void }) {
   const hdr = useLoader(RGBELoader, url);
   const get = useThree((s) => s.get);
   useEffect(() => {
@@ -82,11 +82,12 @@ function EnvironmentMap({ url }: { url: string }) {
       if (!m) return;
       for (const mat of Array.isArray(m) ? m : [m]) mat.needsUpdate = true;
     });
+    onReady?.();
     return () => {
       if (scene.environment === target.texture) scene.environment = null;
       target.dispose();
     };
-  }, [get, hdr]);
+  }, [get, hdr, onReady]);
   return null;
 }
 
@@ -135,7 +136,7 @@ const scratch = {
   ready: false,
 };
 
-function EngineStage({ engine, lowTier }: { engine: EngineSource; lowTier: boolean }) {
+function EngineStage({ engine, lowTier, onEngineReady }: { engine: EngineSource; lowTier: boolean; onEngineReady: () => void }) {
   const handle = useRef<EngineHandle>(null);
   const fireLight = useRef<THREE.PointLight>(null);
   const turntable = useRef<THREE.Group>(null);
@@ -191,7 +192,7 @@ function EngineStage({ engine, lowTier }: { engine: EngineSource; lowTier: boole
     <group ref={turntable} position={[ENGINE_OFFSET_X, 0, 0]}>
       {engine === "glb" ? (
         <Suspense fallback={<PlaceholderEngine ref={handle} />}>
-          <EngineModel ref={handle} url={lowTier ? ENGINE_GLB_MOBILE : ENGINE_GLB} />
+          <EngineModel ref={handle} url={lowTier ? ENGINE_GLB_MOBILE : ENGINE_GLB} onReady={onEngineReady} />
         </Suspense>
       ) : (
         <PlaceholderEngine ref={handle} />
@@ -201,7 +202,7 @@ function EngineStage({ engine, lowTier }: { engine: EngineSource; lowTier: boole
   );
 }
 
-function Lights() {
+function Lights({ onEnvReady }: { onEnvReady: () => void }) {
   const bg = useMemo(() => preToneMapped(token.background()), []);
   const rimRef = useRef<THREE.DirectionalLight>(null);
   const lastEnv = useRef<THREE.Texture | null>(null);
@@ -232,7 +233,7 @@ function Lights() {
       <Backdrop />
       {/* Own Suspense: a bare loader would suspend the Canvas boundary and stall onFirstFrame. */}
       <Suspense fallback={null}>
-        <EnvironmentMap url={HDRI_URL} />
+        <EnvironmentMap url={HDRI_URL} onReady={onEnvReady} />
       </Suspense>
       <ambientLight color={token.subtle()} intensity={0.06} />
       {/* Cold key, steel-white, upper right front. */}
@@ -246,9 +247,52 @@ function Lights() {
   );
 }
 
+/** Nothing waits longer than this for an asset before the gate opens anyway (slow networks, a 404). */
+const ASSET_TIMEOUT_MS = 15000;
+
 export function Scene({ engine = "glb", fxQuality = "high", onContextLost, onContextRestored, onFirstFrame }: SceneProps) {
-  const first = useRef(false);
   const glRef = useRef<THREE.WebGLRenderer | null>(null);
+  /* The gate opens only when the engine, its environment and a rendered frame are all in. */
+  const assets = useRef({ engine: engine === "placeholder", env: false, frame: false, done: false });
+  const settle = useCallback(() => {
+    const a = assets.current;
+    if (a.done || !(a.engine && a.env && a.frame)) return;
+    a.done = true;
+    onFirstFrame?.();
+  }, [onFirstFrame]);
+  /* "Ready" means uploaded and compiled, not merely parsed: a cold load otherwise shows an empty
+     stage for seconds after Start while 479k triangles and 15 materials hit the GPU. */
+  const warm = useRef<(() => Promise<void>) | null>(null);
+  const registerWarm = useCallback((fn: (() => Promise<void>) | null) => {
+    warm.current = fn;
+  }, []);
+  const onEngineReady = useCallback(() => {
+    const run = warm.current;
+    const done = () => {
+      assets.current.engine = true;
+      settle();
+    };
+    if (run) void run().then(done, done);
+    else done();
+  }, [settle]);
+  const onEnvReady = useCallback(() => {
+    assets.current.env = true;
+    settle();
+  }, [settle]);
+  const onFrame = useCallback(() => {
+    assets.current.frame = true;
+    settle();
+  }, [settle]);
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const a = assets.current;
+      if (a.done) return;
+      a.engine = true;
+      a.env = true;
+      settle();
+    }, ASSET_TIMEOUT_MS);
+    return () => window.clearTimeout(id);
+  }, [settle]);
 
   useEffect(() => {
     const gl = glRef.current;
@@ -283,16 +327,11 @@ export function Scene({ engine = "glb", fxQuality = "high", onContextLost, onCon
     >
       <Driver />
       <Expose />
-      <Lights />
+      <Warmup register={registerWarm} />
+      <Lights onEnvReady={onEnvReady} />
       <CameraRig />
-      <EngineStage engine={engine} lowTier={fxQuality === "low"} />
-      <FirstFrame
-        onFirstFrame={() => {
-          if (first.current) return;
-          first.current = true;
-          onFirstFrame?.();
-        }}
-      />
+      <EngineStage engine={engine} lowTier={fxQuality === "low"} onEngineReady={onEngineReady} />
+      <FirstFrame onFirstFrame={onFrame} />
       {fxQuality ? (
         <Effects
           quality={fxQuality}
@@ -319,6 +358,19 @@ declare global {
     __lcCamera?: THREE.Camera;
     __lcGl?: THREE.WebGLRenderer;
   }
+}
+
+/** Hands Scene a function that compiles every shader and uploads every buffer in the scene. */
+function Warmup({ register }: { register: (fn: (() => Promise<void>) | null) => void }) {
+  const get = useThree((s) => s.get);
+  useEffect(() => {
+    register(async () => {
+      const { gl, scene, camera } = get();
+      await gl.compileAsync(scene, camera);
+    });
+    return () => register(null);
+  }, [get, register]);
+  return null;
 }
 
 /** Exposes the scene graph for the `?debug` hook and Playwright probes. */
