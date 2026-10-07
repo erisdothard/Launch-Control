@@ -146,8 +146,9 @@ function EngineStage({ engine, lowTier, onEngineReady }: { engine: EngineSource;
     const s = scrollState;
     stepSpin(dt);
     if (turntable.current) {
-      turntable.current.rotation.y = s.time * TURN_TIME + engineSpin.yaw;
-      turntable.current.rotation.x = engineSpin.pitch;
+      const yaw = s.time * TURN_TIME + engineSpin.yaw;
+      turntable.current.rotation.y = Number.isFinite(yaw) ? yaw : 0;
+      turntable.current.rotation.x = Number.isFinite(engineSpin.pitch) ? engineSpin.pitch : 0;
     }
     if (!h) return;
     const colors = scratch;
