@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Chivo_Mono, Michroma, Sora } from "next/font/google";
 import "./globals.css";
 import { site } from "@/content/site";
+import { EARLY_START_SCRIPT } from "@/lib/earlyStart";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -41,6 +42,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${sora.variable} ${michroma.variable} ${chivoMono.variable} h-full`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: EARLY_START_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-text">{children}</body>
     </html>
   );

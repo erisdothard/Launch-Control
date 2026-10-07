@@ -47,6 +47,7 @@ import {
 } from "@/lib/phase";
 import { IGNITION_SECONDS } from "@/lib/scrollMap";
 import { attachSpin } from "@/lib/spin";
+import { consumeEarlyPress } from "@/lib/earlyStart";
 import { engineAudio } from "@/lib/audio";
 import { getGPUTier } from "detect-gpu";
 import type { EngineSource } from "./Scene";
@@ -347,6 +348,16 @@ export function Experience() {
     if (ph === "ready") bypass();
     else if (ph === "loading") setQueued(true);
   }, [bypass]);
+
+  /* A press on the server-rendered gate before hydration joins the same queue as one during loading. */
+  const earlyChecked = useRef(false);
+  useEffect(() => {
+    if (earlyChecked.current) return;
+    earlyChecked.current = true;
+    const press = consumeEarlyPress();
+    if (press === "start") ignite();
+    else if (press === "skip") onSkip();
+  }, [ignite, onSkip]);
 
   const poster = mode === "poster";
 
