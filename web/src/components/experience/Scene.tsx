@@ -14,8 +14,9 @@
 
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, ScreenQuad } from "@react-three/drei";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import { ScreenQuad } from "@react-three/drei";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { Effects, type FxQuality } from "@/components/fx/Effects";
 import { scrollState } from "@/lib/scrollState";
 import { STAGE_LIMITER_RPM } from "@/lib/scrollMap";
@@ -58,6 +59,35 @@ function preToneMapped(hex: string): THREE.Color {
     return Math.max(0, x) / EXPOSURE;
   };
   return new THREE.Color(inv(c.r), inv(c.g), inv(c.b));
+}
+
+/**
+ * The HDRI as scene.environment, converted to a PMREM cube explicitly the moment it loads.
+ * three can do this lazily inside a render pass, but on a real network (Vercel) that path
+ * produced a black environment depending on which asset arrived first. Eager and explicit
+ * is deterministic. Suspends on the loader, so it sits in its own Suspense.
+ */
+function EnvironmentMap({ url }: { url: string }) {
+  const hdr = useLoader(RGBELoader, url);
+  const get = useThree((s) => s.get);
+  useEffect(() => {
+    const { gl, scene } = get();
+    const pmrem = new THREE.PMREMGenerator(gl);
+    pmrem.compileEquirectangularShader();
+    const target = pmrem.fromEquirectangular(hdr);
+    pmrem.dispose();
+    scene.environment = target.texture;
+    scene.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      if (!m) return;
+      for (const mat of Array.isArray(m) ? m : [m]) mat.needsUpdate = true;
+    });
+    return () => {
+      if (scene.environment === target.texture) scene.environment = null;
+      target.dispose();
+    };
+  }, [get, hdr]);
+  return null;
 }
 
 /** Cold atmosphere behind the engine: a radial lift from the ground token toward a steel tint. */
@@ -200,9 +230,9 @@ function Lights() {
       <color attach="background" args={[bg]} />
       <fogExp2 attach="fog" args={[bg, 0.14]} />
       <Backdrop />
-      {/* Own Suspense: a bare Environment would suspend the Canvas boundary and stall onFirstFrame. */}
+      {/* Own Suspense: a bare loader would suspend the Canvas boundary and stall onFirstFrame. */}
       <Suspense fallback={null}>
-        <Environment files={HDRI_URL} environmentIntensity={ENV_STAGE} />
+        <EnvironmentMap url={HDRI_URL} />
       </Suspense>
       <ambientLight color={token.subtle()} intensity={0.06} />
       {/* Cold key, steel-white, upper right front. */}
