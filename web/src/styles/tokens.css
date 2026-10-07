@@ -1,0 +1,72 @@
+/*
+  Launch Control design tokens.
+  Palette (2026-10-06, Eris): black, white, silver, Jordan yellow (sampled from the B&H Jordan 199 livery). No orange, no black-and-orange
+  (that is Hyper Racer). `--color-ember` keeps its name for the many call sites but is the one
+  accent, canary. Display type is silver so it reads as the same metal as the engine.
+*/
+
+@theme {
+  /* Color. Neutral blacks and silvers. One accent: canary. */
+  --color-background: #050607;
+  --color-surface: #0b0d10;
+  --color-elevated: #15181c;
+  --color-border: #262b31;
+  --color-text: #f4f6f8;
+  --color-steel: #c6ccd3; /* display type, the engine's metal */
+  --color-muted: #a7adb4;
+  --color-subtle: #6c737b;
+  --color-ember: #f0c419; /* THE accent: Jordan yellow. Start ring, links, the Book panel, heat */
+  --color-ember-hot: #f07d1a; /* heat ramp stage 2: Jordan orange, inside the engine only, never UI */
+  --color-white-hot: #ffffff; /* heat ramp stage 3, the flash only. Never as a UI colour */
+  --color-success: #8fd49a;
+  --color-warning: #f0c419;
+  --color-danger: #e3261d; /* Jordan red: the live signal (igniting) and form errors, nothing else */
+  --color-info: #9ec5e8;
+
+  /* Type. Michroma (display, wide technical) + Sora (body) + Chivo Mono (utility). */
+  --font-display: var(--font-michroma), "Eurostile", "Bank Gothic", Arial, sans-serif;
+  --font-body: var(--font-sora), Arial, sans-serif;
+  --font-mono: var(--font-chivo-mono), Menlo, monospace;
+
+  --text-caption: 0.8125rem;
+  --text-body: clamp(0.95rem, 0.9rem + 0.25vw, 1.0625rem);
+  --text-lead: clamp(1.1rem, 1rem + 0.5vw, 1.375rem);
+  --text-title: clamp(1.25rem, 1rem + 1.1vw, 1.9rem);
+  --text-caption-3d: clamp(1.25rem, 0.9rem + 1.5vw, 2.2rem);
+  --text-display: clamp(1.75rem, 1.2rem + 2.2vw, 3.4rem);
+  --text-service: 1.05rem; /* ruled-list row titles */
+  --text-stat: 2.5rem; /* proof stat digits */
+  --text-watermark: 6rem;
+
+  --tracking-signage: 0.14em;
+  --tracking-display: 0.05em;
+  --tracking-small-caps: 0.1em;
+
+  /* Spacing. 4px base. Section rhythm uses 24/32/48 (sections use the spacing-section-* set). */
+  --spacing-section-sm: 6rem; /* 96 */
+  --spacing-section-md: 8rem; /* 128 */
+  --spacing-section-lg: 12rem; /* 192 */
+  --spacing-content-max: 75rem; /* 1200 */
+
+  /* Radius. Square everywhere except the start button. */
+  --radius-none: 0;
+  --radius-hairline: 2px;
+  --radius-round: 9999px;
+
+  /* Motion. */
+  --duration-fast: 120ms;
+  --duration-base: 300ms;
+  --duration-emphasis: 600ms;
+  --ease-ui: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  /* Z layers, named. */
+  --z-canvas: 0;
+  --z-content: 10;
+  --z-hud: 30;
+  --z-tach: 40;
+  --z-gate: 50;
+  --z-toast: 70;
+  --z-skip-link: 80;
+}

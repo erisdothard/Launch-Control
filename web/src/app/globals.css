@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* Only box-sizing on the wildcard. Never margin/padding (it nukes Tailwind utilities). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-background);
+  color: var(--color-text);
+  color-scheme: dark;
+  scroll-behavior: auto; /* Lenis owns smooth scrolling */
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Base typography lives in the base layer so Tailwind utilities (e.g. text-background on the
+   yellow Book panel) can override it. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-display);
+    line-height: 1.18;
+    color: var(--color-steel);
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+    max-width: 70ch;
+  }
+}
+
+::selection {
+  background: var(--color-ember);
+  color: var(--color-background);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+/* Lenis */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* Utility: mono signage label */
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-signage);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
