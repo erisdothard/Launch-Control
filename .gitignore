@@ -1,0 +1,10 @@
+
+# engine source assets (large, not versioned)
+/assets-src/
+
+# playwright artifacts
+/web/test-results/
+/web/playwright-report/
+
+# raw review frames (the composed .jpg sheets are kept)
+/docs/review/v*-*.png
