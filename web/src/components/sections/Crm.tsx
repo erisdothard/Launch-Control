@@ -70,35 +70,27 @@ function CommandCenter() {
   );
 }
 
-/* The application as one connected system: three layers joined by arrows, then how they talk. */
+/* The application as one connected system: three layers side by side, then how they talk. */
 function System() {
   return (
     <div className="mb-16 lg:mb-20">
-      <ol className="m-0 grid list-none grid-cols-1 border border-border bg-surface/90 p-0 lg:grid-cols-[1fr_auto_1fr_auto_1fr]">
-        {crm.layers.map((layer, i) => (
-          <li key={layer.tag} className="contents">
-            {i > 0 && (
-              <span
-                aria-hidden="true"
-                className="flex items-center justify-center border-t border-border py-2 font-mono text-ember lg:border-t-0 lg:border-l lg:px-3 lg:py-0"
-              >
-                <span className="lg:hidden">↓</span>
-                <span className="hidden lg:inline">⇄</span>
-              </span>
-            )}
-            <div className="flex flex-col gap-4 p-6 lg:p-8">
-              <span className="label-mono text-ember">{layer.tag}</span>
-              <h3 className="font-display text-title uppercase leading-tight tracking-display text-steel">{layer.title}</h3>
-              <p className="text-body text-muted">{layer.body}</p>
-              <ul className="m-0 mt-2 flex list-none flex-col gap-2 border-t border-border p-0 pt-4">
-                {layer.items.map((item) => (
-                  <li key={item} className="flex gap-3 text-caption text-text">
-                    <span aria-hidden="true" className="mt-[0.55em] h-px w-2 shrink-0 bg-subtle" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
+      <ol className="m-0 grid list-none grid-cols-1 border border-border bg-surface/90 p-0 lg:grid-cols-3">
+        {crm.layers.map((layer) => (
+          <li
+            key={layer.tag}
+            className="flex flex-col gap-4 border-t border-border p-6 first:border-t-0 lg:border-t-0 lg:border-l lg:p-8 lg:first:border-l-0"
+          >
+            <span className="label-mono text-ember">{layer.tag}</span>
+            <h3 className="font-display text-title uppercase leading-tight tracking-display text-steel">{layer.title}</h3>
+            <p className="text-body text-muted">{layer.body}</p>
+            <ul className="m-0 mt-2 flex list-none flex-col gap-2 border-t border-border p-0 pt-4">
+              {layer.items.map((item) => (
+                <li key={item} className="flex gap-3 text-caption text-text">
+                  <span aria-hidden="true" className="mt-[0.55em] h-px w-2 shrink-0 bg-subtle" />
+                  {item}
+                </li>
+              ))}
+            </ul>
           </li>
         ))}
       </ol>
