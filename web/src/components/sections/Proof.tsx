@@ -26,7 +26,7 @@ function Stats() {
 /* Layout family 5: list with dividers. Title display, body, year in mono right-aligned. */
 export function Proof() {
   return (
-    <section id={proof.id} aria-labelledby={titleId} className="relative border-t border-border bg-background/80" style={{ zIndex: "var(--z-content)" }}>
+    <section id={proof.id} aria-labelledby={titleId} className="relative border-t border-border bg-background/60" style={{ zIndex: "var(--z-content)" }}>
       <div className="mx-auto max-w-content-max px-6 py-section-sm lg:px-12">
         <Reveal>
           <LiveryStripe className="mb-8" />

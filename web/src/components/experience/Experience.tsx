@@ -59,7 +59,7 @@ function hasWebGL(): boolean {
 }
 
 /** Canvas opacity: the engine is background, never the subject. */
-const CANVAS_OPACITY = 0.5;
+const CANVAS_OPACITY = 0.8;
 
 /* The two big files are preloaded after the first paint, never from the HTML head, so the page's own
    scripts get the bandwidth first on a phone connection. */
