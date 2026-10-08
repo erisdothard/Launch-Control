@@ -16,7 +16,7 @@
   --color-muted: #a7adb4;
   --color-subtle: #7a8189; /* 4.94:1 on surface, 4.52:1 on elevated, 5.15:1 on background (AA) */
   --color-ember: #f0c419; /* THE accent: Jordan yellow. Start ring, links, the Book panel, heat */
-  --color-ember-hot: #f07d1a; /* heat ramp stage 2: Jordan orange, inside the engine only, never UI */
+  --color-ember-hot: #ffe680; /* heat ramp stage 2: pale hot yellow, inside the engine only, never UI. No orange. */
   --color-white-hot: #ffffff; /* heat ramp stage 3, the flash only. Never as a UI colour */
   --color-success: #8fd49a;
   --color-warning: #f0c419;
