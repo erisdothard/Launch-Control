@@ -149,7 +149,7 @@ const content: SiteContent = {
   seo: {
     title: "Launch Control. From idle to launched.",
     description:
-      "Launch Control builds the whole engine of a business and takes it to launch: brand, site, systems, go-live.",
+      "Launch Control builds the website, backend and systems a business runs on, and takes it to launch: brand, site, systems, go-live.",
     url: "https://launchcontrol.example",
   },
   nav: [
@@ -203,7 +203,7 @@ const content: SiteContent = {
       {
         id: "retainer",
         title: "After launch",
-        body: "Monitoring, fixes and the next build, on a monthly retainer. The engine keeps running.",
+        body: "Monitoring, fixes and the next build, on a monthly retainer. We keep it running.",
       },
     ],
   },
@@ -222,8 +222,8 @@ const content: SiteContent = {
       },
       {
         tag: "Backend",
-        title: "The engine room",
-        body: "One database for content, leads and history, with the jobs that run on it.",
+        title: "Data and services",
+        body: "Database, intake, email and scheduled jobs: one store for content, leads and history.",
         items: ["Postgres database", "Form intake with spam guard", "Offline event kiosk", "Sync with HQ in Australia", "Email and payments", "Scheduled daily jobs"],
       },
       {
