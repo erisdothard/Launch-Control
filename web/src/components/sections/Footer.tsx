@@ -6,7 +6,6 @@ const { footer, brand } = site;
 export function Footer() {
   const year = new Date().getFullYear();
   const credit = `${footer.credit.modelName}, ${footer.credit.author}, ${footer.credit.license}`;
-  const audioCredit = `${footer.audioCredit.name}, ${footer.audioCredit.author}, ${footer.audioCredit.license}`;
   return (
     <footer className="relative border-t border-border bg-surface font-mono text-caption font-medium text-subtle" style={{ zIndex: "var(--z-content)" }}>
       <div className="mx-auto flex max-w-content-max flex-col gap-6 px-6 py-12 lg:flex-row lg:items-start lg:justify-between lg:gap-8 lg:px-12">
@@ -21,17 +20,6 @@ export function Footer() {
               className="underline decoration-1 underline-offset-4 transition-colors duration-fast ease-ui hover:text-ember"
             >
               {credit}
-            </a>
-          </p>
-          <p>
-            {footer.audioCredit.prefix}{" "}
-            <a
-              href={footer.audioCredit.href}
-              target="_blank"
-              rel="noopener noreferrer license"
-              className="underline decoration-1 underline-offset-4 transition-colors duration-fast ease-ui hover:text-ember"
-            >
-              {audioCredit}
             </a>
           </p>
         </div>

@@ -151,12 +151,12 @@ export function Book() {
     <section
       id={book.id}
       aria-labelledby={titleId}
-      className="relative my-[20svh] bg-ember text-background [&_label]:text-background [&_label]:opacity-80 [&_.field-error]:text-background"
+      className="relative bg-ember text-background [&_label]:text-background [&_label]:opacity-80 [&_.field-error]:text-background"
       style={{ zIndex: "var(--z-content)" }}
     >
       <div className="mx-auto max-w-content-max px-6 py-section-sm lg:px-12 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-8">
         <Reveal className="flex flex-col gap-6 lg:col-span-5">
-          <h2 id={titleId} className="text-title text-background">
+          <h2 id={titleId} className="text-display text-background">
             {book.title}
           </h2>
           <p className="max-w-[70ch] text-lead text-background/80">{book.body}</p>

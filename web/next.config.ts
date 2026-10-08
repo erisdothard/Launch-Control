@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
     return [
       { source: "/models/:path*", headers: [{ key: "Cache-Control", value: year }] },
       { source: "/hdr/:path*", headers: [{ key: "Cache-Control", value: year }] },
-      { source: "/audio/:path*", headers: [{ key: "Cache-Control", value: year }] },
       { source: "/draco/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=604800" }] },
     ];
   },
