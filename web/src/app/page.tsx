@@ -1,9 +1,11 @@
 /*
-  Home. Server component: the 3D hero (client) then the content sections as real HTML.
+  Home. Server component: the hero over the engine (client canvas), then the content sections as
+  real HTML. The engine stays fixed behind the whole page.
 */
 
 import { Experience } from "@/components/experience/Experience";
 import { Nav } from "@/components/nav/Nav";
+import { Hero } from "@/components/sections/Hero";
 import { Sections } from "@/components/sections";
 
 export default function Home() {
@@ -11,7 +13,9 @@ export default function Home() {
     <>
       <Nav />
       <main className="flex-1">
-        <Experience />
+        <Experience>
+          <Hero />
+        </Experience>
         <Sections />
       </main>
     </>

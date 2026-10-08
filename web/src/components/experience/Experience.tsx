@@ -1,22 +1,20 @@
 "use client";
 
 /*
-  Experience: the client orchestrator for the engine.
-  - Decides full 3D vs poster (reduced motion, no WebGL, context lost → poster). `?skip`, a #hash
-    and a reload after a launch keep the 3D and only skip the gate: the engine never leaves.
-  - Owns the loop lifecycle, the stage trigger (500svh #hero → scrollState.pRaw), the content
-    trigger (stage end → document end → scrollState.q), the gate lock/unlock, the time-based
-    ignition timeline and the handoff to scroll at p = 0.
-  - The canvas is a fixed full-viewport layer behind everything; content panels slide over it.
-  - No gauge, no telemetry: the only HUD is the caption. The engine is atmosphere behind the type.
+  Experience: the hero section and the engine behind the whole page.
+  - The hero is real HTML (children), readable on first paint. No gate, no click-to-enter, no sound,
+    no scroll lock. The page scrolls like any professional site from the first frame.
+  - The engine is background: a fixed full-viewport canvas behind everything, dimmed, fading in when
+    its first frame is drawn. Its scroll timeline (scrollMap: slow pull-apart, gentle revs) runs over
+    the WHOLE page, so it keeps moving quietly behind every section.
+  - Poster mode (reduced motion, no WebGL, context lost): the same hero, no canvas.
   - Debug hook: `?debug` exposes window.__lc = { setProgress(p), freezeTime(t), info() }.
   - The 3D chunk is dynamically imported with ssr:false from this client component.
 */
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { preload } from "react-dom";
-import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { site } from "@/content/site";
 import { scrollState } from "@/lib/scrollState";
@@ -24,8 +22,6 @@ import {
   freezeTime,
   getContentTrigger,
   getHeroTrigger,
-  lockScroll,
-  onFrame,
   pixelForProgress,
   scrollToImmediate,
   setContentTrigger,
@@ -33,27 +29,11 @@ import {
   snapProgress,
   startLoop,
   tickOnce,
-  unlockScroll,
 } from "@/lib/loop";
-import {
-  getPhase,
-  hasLaunchedThisSession,
-  openGate,
-  setLoadProgress,
-  setPhase,
-  setPoster,
-  setQueued,
-  usePhase,
-} from "@/lib/phase";
-import { IGNITION_SECONDS } from "@/lib/scrollMap";
+import { getPhase, openGate, setLoadProgress, setPhase, setPoster, usePhase } from "@/lib/phase";
 import { attachSpin } from "@/lib/spin";
-import { consumeEarlyPress } from "@/lib/earlyStart";
-import { engineAudio } from "@/lib/audio";
-import { getGPUTier } from "detect-gpu";
 import type { EngineSource } from "./Scene";
 import type { FxQuality } from "@/components/fx/Effects";
-import { Gate } from "@/components/gate/Gate";
-import { Captions, CAPTIONS_ID } from "@/components/hud/Captions";
 
 const Scene = dynamic(() => import("./Scene").then((m) => m.Scene), { ssr: false });
 
@@ -78,233 +58,113 @@ function hasWebGL(): boolean {
   }
 }
 
-/** Canvas opacity once the content has taken over. */
-const CANVAS_DIM = 0.5;
+/** Canvas opacity: the engine is background, never the subject. */
+const CANVAS_OPACITY = 0.5;
 
-/* The two big files are preloaded from the client after the first paint, never from the HTML head:
-   in the head they took the bandwidth the page's own scripts need on a phone connection.
-   The glb is chosen by the same tier rule as Scene, so a low-tier phone downloads one engine, not two. */
+/* The two big files are preloaded after the first paint, never from the HTML head, so the page's own
+   scripts get the bandwidth first on a phone connection. */
 const ENGINE_URL = "/models/engine-v2.glb";
-const ENGINE_URL_LOW = "/models/engine-v2-mobile.glb";
 const HDRI_URL = "/hdr/machine_shop_01_512.hdr";
 
-export function Experience() {
+export function Experience({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<Mode>("pending");
   const [engine, setEngine] = useState<EngineSource>("glb");
-  const [fxQuality, setFxQuality] = useState<FxQuality | null>("mid");
+  /* Post-processing is off by default: no bloom, rays or flash behind a professional page.
+     `?fx=high|mid|low` turns it back on for comparison. */
+  const [fxQuality, setFxQuality] = useState<FxQuality | null>(null);
   const [debug, setDebug] = useState(false);
-  const skipGate = useRef(false);
   const heroRef = useRef<HTMLElement>(null);
   const canvasWrap = useRef<HTMLDivElement>(null);
-  const flashRef = useRef<HTMLDivElement>(null);
-  const captionsEl = useRef<HTMLElement | null>(null);
-  const ignitionTween = useRef<gsap.core.Tween | null>(null);
   const contextLosses = useRef(0);
   const { posterReason } = usePhase();
 
-  /* Mode decision, once, on the client, after the first paint (the gate HTML is already up).
-     The FX tier is resolved BEFORE the scene mounts: changing it later rebuilds the composer. */
+  /* Mode decision, once, on the client, after the first paint (the hero HTML is already up). */
   useEffect(() => {
-    let cancelled = false;
     const id = requestAnimationFrame(() => {
       const params = new URLSearchParams(window.location.search);
       setDebug(params.has("debug"));
-      setEngine(params.get("engine") === "placeholder" ? "placeholder" : "glb");
+      const placeholder = params.get("engine") === "placeholder";
+      setEngine(placeholder ? "placeholder" : "glb");
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const hash = window.location.hash.length > 1;
       const poster = reduced ? "reduced-motion" : !hasWebGL() ? "no-webgl" : null;
+      openGate();
       if (poster) {
         setPoster(poster);
-        openGate();
         setMode("poster");
         return;
       }
-      skipGate.current = hasLaunchedThisSession() || params.has("skip") || hash;
-      /* FX tier: `?fx=high|mid|low|off` overrides; otherwise detect-gpu decides (PLAN.md tiers). */
-      const fxParam = params.get("fx");
-      const resolved: Promise<FxQuality | null> =
-        fxParam === "off"
-          ? Promise.resolve(null)
-          : fxParam === "high" || fxParam === "mid" || fxParam === "low"
-            ? Promise.resolve(fxParam)
-            : getGPUTier()
-                .then((t) => {
-                  const q: FxQuality = t.tier >= 3 ? "high" : t.tier === 2 ? "mid" : "low";
-                  return t.isMobile && q === "high" ? "mid" : q;
-                })
-                .catch(() => "mid" as const);
-      /* Start both downloads now, after the first paint, not after the tier resolves (detect-gpu
-         fetches its own benchmark data first). The glb is a guess at the tier: `low` is an
-         explicit ?fx=low; detection almost never lands there, and a wrong guess costs one request. */
       preload(HDRI_URL, { as: "fetch", crossOrigin: "anonymous" });
-      if (params.get("engine") !== "placeholder") {
-        preload(fxParam === "low" ? ENGINE_URL_LOW : ENGINE_URL, { as: "fetch", crossOrigin: "anonymous" });
-      }
-      void resolved.then((q) => {
-        if (cancelled) return;
-        setFxQuality(q);
-        setMode("full");
-      });
+      if (!placeholder) preload(ENGINE_URL, { as: "fetch", crossOrigin: "anonymous" });
+      const fx = params.get("fx");
+      setFxQuality(fx === "high" || fx === "mid" || fx === "low" ? fx : null);
+      setMode("full");
     });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(id);
-    };
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const toPoster = useCallback((reason: "context-lost") => {
-    ignitionTween.current?.kill();
     setPoster(reason);
-    openGate();
-    unlockScroll();
     setMode("poster");
   }, []);
 
-  /* Full mode: loop, triggers, lock. Layout effect so the triggers exist before the first paint. */
+  /* Full mode: the loop and the two scroll triggers. The engine's timeline spans the whole page. */
   useLayoutEffect(() => {
     if (mode !== "full") return;
     const hero = heroRef.current;
     if (!hero) return;
-    history.scrollRestoration = "manual";
-    window.scrollTo(0, 0);
     const stopLoop = startLoop();
-    lockScroll();
 
     const st = ScrollTrigger.create({
-      trigger: hero,
+      trigger: document.documentElement,
       start: "top top",
       end: "bottom bottom",
-      // Refresh before every content trigger so their start positions are final.
       refreshPriority: 10,
       onUpdate: (self) => {
         scrollState.pRaw = self.progress;
       },
     });
     setHeroTrigger(st);
+    /* q: 0 while the hero fills the screen, 1 at the bottom of the page (the environment dims with it). */
     const ct = ScrollTrigger.create({
-      start: () => st.end,
-      end: () => ScrollTrigger.maxScroll(window),
-      invalidateOnRefresh: true,
+      trigger: hero,
+      start: "bottom bottom",
+      endTrigger: document.documentElement,
+      end: "bottom bottom",
       onUpdate: (self) => {
         scrollState.q = self.progress;
       },
     });
     setContentTrigger(ct);
     ScrollTrigger.refresh();
+    // Start the engine's timeline where the visitor already is (a reload mid-page, a #hash link).
+    snapProgress(st.progress);
     const detachSpin = attachSpin(hero);
-
-    const offFrame = onFrame(() => {
-      const s = scrollState;
-      engineAudio.setRpm(s.rpm);
-      /* ---- LAUNCH: one ember flash, then the canvas dims behind the content. The engine stays. ---- */
-      const wrap = canvasWrap.current;
-      if (wrap) wrap.style.opacity = String(1 - (1 - CANVAS_DIM) * s.launch);
-      const flash = flashRef.current;
-      if (flash) {
-        const f = s.launch > 0.2 && s.launch < 0.8 ? Math.sin(Math.PI * ((s.launch - 0.2) / 0.6)) * 0.18 : 0;
-        flash.style.opacity = String(f);
-      }
-      /* Captions leave with the launch: fade over launch 0.15..0.45. */
-      const hudFade = s.launch <= 0.15 ? 1 : s.launch >= 0.45 ? 0 : 1 - (s.launch - 0.15) / 0.3;
-      if (!captionsEl.current) captionsEl.current = document.getElementById(CAPTIONS_ID);
-      if (captionsEl.current) captionsEl.current.style.opacity = String(hudFade);
-      /* ---- /LAUNCH ---- */
-    });
-
-    // Honest-ish load counter: chunk requested → 70, first frame → 100 (set by onFirstFrame).
-    const counter = { v: 0 };
-    const tween = gsap.to(counter, {
-      v: 70,
-      duration: 1.2,
-      ease: "none",
-      onUpdate: () => setLoadProgress(counter.v),
-    });
 
     return () => {
       detachSpin();
-      tween.kill();
-      ignitionTween.current?.kill();
-      offFrame();
       ct.kill();
       st.kill();
       setContentTrigger(null);
       setHeroTrigger(null);
-      unlockScroll();
       stopLoop();
     };
   }, [mode]);
 
-  const handoff = useCallback(() => {
-    scrollToImmediate(0);
-    unlockScroll();
-    snapProgress(0);
-    setPhase("idle");
-    document.getElementById(CAPTIONS_ID)?.focus({ preventScroll: true });
-  }, []);
-
-  /* Gate bypass: the engine is already assembled and idling; just open up and honour the hash. */
-  const bypass = useCallback(() => {
-    scrollState.ignition = 1;
-    unlockScroll();
-    snapProgress(0);
-    setPhase("idle");
-    const hash = window.location.hash;
-    if (hash.length > 1) {
-      ScrollTrigger.refresh();
-      document.querySelector(hash)?.scrollIntoView();
-    }
-  }, []);
-
-  const ignite = useCallback(() => {
-    const { phase: ph } = getPhase();
-    if (ph === "loading") {
-      setQueued(true);
-      return;
-    }
-    if (ph !== "ready") return;
-    setQueued(false);
-    setPhase("igniting");
-    void engineAudio.unlock();
-    scrollState.ignition = 0;
-    ignitionTween.current = gsap.to(scrollState, {
-      ignition: 1,
-      duration: IGNITION_SECONDS,
-      ease: "none",
-      onComplete: handoff,
-    });
-  }, [handoff]);
-
+  /* First frame drawn: the engine is already running. Fade the canvas in behind the page. */
   const onFirstFrame = useCallback(() => {
-    const counter = { v: getPhase().loadProgress };
-    gsap.to(counter, {
-      v: 100,
-      duration: 0.3,
-      ease: "none",
-      onUpdate: () => setLoadProgress(counter.v),
-      onComplete: () => {
-        setLoadProgress(100);
-        setPhase("ready");
-        if (skipGate.current) bypass();
-        else if (getPhase().queued) ignite();
-      },
-    });
-  }, [ignite, bypass]);
+    scrollState.ignition = 1;
+    setLoadProgress(100);
+    setPhase("ready");
+    setPhase("idle");
+    const wrap = canvasWrap.current;
+    if (wrap) wrap.style.opacity = String(CANVAS_OPACITY);
+  }, []);
 
   /* Debug hook. */
   useEffect(() => {
     if (!debug || mode !== "full") return;
-    const forceOpen = () => {
-      const ph = getPhase().phase;
-      if (ph === "idle" || ph === "scrolling" || ph === "launched") return;
-      ignitionTween.current?.kill();
-      scrollState.ignition = 1;
-      setLoadProgress(100);
-      setPhase("idle");
-      unlockScroll();
-    };
     window.__lc = {
       setProgress: (p) => {
-        forceOpen();
         ScrollTrigger.refresh();
         const y = pixelForProgress(p);
         scrollToImmediate(y);
@@ -339,10 +199,7 @@ export function Experience() {
       return;
     }
     window.setTimeout(() => {
-      if (contextLosses.current > 0 && getPhase().posterReason === null) {
-        // not restored in time
-        toPoster("context-lost");
-      }
+      if (contextLosses.current > 0 && getPhase().posterReason === null) toPoster("context-lost");
     }, 3000);
   }, [toPoster]);
 
@@ -350,94 +207,38 @@ export function Experience() {
     contextLosses.current = 0;
   }, []);
 
-  const onSkip = useCallback(() => {
-    skipGate.current = true;
-    const ph = getPhase().phase;
-    if (ph === "ready") bypass();
-    else if (ph === "loading") setQueued(true);
-  }, [bypass]);
+  const notice = posterReason === "no-webgl" || posterReason === "context-lost";
 
-  /* A press on the server-rendered gate before hydration joins the same queue as one during loading. */
-  const earlyChecked = useRef(false);
-  useEffect(() => {
-    if (earlyChecked.current) return;
-    earlyChecked.current = true;
-    const press = consumeEarlyPress();
-    if (press === "start") ignite();
-    else if (press === "skip") onSkip();
-  }, [ignite, onSkip]);
-
-  const poster = mode === "poster";
-
-  /* #hero is ONE element in both modes: the 500svh stage in full mode (no background of its own,
-     so the fixed canvas behind it shows), the poster frame otherwise. */
   return (
-    <>
-      <section
-        id="hero"
-        ref={heroRef}
-        className={
-          poster
-            ? "relative min-h-[100svh] bg-background flex flex-col justify-end px-6 md:px-12 pb-section-sm pt-section-lg"
-            : "relative h-[500svh]"
-        }
-        style={{ zIndex: "var(--z-canvas)" }}
-      >
-        {poster ? (
-          <PosterHero notice={posterReason === "no-webgl" || posterReason === "context-lost"} />
-        ) : (
-          <>
-            <div ref={canvasWrap} className="fixed inset-0 pointer-events-none" aria-hidden="true">
-              {mode === "full" && (
-                <Scene
-                  engine={engine}
-                  fxQuality={fxQuality}
-                  onFirstFrame={onFirstFrame}
-                  onContextLost={onContextLost}
-                  onContextRestored={onContextRestored}
-                />
-              )}
-            </div>
-            {/* Launch flash: one ember bloom across the viewport, scrub-bound, never white. */}
-            <div
-              ref={flashRef}
-              className="fixed inset-0 pointer-events-none opacity-0"
-              style={{
-                zIndex: 45,
-                background:
-                  "radial-gradient(ellipse 60% 50% at 50% 50%, var(--color-ember) 0%, rgba(250, 137, 39, 0.35) 45%, rgba(5, 8, 11, 0) 100%)",
-              }}
-              aria-hidden="true"
-            />
-            <Captions />
-          </>
-        )}
-      </section>
-      {!poster && <Gate onPress={ignite} onSkip={onSkip} />}
-    </>
-  );
-}
-
-/** Static poster hero content: the beat captions stacked on a dark frame. No canvas. */
-function PosterHero({ notice }: { notice: boolean }) {
-  return (
-    <>
-      <div className="max-w-content-max w-full mx-auto">
-        <div className="h-[2px] w-24 bg-ember mb-12" aria-hidden="true" />
-        <h1 className="sr-only">{site.seo.title}</h1>
-        <ul className="flex flex-col gap-3 m-0 p-0 list-none">
-          {site.beats.map((b) => (
-            <li key={b.id} className="font-display uppercase text-caption-3d leading-[1.2] text-steel">
-              {b.caption}
-            </li>
-          ))}
-        </ul>
-        {notice && (
-          <p className="label-mono text-info mt-12" role="status">
-            {site.gate.webglOffNotice}
-          </p>
-        )}
-      </div>
-    </>
+    <section
+      id="hero"
+      ref={heroRef}
+      aria-labelledby="hero-title"
+      className="relative min-h-[100svh]"
+      style={{ zIndex: "var(--z-canvas)" }}
+    >
+      {mode === "full" && (
+        <div
+          ref={canvasWrap}
+          className="fixed inset-0 pointer-events-none"
+          style={{ opacity: 0, transition: "opacity 1.2s var(--ease-ui)" }}
+          aria-hidden="true"
+        >
+          <Scene
+            engine={engine}
+            fxQuality={fxQuality}
+            onFirstFrame={onFirstFrame}
+            onContextLost={onContextLost}
+            onContextRestored={onContextRestored}
+          />
+        </div>
+      )}
+      {children}
+      {notice && (
+        <p className="label-mono text-info absolute bottom-6 left-6 lg:left-12" role="status">
+          {site.hero.webglOffNotice}
+        </p>
+      )}
+    </section>
   );
 }

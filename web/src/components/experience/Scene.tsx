@@ -23,7 +23,7 @@ import { STAGE_LIMITER_RPM } from "@/lib/scrollMap";
 import { engineSpin, stepSpin } from "@/lib/spin";
 import { token } from "@/lib/tokens";
 import { Driver } from "./Driver";
-import { CameraRig, getFocusDistance, portraitAmount } from "./CameraRig";
+import { CameraRig, getFocusDistance } from "./CameraRig";
 import { PlaceholderEngine, type EngineHandle } from "@/components/engine/PlaceholderEngine";
 import { EngineModel, ENGINE_GLB, ENGINE_GLB_MOBILE } from "@/components/engine/EngineModel";
 
@@ -123,14 +123,16 @@ function Backdrop() {
 }
 /** Turntable: a slow constant turn with time. The camera path owns every scroll-driven move. */
 const TURN_TIME = 0.025;
-/** The engine sits right of centre; the caption owns the left column. */
-const ENGINE_OFFSET_X = 0.22;
+/** The engine sits right of centre, behind the hero type. */
+const ENGINE_OFFSET_X = 0.36;
+/** The engine is background: its combustion glow runs at a fraction of the old stage strength. */
+const BACKGROUND_HEAT = 0.55;
 
 /* Frame scratch. Module-level on purpose: one stage per page, no per-frame allocation. */
 const scratch = {
   ember: new THREE.Color(),
   emberHot: new THREE.Color(),
-  whiteHot: new THREE.Color(),
+  emberRed: new THREE.Color(),
   tmp: new THREE.Color(),
   pos: new THREE.Vector3(),
   ready: false,
@@ -141,13 +143,11 @@ function EngineStage({ engine, lowTier, onEngineReady }: { engine: EngineSource;
   const fireLight = useRef<THREE.PointLight>(null);
   const turntable = useRef<THREE.Group>(null);
 
-  useFrame(({ size }, dt) => {
+  useFrame((_, dt) => {
     const h = handle.current;
     const s = scrollState;
     stepSpin(dt);
     if (turntable.current) {
-      // Centred on portrait: the caption sits above the engine there, not beside it.
-      turntable.current.position.x = ENGINE_OFFSET_X * (1 - portraitAmount(size.width / Math.max(1, size.height)));
       const yaw = s.time * TURN_TIME + engineSpin.yaw;
       turntable.current.rotation.y = Number.isFinite(yaw) ? yaw : 0;
       turntable.current.rotation.x = Number.isFinite(engineSpin.pitch) ? engineSpin.pitch : 0;
@@ -157,24 +157,24 @@ function EngineStage({ engine, lowTier, onEngineReady }: { engine: EngineSource;
     if (!colors.ready) {
       colors.ember.set(token.ember());
       colors.emberHot.set(token.emberHot());
-      colors.whiteHot.set(token.whiteHot());
+      colors.emberRed.set(token.emberRed());
       colors.ready = true;
     }
     h.rig?.setCrankAngle(s.crankAngle);
     h.explode?.setExplode(s.explode);
 
-    // Combustion flash in the firing cylinder: ember → ember-hot → white-hot by intensity.
+    // Combustion flash in the firing cylinder: the livery ramp, yellow → orange → red, by heat.
     const c = s.combustion;
     const rpmNorm = Math.min(1, s.rpm / STAGE_LIMITER_RPM);
     /* Colour climbs the heat ramp with the revs, not just with the firing pulse:
-       ember through the mid range, ember-hot near the limiter, white-hot only in the ignition flash. */
+       yellow through the mid range, orange toward the hold, red at the top of the revs. */
     const ramp = s.phase === "igniting" ? c : c * Math.max(0, (rpmNorm - 0.35) / 0.65);
     if (ramp < 0.6) colors.tmp.lerpColors(colors.ember, colors.emberHot, ramp / 0.6);
-    else colors.tmp.lerpColors(colors.emberHot, colors.whiteHot, (ramp - 0.6) / 0.4);
+    else colors.tmp.lerpColors(colors.emberHot, colors.emberRed, (ramp - 0.6) / 0.4);
     const firing = s.phase === "igniting" ? 1 : s.cylinder;
     /* Heat gain: idle fires are faint, the limiter is a furnace. Apart, the chambers only glow. */
     const apart = 0.4 + 0.6 * (1 - s.explode);
-    const heat = (s.phase === "igniting" ? 1 : 0.1 + 0.9 * Math.pow(rpmNorm, 2.2)) * apart;
+    const heat = (s.phase === "igniting" ? 1 : 0.1 + 0.9 * Math.pow(rpmNorm, 2.2)) * apart * BACKGROUND_HEAT;
     for (let i = 0; i < h.pistonMaterials.length; i++) {
       const m = h.pistonMaterials[i];
       const active = i + 1 === firing && c > 0.001;

@@ -2,13 +2,12 @@ import { test, expect, type Page } from "@playwright/test";
 import { site } from "../../src/content/site";
 
 /*
-  Content panels over the engine. Opens the real page with the gate bypassed (?skip), which keeps
-  the 3D and skips straight to idle.
+  Content panels over the engine. Opens the real page with the placeholder engine.
 */
 const SECTION_IDS = [site.build.id, site.proof.id, site.book.id] as const;
 
 async function openSections(page: Page): Promise<void> {
-  await page.goto("/?skip&debug&engine=placeholder");
+  await page.goto("/?debug&engine=placeholder");
   await expect(page.locator(`#${site.build.id}`)).toBeAttached();
 }
 
@@ -41,7 +40,7 @@ test.describe("content sections", () => {
   test("the engine canvas stays mounted behind the content, dimmed", async ({ page }) => {
     await openSections(page);
     await expect.poll(() => page.evaluate(() => Boolean(window.__lc)), { timeout: 30_000 }).toBe(true);
-    // The skip handoff resets the stage to 0 when it lands, so jump only once the engine is running.
+    // Jump only once the engine is running, so the first-frame setup cannot overwrite the jump.
     await expect
       .poll(() => page.evaluate(() => (window.__lc!.info() as { store: { phase: string } }).store.phase), {
         timeout: 30_000,
@@ -56,8 +55,9 @@ test.describe("content sections", () => {
         .locator("#hero > div[aria-hidden]")
         .first()
         .evaluate((el) => Number(getComputedStyle(el).opacity));
-    await expect.poll(opacity, { timeout: 5_000 }).toBeLessThan(1);
-    expect(await opacity()).toBeGreaterThan(0.2);
+    // The canvas fades in over 1.2s: wait for it to arrive, then check it stays dimmed.
+    await expect.poll(opacity, { timeout: 10_000 }).toBeGreaterThan(0.2);
+    expect(await opacity()).toBeLessThan(1);
   });
 
   test("empty submit shows inline errors and does not send", async ({ page }) => {

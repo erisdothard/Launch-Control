@@ -8,9 +8,6 @@
   A faint shake builds with rpm; the starter rattle shakes during ignition. Timing between keys is
   a monotone cubic over arc length, so the move never changes speed abruptly.
   Position and look-at target are two curves sampled at the same u, so the gaze is continuous.
-  Portrait: the keys are framed for a landscape screen. On a narrow viewport the same fov cuts the
-  engine off at the sides, so the camera backs off along its own line of sight and aims above the
-  engine, which drops it into the lower part of the frame under the caption band.
 */
 
 import * as THREE from "three";
@@ -74,26 +71,7 @@ const TANGENTS = (() => {
   }
   return m;
 })();
-const tmp = {
-  pos: new THREE.Vector3(),
-  tgt: new THREE.Vector3(),
-  shake: new THREE.Vector3(),
-  back: new THREE.Vector3(),
-  up: new THREE.Vector3(),
-};
-
-/** Extra camera distance at full portrait (a phone held upright). */
-const PORTRAIT_PULLBACK = 0.55;
-/** How far below the frame centre the engine sits at full portrait, as a fraction of the half-height. */
-const PORTRAIT_DROP = 0.32;
-
-/** Aspect below which a screen counts as portrait; Captions switches at the same 9/10 media query. */
-const PORTRAIT_FROM = 0.9;
-/** 0 at aspect ≥ 0.9, 1 at a phone's upright aspect (≤ 0.5), linear in between. */
-export function portraitAmount(aspect: number): number {
-  if (!Number.isFinite(aspect)) return 0;
-  return clamp01((PORTRAIT_FROM - aspect) / (PORTRAIT_FROM - 0.5));
-}
+const tmp = { pos: new THREE.Vector3(), tgt: new THREE.Vector3(), shake: new THREE.Vector3() };
 let focusDistance = 1.8;
 
 /** Camera-to-target distance of the last frame, for depth of field. */
@@ -102,29 +80,11 @@ export function getFocusDistance(): number {
 }
 
 export function CameraRig() {
-  useFrame(({ camera, size }) => {
+  useFrame(({ camera }) => {
     const s = scrollState;
     const u = progressToU(s.p);
     curves.pos.getPointAt(u, tmp.pos);
     curves.tgt.getPointAt(u, tmp.tgt);
-
-    const k = portraitAmount(size.width / Math.max(1, size.height));
-    tmp.back.subVectors(tmp.pos, tmp.tgt);
-    const base = tmp.back.length();
-    // Guarded: a NaN here would move the camera to nowhere and the engine would vanish.
-    if (k > 0 && base > 1e-6) {
-      const dist = base * (1 + PORTRAIT_PULLBACK * k);
-      tmp.back.setLength(dist);
-      tmp.pos.addVectors(tmp.tgt, tmp.back);
-      // Screen-up at this camera position: world up with the view-direction component removed.
-      tmp.up.set(0, 1, 0).addScaledVector(tmp.back, -tmp.back.y / (dist * dist));
-      if (tmp.up.lengthSq() < 1e-8) tmp.up.set(0, 1, 0);
-      tmp.up.normalize();
-      const halfHeight = dist * Math.tan(THREE.MathUtils.degToRad((camera as THREE.PerspectiveCamera).fov / 2));
-      const lift = halfHeight * PORTRAIT_DROP * k;
-      tmp.tgt.addScaledVector(tmp.up, lift);
-      tmp.pos.addScaledVector(tmp.up, lift);
-    }
 
     const t = s.time;
     const revShake = shakeForRpm(s.rpm) * 0.004;

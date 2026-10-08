@@ -48,36 +48,20 @@ export const siteSchema = z.object({
   nav: z
     .array(z.object({ label: z.string(), href: z.string().startsWith("#") }))
     .max(4),
-  gate: z.object({
-    skipLabel: z.string(),
-    engineWord: z.string(),
-    primingLabel: z.string(),
-    startLabel: z.string(),
-    runningLabel: z.string(),
-    enterLabel: z.string(),
-    srStart: z.string(),
-    srRunning: z.string(),
+  hero: z.object({
+    eyebrow: z.array(z.string()).min(1).max(5),
+    title: z.string(),
+    body: z.string(),
+    primaryCta: z.object({ label: z.string(), href: z.string().startsWith("#") }),
+    secondaryCta: z.object({ label: z.string(), href: z.string().startsWith("#") }),
     webglOffNotice: z.string(),
-    audioToggleOn: z.string(),
-    audioToggleOff: z.string(),
   }),
+  /** Not shown on the page: the beat ids name the engine's scroll timeline (scrollMap). */
   beats: z.array(beatSchema).length(6),
-  hud: z.object({
-    rpm: z.string(),
-    cylinder: z.string(),
-    temp: z.string(),
-    beat: z.string(),
-    sectionsLabel: z.string(),
-  }),
-  arrival: z.object({
-    id: z.literal("arrival"),
-    statement: z.string(),
-    paragraphs: z.array(z.string()).min(1).max(3),
-    link: z.object({ label: z.string(), href: z.string() }),
-  }),
   build: z.object({
     id: z.literal("build"),
     title: z.string(),
+    intro: z.string(),
     services: z.array(serviceSchema).min(3).max(6),
   }),
   proof: z.object({
@@ -115,13 +99,6 @@ export const siteSchema = z.object({
       license: z.string(),
       href: z.string().url(),
     }),
-    audioCredit: z.object({
-      prefix: z.string(),
-      name: z.string(),
-      author: z.string(),
-      license: z.string(),
-      href: z.string().url(),
-    }),
     email: z.string().email(),
     legal: z.string(),
   }),
@@ -148,18 +125,13 @@ const content: SiteContent = {
     { label: "Proof", href: "#proof" },
     { label: "Book a launch", href: "#book" },
   ],
-  gate: {
-    skipLabel: "Skip the ignition",
-    engineWord: "Engine",
-    primingLabel: "Priming",
-    startLabel: "Start",
-    runningLabel: "Running",
-    enterLabel: "Enter",
-    srStart: "Start the engine and enter the site",
-    srRunning: "Engine running. Scroll to continue.",
+  hero: {
+    eyebrow: ["Brand", "Website", "Systems", "Automation"],
+    title: "We build the whole engine. Then we launch it.",
+    body: "Launch Control takes a business from idle to launched: the brand, the website, the systems behind it, and the day it goes live. One team, one build.",
+    primaryCta: { label: "Book a launch", href: "#book" },
+    secondaryCta: { label: "See the work", href: "#proof" },
     webglOffNotice: "3D is off on this device. The site works without it.",
-    audioToggleOn: "Sound on",
-    audioToggleOff: "Sound off",
   },
   beats: [
     { id: "idle", caption: "Every business is an engine." },
@@ -169,25 +141,11 @@ const content: SiteContent = {
     { id: "limiter", caption: "Until it is ready." },
     { id: "launch", caption: "Launch." },
   ],
-  hud: {
-    rpm: "RPM",
-    cylinder: "CYL",
-    temp: "TEMP",
-    beat: "STAGE",
-    sectionsLabel: "Page sections",
-  },
-  arrival: {
-    id: "arrival",
-    statement: "We build the whole engine. Then we launch it.",
-    paragraphs: [
-      "Launch Control takes a business from idle to launched. Brand, website, the systems behind it, and the day it goes live. One team, one build, one start button.",
-      "No decks. No handoffs between five vendors. You get a working business with every part connected, and we stay on after launch to keep it running.",
-    ],
-    link: { label: "See the proof", href: "#proof" },
-  },
   build: {
     id: "build",
     title: "What we build",
+    intro:
+      "No decks. No handoffs between five vendors. You get a working business with every part connected, and we stay on after launch to keep it running.",
     services: [
       {
         id: "brand",
@@ -256,13 +214,6 @@ const content: SiteContent = {
       author: "Tomaso",
       license: "CC BY 4.0",
       href: "https://sketchfab.com/3d-models/disassembled-v8-engine-block-3026bd87ca3945d6829d24c86ce695f0",
-    },
-    audioCredit: {
-      prefix: "Engine audio:",
-      name: "Maserati GranTurismo S Exhaust",
-      author: "lmartins",
-      license: "CC BY 4.0",
-      href: "https://freesound.org/s/465453/",
     },
     email: "hello@launchcontrol.example",
     legal: "Launch Control",

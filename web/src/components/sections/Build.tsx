@@ -1,57 +1,49 @@
 import { site } from "@/content/site";
 import { Reveal } from "@/components/ui/Reveal";
+import { LiveryStripe } from "@/components/ui/LiveryStripe";
 
-const { build, arrival } = site;
+const { build } = site;
 const titleId = `${build.id}-title`;
 
-/* The first panel over the engine: the arrival statement (5/7 editorial), then the ruled list on
-   the same 5/7 columns. No cards. */
+/* What we build: title and intro on a 5/7 editorial split, then the ruled service list on the same
+   columns. No cards. The panel is translucent black, so the engine turns faintly behind it. */
 export function Build() {
   return (
-    <section id={build.id} aria-labelledby={titleId} className="relative my-[20svh] border-y border-border bg-surface/92" style={{ zIndex: "var(--z-content)" }}>
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-16 h-16 bg-gradient-to-b from-transparent to-surface/92" />
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -bottom-16 h-16 bg-gradient-to-t from-transparent to-surface/92" />
+    <section
+      id={build.id}
+      aria-labelledby={titleId}
+      className="relative border-t border-border bg-background/80"
+      style={{ zIndex: "var(--z-content)" }}
+    >
       <div className="mx-auto max-w-content-max px-6 py-section-sm lg:px-12">
-        <div className="mb-16 grid grid-cols-1 gap-10 lg:mb-24 lg:grid-cols-12 lg:gap-8">
+        <div className="mb-16 grid grid-cols-1 gap-10 lg:mb-20 lg:grid-cols-12 lg:gap-8">
           <Reveal className="lg:col-span-5">
+            <LiveryStripe className="mb-8" />
             <h2 id={titleId} className="text-display">
-              {arrival.statement}
+              {build.title}
             </h2>
           </Reveal>
-          <Reveal className="flex flex-col gap-6 lg:col-span-7 lg:pt-3" delay={0.1}>
-            {arrival.paragraphs.map((paragraph) => (
-              <p key={paragraph} className="max-w-[60ch] text-lead text-muted">
-                {paragraph}
-              </p>
-            ))}
+          <Reveal className="lg:col-span-7 lg:pt-14" delay={0.1}>
+            <p className="max-w-[60ch] text-lead text-muted">{build.intro}</p>
           </Reveal>
         </div>
-        <Reveal>
-          <h3 className="mb-8 font-display text-title uppercase leading-none tracking-display text-steel">
-            {build.title}
-          </h3>
-        </Reveal>
-        <ul className="border-b border-border">
-          {build.services.map((service, index) => {
-            return (
-              <li
-                key={service.id}
-                className="group border-t border-border transition-colors duration-fast ease-ui hover:bg-elevated"
+        <ul className="m-0 list-none border-b border-border p-0">
+          {build.services.map((service, index) => (
+            <li
+              key={service.id}
+              className="group border-t border-border transition-colors duration-fast ease-ui hover:bg-elevated/70"
+            >
+              <Reveal
+                className="grid grid-cols-1 gap-3 py-7 lg:grid-cols-12 lg:gap-8 lg:py-8"
+                delay={0.05 * index}
               >
-                <Reveal
-                  className="grid grid-cols-1 gap-3 py-7 lg:grid-cols-12 lg:gap-8 lg:py-8"
-                  delay={0.05 * index}
-                >
-                  <h4 className="font-display text-service uppercase leading-snug tracking-small-caps text-steel lg:col-span-5">
-                    {service.title}
-                  </h4>
-                  <p className="max-w-[70ch] text-body text-muted lg:col-span-7">
-                    {service.body}
-                  </p>
-                </Reveal>
-              </li>
-            );
-          })}
+                <h3 className="font-display text-service uppercase leading-snug tracking-small-caps text-steel lg:col-span-5">
+                  {service.title}
+                </h3>
+                <p className="max-w-[70ch] text-body text-muted lg:col-span-7">{service.body}</p>
+              </Reveal>
+            </li>
+          ))}
         </ul>
       </div>
     </section>

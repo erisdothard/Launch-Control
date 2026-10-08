@@ -1,5 +1,6 @@
 import { site } from "@/content/site";
 import { Reveal } from "@/components/ui/Reveal";
+import { LiveryStripe } from "@/components/ui/LiveryStripe";
 
 const { proof } = site;
 const titleId = `${proof.id}-title`;
@@ -25,12 +26,11 @@ function Stats() {
 /* Layout family 5: list with dividers. Title display, body, year in mono right-aligned. */
 export function Proof() {
   return (
-    <section id={proof.id} aria-labelledby={titleId} className="relative my-[20svh] border-y border-border bg-surface/92" style={{ zIndex: "var(--z-content)" }}>
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-16 h-16 bg-gradient-to-b from-transparent to-surface/92" />
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -bottom-16 h-16 bg-gradient-to-t from-transparent to-surface/92" />
+    <section id={proof.id} aria-labelledby={titleId} className="relative border-t border-border bg-background/80" style={{ zIndex: "var(--z-content)" }}>
       <div className="mx-auto max-w-content-max px-6 py-section-sm lg:px-12">
         <Reveal>
-          <h2 id={titleId} className="mb-10 text-title lg:mb-12">
+          <LiveryStripe className="mb-8" />
+          <h2 id={titleId} className="mb-10 text-display lg:mb-12">
             {proof.title}
           </h2>
         </Reveal>
@@ -53,7 +53,7 @@ export function Proof() {
             return (
               <li
                 key={entry.title}
-                className="border-t border-border transition-colors duration-fast ease-ui hover:bg-elevated"
+                className="border-t border-border transition-colors duration-fast ease-ui hover:bg-elevated/70"
               >
                 <Reveal delay={0.05 * index}>
                   {entry.href ? (

@@ -1,7 +1,8 @@
 /*
   Launch Control design tokens.
-  Palette (2026-10-06, Eris): black, white, silver, Jordan yellow (sampled from the B&H Jordan 199 livery). No orange, no black-and-orange
-  (that is Hyper Racer). `--color-ember` keeps its name for the many call sites but is the one
+  Palette (Eris, 2026-10-06/07): black, white, silver, Jordan yellow, with the livery's orange and red
+  as small accents (sampled from the B&H Jordan 199 photo). Yellow leads; orange and red never carry a
+  surface, so it never reads as Hyper Racer's black-and-orange. `--color-ember` keeps its name for the many call sites but is the one
   accent, canary. Display type is silver so it reads as the same metal as the engine.
 */
 
@@ -16,11 +17,12 @@
   --color-muted: #a7adb4;
   --color-subtle: #7a8189; /* 4.94:1 on surface, 4.52:1 on elevated, 5.15:1 on background (AA) */
   --color-ember: #f0c419; /* THE accent: Jordan yellow. Start ring, links, the Book panel, heat */
-  --color-ember-hot: #ffe680; /* heat ramp stage 2: pale hot yellow, inside the engine only, never UI. No orange. */
-  --color-white-hot: #ffffff; /* heat ramp stage 3, the flash only. Never as a UI colour */
+  --color-ember-hot: #f07d1a; /* Jordan orange: livery stripe, heat ramp stage 2. Never a surface */
+  --color-ember-red: #e3261d; /* Jordan red: livery stripe, heat ramp stage 3. Never a surface */
+  --color-white-hot: #ffffff; /* unused by the page since the gate went; kept for the lab */
   --color-success: #8fd49a;
   --color-warning: #f0c419;
-  --color-danger: #e3261d; /* Jordan red: the live signal (igniting) and form errors, nothing else */
+  --color-danger: #e3261d; /* Jordan red: form errors (borders; error text on yellow uses background ink) */
   --color-info: #9ec5e8;
 
   /* Type. Michroma (display, wide technical) + Sora (body) + Chivo Mono (utility). */
@@ -34,6 +36,7 @@
   --text-title: clamp(1.25rem, 1rem + 1.1vw, 1.9rem);
   --text-caption-3d: clamp(1.25rem, 0.9rem + 1.5vw, 2.2rem);
   --text-display: clamp(1.75rem, 1.2rem + 2.2vw, 3.4rem);
+  --text-hero: clamp(1.9rem, 1.1rem + 3vw, 4rem);
   --text-service: 1.05rem; /* ruled-list row titles */
   --text-stat: 2.5rem; /* proof stat digits */
   --text-watermark: 6rem;
