@@ -130,4 +130,3 @@ export const EngineModel = forwardRef<EngineHandle, EngineModelProps>(function E
   return <primitive object={scene} visible={visible} />;
 });
 
-useGLTF.preload(ENGINE_GLB, DRACO_PATH);

@@ -85,8 +85,10 @@ test.describe("gate", () => {
 
   test("#hash deep link bypasses the gate and keeps the engine", async ({ page }) => {
     await page.goto("/?debug&engine=placeholder#build");
-    await expect(page.locator(GATE)).toHaveCount(0);
+    // The gate only opens once the engine is compiled, which takes seconds under SwiftShader:
+    // wait for the running phase first, then assert the gate is gone.
     await expect.poll(() => phase(page), { timeout: 30_000 }).toMatch(/idle|scrolling|launched/);
+    await expect(page.locator(GATE)).toHaveCount(0);
     await expect(page.locator("canvas")).toHaveCount(1);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
   });

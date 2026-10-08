@@ -4,6 +4,8 @@
   StartButton: the gate trigger. A real <button>. Round, 160px on md+, 120px on mobile.
   Face surface, 2px ember ring (3px on hover, no layout shift), label Michroma 15px
   0.08em uppercase, counter beneath in Chivo Mono 13px muted.
+  Accessible name = the visible label + an sr-only sentence (no aria-label, so the name contains
+  the visible text). The counter is hidden from the name and read via aria-describedby.
   States: loading (PRIMING + 000→100 counter, ring at 40%), ready (START), pressed (RUNNING,
   scales to 0 over the ignition), error (ENTER when WebGL failed).
 */
@@ -38,7 +40,6 @@ export function StartButton({ onPress }: StartButtonProps) {
     <motion.button
       type="button"
       data-testid="start-button"
-      aria-label={site.gate.srStart}
       aria-busy={loading || undefined}
       aria-describedby={loading ? COUNTER_ID : undefined}
       onClick={onPress}
@@ -66,10 +67,11 @@ export function StartButton({ onPress }: StartButtonProps) {
       >
         {label}
       </span>
+      <span className="sr-only">{site.gate.srStart}</span>
       <span
         id={COUNTER_ID}
         className="font-mono text-caption text-muted tabular-nums mt-2 leading-none"
-        aria-live={loading ? "off" : undefined}
+        aria-hidden="true"
       >
         {loading ? counter : " "}
       </span>

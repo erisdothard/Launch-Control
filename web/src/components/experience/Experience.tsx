@@ -81,13 +81,14 @@ function hasWebGL(): boolean {
 /** Canvas opacity once the content has taken over. */
 const CANVAS_DIM = 0.5;
 
-/** Served from the HTML head so the two big files start before any script runs. */
+/* The two big files are preloaded from the client after the first paint, never from the HTML head:
+   in the head they took the bandwidth the page's own scripts need on a phone connection.
+   The glb is chosen by the same tier rule as Scene, so a low-tier phone downloads one engine, not two. */
 const ENGINE_URL = "/models/engine-v2.glb";
-const HDRI_URL = "/hdr/machine_shop_01_1k.hdr";
+const ENGINE_URL_LOW = "/models/engine-v2-mobile.glb";
+const HDRI_URL = "/hdr/machine_shop_01_512.hdr";
 
 export function Experience() {
-  preload(ENGINE_URL, { as: "fetch", crossOrigin: "anonymous" });
-  preload(HDRI_URL, { as: "fetch", crossOrigin: "anonymous" });
   const [mode, setMode] = useState<Mode>("pending");
   const [engine, setEngine] = useState<EngineSource>("glb");
   const [fxQuality, setFxQuality] = useState<FxQuality | null>("mid");
@@ -132,6 +133,13 @@ export function Experience() {
                   return t.isMobile && q === "high" ? "mid" : q;
                 })
                 .catch(() => "mid" as const);
+      /* Start both downloads now, after the first paint, not after the tier resolves (detect-gpu
+         fetches its own benchmark data first). The glb is a guess at the tier: `low` is an
+         explicit ?fx=low; detection almost never lands there, and a wrong guess costs one request. */
+      preload(HDRI_URL, { as: "fetch", crossOrigin: "anonymous" });
+      if (params.get("engine") !== "placeholder") {
+        preload(fxParam === "low" ? ENGINE_URL_LOW : ENGINE_URL, { as: "fetch", crossOrigin: "anonymous" });
+      }
       void resolved.then((q) => {
         if (cancelled) return;
         setFxQuality(q);

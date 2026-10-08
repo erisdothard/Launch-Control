@@ -1,23 +1,46 @@
 "use client";
 
 /*
-  Nav: minimal top bar. Transparent over the engine stage, solid `surface` once the content takes
-  over, never backdrop-filter. Wordmark, the sound toggle
+  Nav: minimal top bar. Transparent over the engine stage, solid `surface` from the moment the raw
+  scroll leaves the stage (not the smoothed launch phase, which lags the scroll and let the content
+  slide under a transparent bar on phones), never backdrop-filter. Toggled per frame through a data
+  attribute, so React never re-renders for it. Wordmark, the sound toggle
   once the engine runs, and ≤4 items from site.nav; the last item (Book a launch) is the one ember accent.
   Inert while the gate is closed so the skip link and START are first in the tab order.
 */
 
+import { useEffect, useRef } from "react";
 import { site } from "@/content/site";
 import { usePhase } from "@/lib/phase";
+import { onFrame } from "@/lib/loop";
+import { scrollState } from "@/lib/scrollState";
 import { AudioToggle } from "@/components/hud/AudioToggle";
+
+/** Raw stage progress past which the content panels can reach the top of the viewport. */
+const SOLID_FROM = 0.985;
 
 export function Nav() {
   const items = site.nav;
   const { gateOpen, phase, posterReason } = usePhase();
   const running = posterReason === null && (phase === "idle" || phase === "scrolling" || phase === "launched");
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    let last: boolean | null = null;
+    return onFrame(() => {
+      const el = headerRef.current;
+      if (!el) return;
+      const solid = scrollState.pRaw >= SOLID_FROM || scrollState.q > 0;
+      if (solid === last) return;
+      last = solid;
+      el.dataset.solid = String(solid);
+    });
+  }, []);
+
   return (
     <header
-      className={`fixed top-0 left-0 right-0 ${phase === "launched" || posterReason !== null ? "bg-surface" : "bg-transparent"}`}
+      ref={headerRef}
+      className={`fixed top-0 left-0 right-0 data-[solid=true]:bg-surface ${phase === "launched" || posterReason !== null ? "bg-surface" : "bg-transparent"}`}
       style={{ zIndex: "var(--z-hud)", transition: "background-color var(--duration-emphasis) var(--ease-ui)" }}
       inert={!gateOpen}
     >
