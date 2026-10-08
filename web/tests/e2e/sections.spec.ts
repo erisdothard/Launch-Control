@@ -4,7 +4,7 @@ import { site } from "../../src/content/site";
 /*
   Content panels over the engine. Opens the real page with the placeholder engine.
 */
-const SECTION_IDS = [site.build.id, site.proof.id, site.book.id] as const;
+const SECTION_IDS = [site.build.id, site.crm.id, site.book.id] as const;
 
 async function openSections(page: Page): Promise<void> {
   await page.goto("/?debug&engine=placeholder");
@@ -28,13 +28,6 @@ test.describe("content sections", () => {
     const credit = page.locator(`footer a[href="${site.footer.credit.href}"]`);
     await expect(credit).toHaveCount(1);
     await expect(credit).toContainText(site.footer.credit.license);
-  });
-
-  test("the proof stat strip is absent when there are no real numbers", async ({ page }) => {
-    await openSections(page);
-    if (site.proof.stats.length === 0) {
-      await expect(page.locator(`#${site.proof.id} dl`)).toHaveCount(0);
-    }
   });
 
   test("the engine canvas stays mounted behind the content, dimmed", async ({ page }) => {
