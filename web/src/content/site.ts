@@ -66,6 +66,27 @@ export const siteSchema = z.object({
     intro: z.string(),
     services: z.array(serviceSchema).min(3).max(6),
   }),
+  crm: z.object({
+    id: z.literal("crm"),
+    eyebrow: z.string(),
+    title: z.string(),
+    intro: z.string(),
+    steps: z.array(z.object({ title: z.string(), body: z.string() })).min(3).max(6),
+    guarantees: z.array(z.string()).min(2).max(4),
+    cta: z.object({ label: z.string(), href: z.string().url() }),
+    mock: z.object({
+      label: z.string(),
+      demoNote: z.string(),
+      stats: z.array(z.object({ label: z.string(), value: z.string() })).length(3),
+      briefingTitle: z.string(),
+      briefing: z
+        .array(z.object({ name: z.string(), kind: z.string(), reason: z.string(), priority: z.enum(["High", "Medium", "Low"]) }))
+        .min(3)
+        .max(5),
+      cadenceTitle: z.string(),
+      cadence: z.array(z.object({ temp: z.string(), days: z.string() })).min(2).max(4),
+    }),
+  }),
   proof: z.object({
     id: z.literal("proof"),
     title: z.string(),
@@ -125,6 +146,7 @@ const content: SiteContent = {
   },
   nav: [
     { label: "Build", href: "#build" },
+    { label: "CRM", href: "#crm" },
     { label: "Proof", href: "#proof" },
     { label: "Book a launch", href: "#book" },
   ],
@@ -176,6 +198,48 @@ const content: SiteContent = {
         body: "Monitoring, fixes and the next build, on a monthly retainer. The engine keeps running.",
       },
     ],
+  },
+  crm: {
+    id: "crm",
+    eyebrow: "Featured build · Hyper Racer USA",
+    title: "The CRM that works the leads before you do",
+    intro:
+      "We built Hyper Racer USA a CRM with a team of agents inside it. Every morning it screens, sorts and schedules every lead, then hands the sales lead a short ranked briefing. People make the calls. The software does the rest.",
+    steps: [
+      { title: "Screen", body: "Spam and bots pulled out before anyone sees them. Tagged, never deleted." },
+      { title: "Fill in", body: "Company, role and region read out of what the lead wrote. Only blanks are filled." },
+      { title: "Sort", body: "Type, next step and urgency for every lead, each with a sentence saying why." },
+      { title: "Schedule", body: "The next follow-up lands on a date. Hot leads are chased in days, cold ones in weeks." },
+      { title: "Brief", body: "Overnight work becomes a short ranked list: who to call, why, and what to say." },
+    ],
+    guarantees: [
+      "No email reaches a customer without a person approving it.",
+      "Every automated decision shows its reasoning.",
+      "Nothing is deleted. Every change is logged and reversible.",
+    ],
+    cta: { label: "See the Hyper Racer site", href: "https://www.hyperracerusa.com" },
+    mock: {
+      label: "Command center",
+      demoNote: "Illustration with demo data",
+      stats: [
+        { label: "Screened today", value: "14" },
+        { label: "Follow-ups set", value: "6" },
+        { label: "Drafts to approve", value: "2" },
+      ],
+      briefingTitle: "Morning briefing",
+      briefing: [
+        { name: "Avery C.", kind: "Buyer", reason: "Asked for a quote twice. Never contacted.", priority: "High" },
+        { name: "Sam O.", kind: "Track club", reason: "One day past the next follow-up.", priority: "High" },
+        { name: "Morgan L.", kind: "Racing school", reason: "Due for step 2 of 4.", priority: "Medium" },
+        { name: "Riley P.", kind: "Event organizer", reason: "Replied overnight. Draft waiting.", priority: "Medium" },
+      ],
+      cadenceTitle: "Follow-up cadence",
+      cadence: [
+        { temp: "Hot", days: "Day 0 · 1 · 3 · 7 · 14" },
+        { temp: "Warm", days: "Day 1 · 3 · 7 · 14 · 30" },
+        { temp: "Cold", days: "Day 3 · 14 · 45" },
+      ],
+    },
   },
   proof: {
     id: "proof",
