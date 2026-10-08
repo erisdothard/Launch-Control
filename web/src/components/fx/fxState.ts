@@ -49,7 +49,7 @@ export function clamp01(v: number): number {
 /* DESIGN.md palette, as linear THREE.Color (Color.set converts sRGB hex -> linear). */
 export const HEAT = {
   ember: new Color("#f0c419"),
-  emberHot: new Color("#f07d1a"),
+  emberHot: new Color("#ffe680"),
   whiteHot: new Color("#ffffff"),
   steel: new Color("#8a929b"),
   fogSteel: new Color("#7f868e"),

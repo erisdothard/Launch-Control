@@ -56,15 +56,14 @@ Dark only, by brief.
 | **steel** | #c6ccd3 | display type: captions, section titles, the wordmark |
 | muted | #a7adb4 | secondary copy, nav items |
 | subtle | #7a8189 | small print, footer credits, control borders, placeholders |
-| **ember (accent)** | #f0c419 | THE accent, canary. Start ring, Book panel, primary button, the nav CTA, combustion heat |
-| ember-hot | #f07d1a | heat ramp stage 2, inside the engine's combustion only, never UI |
+| **ember (accent)** | #f0c419 | THE accent, Jordan yellow. Start ring, Book panel, primary button, the nav CTA, combustion heat |
+| ember-hot | #ffe680 | heat ramp stage 2, pale hot yellow, inside the engine's combustion only, never UI |
 | white-hot | #ffffff | heat ramp stage 3, the ignition flash only, never UI |
 | danger | #e3261d | the igniting ring and invalid-field borders. Never body text (fails AA) |
 | success / warning / info | #8fd49a / #f0c419 / #9ec5e8 | form sent / hints / notices |
 
-`--color-ember` keeps its name for the many call sites; it is canary. ember-hot is the one warm
-hue allowed, and only inside the engine during a firing pulse near the limiter, so the page never
-reads as orange.
+`--color-ember` keeps its name for the many call sites; it is the yellow accent. The heat ramp is
+yellow → pale yellow → white. No stage of it is orange (ember-hot was #f07d1a until 2026-10-07).
 
 Proportion: background and surface carry ~90% of the page, steel/text ~8%, canary ≤2% outside the
 Book panel.
