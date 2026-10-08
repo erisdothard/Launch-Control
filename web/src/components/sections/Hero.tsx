@@ -27,7 +27,7 @@ export function Hero() {
             </li>
           ))}
         </ul>
-        <h1 id="hero-title" className="max-w-[17ch] text-hero leading-[1.12]">{hero.title}</h1>
+        <h1 id="hero-title" className="max-w-[16ch] text-hero">{hero.title}</h1>
         <p className="mt-8 max-w-[52ch] text-lead text-muted">{hero.body}</p>
         <div className="mt-10 flex flex-wrap gap-4">
           <ButtonLink href={hero.primaryCta.href}>{hero.primaryCta.label}</ButtonLink>

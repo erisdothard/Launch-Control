@@ -162,6 +162,7 @@ export function Book() {
             {book.title}
           </h2>
           <p className="max-w-[70ch] text-lead text-background/80">{book.body}</p>
+          <p className="max-w-[44ch] text-body text-background/70">{book.afterNote}</p>
         </Reveal>
         <Reveal className="lg:col-span-7" delay={0.1}>
           <BookingForm />

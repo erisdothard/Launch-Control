@@ -12,7 +12,7 @@ export function Build() {
     <section
       id={build.id}
       aria-labelledby={titleId}
-      className="relative border-t border-border bg-background/60"
+      className="relative border-t border-border bg-background/80"
       style={{ zIndex: "var(--z-content)" }}
     >
       <div className="mx-auto max-w-content-max px-6 py-20 lg:px-12 lg:py-24">
@@ -32,10 +32,10 @@ export function Build() {
               className="border-b border-border transition-colors duration-fast ease-ui hover:bg-elevated/70 sm:border-r sm:last:border-r-0 lg:border-b-0"
             >
               <Reveal className="flex flex-col gap-3 px-0 py-6 sm:px-5" delay={0.05 * index}>
-                <h3 className="font-display text-service uppercase leading-snug tracking-small-caps text-steel">
+                <h3 className="text-service">
                   {service.title}
                 </h3>
-                <p className="text-caption text-muted">{service.body}</p>
+                <p className="text-body text-muted">{service.body}</p>
               </Reveal>
             </li>
           ))}

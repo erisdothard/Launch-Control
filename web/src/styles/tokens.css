@@ -31,13 +31,13 @@
   --font-mono: var(--font-chivo-mono), Menlo, monospace;
 
   --text-caption: 0.8125rem;
-  --text-body: clamp(0.95rem, 0.9rem + 0.25vw, 1.0625rem);
+  --text-body: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
   --text-lead: clamp(1.1rem, 1rem + 0.5vw, 1.375rem);
   --text-title: clamp(1.25rem, 1rem + 1.1vw, 1.9rem);
   --text-caption-3d: clamp(1.25rem, 0.9rem + 1.5vw, 2.2rem);
-  --text-display: clamp(1.75rem, 1.2rem + 2.2vw, 3.4rem);
-  --text-hero: clamp(1.9rem, 1.1rem + 3vw, 4rem);
-  --text-service: 1.05rem; /* ruled-list row titles */
+  --text-display: clamp(1.9rem, 1.3rem + 2.2vw, 3.4rem);
+  --text-hero: clamp(2.2rem, 1.2rem + 3.6vw, 4.6rem);
+  --text-service: 1.15rem; /* ruled-list row titles */
   --text-stat: 2.5rem; /* proof stat digits */
   --text-watermark: 6rem;
 

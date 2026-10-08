@@ -26,14 +26,17 @@ body {
 /* Base typography lives in the base layer so Tailwind utilities (e.g. text-background on the
    yellow Book panel) can override it. */
 @layer base {
+  /* Headlines: the body sans at 600, sentence case, tight. Michroma is kept for the wordmark,
+     labels and buttons only; as a headline face it read as all-caps signage, which the reference
+     agencies (docs/review/agency-refs) do not do. */
   h1,
   h2,
-  h3 {
-    font-family: var(--font-display);
-    font-weight: 400;
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-display);
-    line-height: 1.18;
+  h3,
+  h4 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
     color: var(--color-steel);
     text-wrap: balance;
   }

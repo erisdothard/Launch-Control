@@ -96,8 +96,9 @@ Rules from the ratios:
 
 | role | family | use | notes |
 |---|---|---|---|
-| display | Michroma 400 (only weight) | captions, section titles, wordmark, button labels | uppercase, wide; tracking 0.05em display, 0.14em signage at ≤15px |
-| body | Sora 400/500 | reading copy | measure ≤ 65ch, 1.55 line-height |
+| headlines | Sora 600 | h1 to h4, sentence case | tracking -0.015em, line-height 1.1, colour `steel`. Changed 2026-10-08: all-caps Michroma headlines were the outlier against the five reference agencies (docs/review/agency-refs-2026-10-08); 4 of 5 set headlines in sentence case in one sans |
+| signage | Michroma 400 | wordmark, client names, button labels, the 404 code | uppercase, tracking 0.14em at ≤15px. Never a headline |
+| body | Sora 400/500 | reading copy, 16 to 18px minimum | measure ≤ 65ch, 1.55 line-height |
 | utility | Chivo Mono 400/500 | labels, nav items, form labels, footer credits | uppercase labels at 0.14em |
 
 Self-hosted through `next/font`, `display: swap`. Fallbacks: Eurostile / Bank Gothic / Arial for
@@ -133,6 +134,12 @@ z-layers: `canvas 0 · content 10 · hud 30 · tach 40 (unused) · gate 50 · to
 
 ## Layout vocabulary (allowed families)
 
+Order of the page (from the reference agencies): hero → client logo row → work with real
+screenshots → what we build → book → footer. Work always comes before services.
+
+0. Work: each project gets a browser-framed desktop shot with a phone shot overlapping its
+   bottom-left corner, the client name in mono above, a sentence-case title, a summary, Visit site.
+   Only public pages or demo dashboards with fictional users. Never admin screens, never client data.
 1. Hero: stripe, mono eyebrow, one h1 (≤ 17ch), one lead sentence, primary + secondary button,
    left-aligned over the engine with a soft left-to-right scrim.
 2. Ruled editorial panels: What we build, Proof. 5/7 split, hairline dividers, no cards.
