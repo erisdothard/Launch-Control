@@ -8,3 +8,4 @@
 
 # raw review frames (the composed .jpg sheets are kept)
 /docs/review/v*-*.png
+.vercel
