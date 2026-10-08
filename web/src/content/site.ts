@@ -71,6 +71,14 @@ export const siteSchema = z.object({
     eyebrow: z.string(),
     title: z.string(),
     intro: z.string(),
+    layers: z
+      .array(z.object({ tag: z.string(), title: z.string(), body: z.string(), items: z.array(z.string()).min(3).max(8) }))
+      .length(3),
+    flowsTitle: z.string(),
+    flows: z.array(z.object({ from: z.string(), to: z.string() })).min(2).max(4),
+    stackTitle: z.string(),
+    stack: z.array(z.string()).min(4).max(10),
+    agentsTitle: z.string(),
     steps: z.array(z.object({ title: z.string(), body: z.string() })).min(3).max(6),
     guarantees: z.array(z.string()).min(2).max(4),
     cta: z.object({ label: z.string(), href: z.string().url() }),
@@ -146,7 +154,7 @@ const content: SiteContent = {
   },
   nav: [
     { label: "Build", href: "#build" },
-    { label: "CRM", href: "#crm" },
+    { label: "Hyper Racer", href: "#crm" },
     { label: "Proof", href: "#proof" },
     { label: "Book a launch", href: "#book" },
   ],
@@ -202,9 +210,38 @@ const content: SiteContent = {
   crm: {
     id: "crm",
     eyebrow: "Featured build · Hyper Racer USA",
-    title: "The CRM that works the leads before you do",
+    title: "One application. Website, backend and CRM, connected.",
     intro:
-      "We built Hyper Racer USA a CRM with a team of agents inside it. Every morning it screens, sorts and schedules every lead, then hands the sales lead a short ranked briefing. People make the calls. The software does the rest.",
+      "Hyper Racer USA runs on one application we built end to end: the public site buyers see, the backend that takes every enquiry, and the command center the team runs the business from. Change the inventory in the admin and the site updates. A buyer sends a form and the lead is sorted by morning.",
+    layers: [
+      {
+        tag: "Front end",
+        title: "The public site",
+        body: "Image-led pages for a race car brand, fast on a phone.",
+        items: ["Specs and configurator", "Inventory", "Gallery, news, events", "Dealer map", "Shop", "Enquiry forms"],
+      },
+      {
+        tag: "Backend",
+        title: "The engine room",
+        body: "One database for content, leads and history, with the jobs that run on it.",
+        items: ["Postgres database", "Form intake with spam guard", "Offline event kiosk", "Sync with HQ in Australia", "Email and payments", "Scheduled daily jobs"],
+      },
+      {
+        tag: "Admin",
+        title: "The command center",
+        body: "Where the team runs sales and the site, in one login.",
+        items: ["Leads, deals, customers", "Tasks and approvals queue", "Agent activity and cost", "Editors for every page", "Full activity log"],
+      },
+    ],
+    flowsTitle: "How the parts talk",
+    flows: [
+      { from: "Inventory edited in the admin", to: "the public page refreshes on save" },
+      { from: "A buyer sends the enquiry form", to: "one deduplicated lead, sorted and scheduled by morning" },
+      { from: "Any change, by a person or the software", to: "written to a permanent history" },
+    ],
+    stackTitle: "Built with",
+    stack: ["Next.js", "React", "TypeScript", "Postgres (Supabase)", "Claude agents", "Resend email", "Stripe", "Vercel"],
+    agentsTitle: "The agents inside the CRM",
     steps: [
       { title: "Screen", body: "Spam and bots pulled out before anyone sees them. Tagged, never deleted." },
       { title: "Fill in", body: "Company, role and region read out of what the lead wrote. Only blanks are filled." },
@@ -217,7 +254,7 @@ const content: SiteContent = {
       "Every automated decision shows its reasoning.",
       "Nothing is deleted. Every change is logged and reversible.",
     ],
-    cta: { label: "See the Hyper Racer site", href: "https://www.hyperracerusa.com" },
+    cta: { label: "See the live site", href: "https://www.hyperracerusa.com" },
     mock: {
       label: "Command center",
       demoNote: "Illustration with demo data",
