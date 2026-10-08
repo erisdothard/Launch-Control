@@ -36,6 +36,9 @@ export type FrameCallback = (dt: number) => void;
 const MAX_DT = 1 / 20;
 /** Scroll smoothing rate (1/s). Higher follows the wheel faster; 5 ≈ 200 ms to settle. */
 const P_SMOOTHING = 5;
+/** On-screen crank speed as a fraction of the real rpm. The engine is a background: at real speed
+    (800 rpm idle = 13 turns a second) the pistons read as a blur. 1/8 keeps them legible. */
+const CRANK_VISUAL_SCALE = 0.125;
 /** Below this gap p snaps to pRaw so phase thresholds fire the moment the wheel stops. */
 const P_SNAP = 1e-3;
 
@@ -85,8 +88,8 @@ function writeState(timeSec: number, dt: number) {
 
   // Crank angle is integrated, never scrubbed. Scrolling back slows the engine, never rewinds it.
   // With time frozen (debug / visual tests) the angle is a pure function of (rpm, time) so a shot is deterministic.
-  if (frozenTime === null) s.crankAngle += rpmToRadPerSec(rpm) * dt;
-  else s.crankAngle = rpmToRadPerSec(rpm) * frozenTime;
+  if (frozenTime === null) s.crankAngle += rpmToRadPerSec(rpm) * CRANK_VISUAL_SCALE * dt;
+  else s.crankAngle = rpmToRadPerSec(rpm) * CRANK_VISUAL_SCALE * frozenTime;
 
   const fire = firingCylinder(s.crankAngle);
   s.cylinder = fire.cylinder;
