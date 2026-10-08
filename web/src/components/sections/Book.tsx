@@ -82,9 +82,9 @@ function BookingForm() {
       : book.submit;
 
   return (
-    <form action={formAction} onSubmit={onSubmit} noValidate className="flex flex-col gap-8">
+    <form action={formAction} onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-6 sm:grid-cols-2">
       {/* Announced summary. Field messages repeat inline, so the list is visually hidden. */}
-      <div aria-live="polite" aria-atomic="true">
+      <div aria-live="polite" aria-atomic="true" className="sm:col-span-2">
         {serverErrors.form ? (
           <p className="field-error text-caption font-medium text-danger">{serverErrors.form}</p>
         ) : null}
@@ -115,13 +115,15 @@ function BookingForm() {
         error={errorFor("email")}
         onBlur={onBlur}
       />
-      <Textarea
-        id="book-launching"
-        name="launching"
-        label={book.fields.launching}
-        error={errorFor("launching")}
-        onBlur={onBlur}
-      />
+      <div className="sm:col-span-2">
+        <Textarea
+          id="book-launching"
+          name="launching"
+          label={book.fields.launching}
+          error={errorFor("launching")}
+          onBlur={onBlur}
+        />
+      </div>
       <Select
         id="book-budget"
         name="budget"
@@ -131,12 +133,12 @@ function BookingForm() {
         error={errorFor("budget")}
         onBlur={onBlur}
       />
-      <div>
+      <div className="sm:self-end">
         <Button
           type="submit"
           disabled={pending}
           aria-busy={pending || undefined}
-          className="bg-background text-ember hover:bg-text hover:text-background active:bg-elevated"
+          variant="inverse"
         >
           {submitLabel}
         </Button>
@@ -154,7 +156,7 @@ export function Book() {
       className="relative bg-ember text-background [&_label]:text-background [&_label]:opacity-80 [&_.field-error]:text-background"
       style={{ zIndex: "var(--z-content)" }}
     >
-      <div className="mx-auto max-w-content-max px-6 py-section-sm lg:px-12 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-8">
+      <div className="mx-auto max-w-content-max px-6 py-20 lg:px-12 lg:py-24 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-8">
         <Reveal className="flex flex-col gap-6 lg:col-span-5">
           <h2 id={titleId} className="text-display text-background">
             {book.title}

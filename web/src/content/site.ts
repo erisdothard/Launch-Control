@@ -72,14 +72,12 @@ export const siteSchema = z.object({
     title: z.string(),
     intro: z.string(),
     layers: z
-      .array(z.object({ tag: z.string(), title: z.string(), body: z.string(), items: z.array(z.string()).min(3).max(8) }))
+      .array(z.object({ tag: z.string(), title: z.string(), items: z.array(z.string()).min(3).max(8) }))
       .length(3),
-    flowsTitle: z.string(),
-    flows: z.array(z.object({ from: z.string(), to: z.string() })).min(2).max(4),
     stackTitle: z.string(),
     stack: z.array(z.string()).min(4).max(10),
     agentsTitle: z.string(),
-    steps: z.array(z.object({ title: z.string(), body: z.string() })).min(3).max(6),
+    agentsBody: z.string(),
     guarantees: z.array(z.string()).min(2).max(4),
     cta: z.object({ label: z.string(), href: z.string().url() }),
     mock: z.object({
@@ -91,8 +89,6 @@ export const siteSchema = z.object({
         .array(z.object({ name: z.string(), kind: z.string(), reason: z.string(), priority: z.enum(["High", "Medium", "Low"]) }))
         .min(3)
         .max(5),
-      cadenceTitle: z.string(),
-      cadence: z.array(z.object({ temp: z.string(), days: z.string() })).min(2).max(4),
     }),
   }),
   proof: z.object({
@@ -155,7 +151,6 @@ const content: SiteContent = {
   nav: [
     { label: "Build", href: "#build" },
     { label: "Hyper Racer", href: "#crm" },
-    { label: "Proof", href: "#proof" },
     { label: "Book a launch", href: "#book" },
   ],
   hero: {
@@ -163,7 +158,7 @@ const content: SiteContent = {
     title: "We build the whole engine. Then we launch it.",
     body: "Launch Control takes a business from idle to launched: the brand, the website, the systems behind it, and the day it goes live. One team, one build.",
     primaryCta: { label: "Book a launch", href: "#book" },
-    secondaryCta: { label: "See the work", href: "#proof" },
+    secondaryCta: { label: "See the work", href: "#crm" },
     webglOffNotice: "3D is off on this device. The site works without it.",
   },
   beats: [
@@ -217,38 +212,24 @@ const content: SiteContent = {
       {
         tag: "Front end",
         title: "The public site",
-        body: "Image-led pages for a race car brand, fast on a phone.",
         items: ["Specs and configurator", "Inventory", "Gallery, news, events", "Dealer map", "Shop", "Enquiry forms"],
       },
       {
         tag: "Backend",
         title: "Data and services",
-        body: "Database, intake, email and scheduled jobs: one store for content, leads and history.",
         items: ["Postgres database", "Form intake with spam guard", "Offline event kiosk", "Sync with HQ in Australia", "Email and payments", "Scheduled daily jobs"],
       },
       {
         tag: "Admin",
         title: "The command center",
-        body: "Where the team runs sales and the site, in one login.",
         items: ["Leads, deals, customers", "Tasks and approvals queue", "Agent activity and cost", "Editors for every page", "Full activity log"],
       },
-    ],
-    flowsTitle: "How the parts talk",
-    flows: [
-      { from: "Inventory edited in the admin", to: "the public page refreshes on save" },
-      { from: "A buyer sends the enquiry form", to: "one deduplicated lead, sorted and scheduled by morning" },
-      { from: "Any change, by a person or the software", to: "written to a permanent history" },
     ],
     stackTitle: "Built with",
     stack: ["Next.js", "React", "TypeScript", "Postgres (Supabase)", "Claude agents", "Resend email", "Stripe", "Vercel"],
     agentsTitle: "The agents inside the CRM",
-    steps: [
-      { title: "Screen", body: "Spam and bots pulled out before anyone sees them. Tagged, never deleted." },
-      { title: "Fill in", body: "Company, role and region read out of what the lead wrote. Only blanks are filled." },
-      { title: "Sort", body: "Type, next step and urgency for every lead, each with a sentence saying why." },
-      { title: "Schedule", body: "The next follow-up lands on a date. Hot leads are chased in days, cold ones in weeks." },
-      { title: "Brief", body: "Overnight work becomes a short ranked list: who to call, why, and what to say." },
-    ],
+    agentsBody:
+      "Every morning the agents screen out spam, fill in missing details, sort each lead by type and urgency, schedule the next follow-up, and write a short ranked briefing. People make the calls.",
     guarantees: [
       "No email reaches a customer without a person approving it.",
       "Every automated decision shows its reasoning.",
@@ -270,27 +251,14 @@ const content: SiteContent = {
         { name: "Morgan L.", kind: "Racing school", reason: "Due for step 2 of 4.", priority: "Medium" },
         { name: "Riley P.", kind: "Event organizer", reason: "Replied overnight. Draft waiting.", priority: "Medium" },
       ],
-      cadenceTitle: "Follow-up cadence",
-      cadence: [
-        { temp: "Hot", days: "Day 0 · 1 · 3 · 7 · 14" },
-        { temp: "Warm", days: "Day 1 · 3 · 7 · 14 · 30" },
-        { temp: "Cold", days: "Day 3 · 14 · 45" },
-      ],
     },
   },
   proof: {
     id: "proof",
-    title: "Proof",
+    title: "Also shipped",
     stats: [],
     visitLabel: "Visit site",
     work: [
-      {
-        title: "Hyper Racer USA",
-        body: "The US home of the Hyper Racer X1 ground-effects race car. A full marketing site with specs, inventory, gallery and a configurator, plus the CRM behind it: leads, deals, customers, and an agent layer that classifies leads and drafts follow-ups.",
-        year: "2026",
-        href: "https://www.hyperracerusa.com",
-        featured: true,
-      },
       {
         title: "DispatchRelay",
         body: "A multi-role freight marketplace for carriers, brokers, shippers and drivers. Loads, dispatch and tracking on one platform.",
