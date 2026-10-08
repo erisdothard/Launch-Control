@@ -63,12 +63,13 @@ describe("scrollMap", () => {
     expect(explodeForProgress(EXPLODE_END)).toBe(0);
     expect(explodeForProgress(1)).toBe(0);
     let prev = 0;
-    for (let i = 100; i <= 400; i++) {
+    const at = (x: number) => Math.round(x * 1000);
+    for (let i = at(EXPLODE_START); i <= at(EXPLODE_PEAK); i++) {
       const k = explodeForProgress(i / 1000);
       expect(k).toBeGreaterThanOrEqual(prev - 1e-9);
       prev = k;
     }
-    for (let i = 400; i <= 650; i++) {
+    for (let i = at(EXPLODE_PEAK); i <= at(EXPLODE_END); i++) {
       const k = explodeForProgress(i / 1000);
       expect(k).toBeLessThanOrEqual(prev + 1e-9);
       prev = k;

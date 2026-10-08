@@ -39,13 +39,13 @@ export const BEATS: readonly Beat[] = [
 
 export const LAUNCH_START = 0.94;
 /** Explode window: fully apart at EXPLODE_PEAK, back together by EXPLODE_END. */
-export const EXPLODE_START = 0.1;
-export const EXPLODE_PEAK = 0.4;
-export const EXPLODE_END = 0.65;
+export const EXPLODE_START = 0.05;
+export const EXPLODE_PEAK = 0.45;
+export const EXPLODE_END = 0.9;
 /** Part stagger: outer parts leave last and come home first. 0 = all parts move together. */
 export const EXPLODE_STAGGER = 0.35;
 /** Fraction of the author's exploded offsets used at full explode, so the stack stays in frame. */
-export const EXPLODE_AMPLITUDE = 0.4;
+export const EXPLODE_AMPLITUDE = 1;
 /** Hz of the fuel-cut stutter on the limiter. */
 export const LIMITER_STUTTER_HZ = 11;
 

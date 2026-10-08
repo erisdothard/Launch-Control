@@ -121,14 +121,15 @@ z-layers: `canvas 0 · content 10 · hud 30 · tach 40 (unused) · gate 50 · to
 
 ## The engine (background rules)
 
-- Fixed full-viewport canvas behind the whole page at 0.42 opacity, fading in when its first frame
+- Fixed full-viewport canvas behind the whole page at 0.8 opacity, fading in when its first frame
   is drawn. The hero is real HTML and never waits for it.
 - Right of centre on landscape (`ENGINE_OFFSET_X 0.22`), the same camera on every screen. On a
   phone the type simply sits over it.
 - Its scroll timeline (`scrollMap`) spans the whole page: a gentle pull-apart and back, revs held
-  between 800 and 2200, combustion glow at `BACKGROUND_HEAT 0.55`.
+  between 800 and 2200, combustion glow at `BACKGROUND_HEAT 0.55`. Full disassembly
+  (`EXPLODE_AMPLITUDE 1`): apart from 5% to 45% of the page, back together by 90%.
 - Drag on the hero rotates it (buttons and links are excluded). Pistons always run.
-- Content panels are `background` at 80%, so the engine stays faintly visible behind every section.
+- Content panels are `background` at 60%, so the engine stays faintly visible behind every section.
 
 ## Layout vocabulary (allowed families)
 

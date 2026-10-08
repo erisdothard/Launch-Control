@@ -15,7 +15,7 @@ export function Hero() {
     <>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-background/60 md:bg-transparent md:bg-gradient-to-r md:from-background/85 md:via-background/35 md:to-transparent"
+        className="pointer-events-none absolute inset-0 bg-background/45 md:bg-transparent md:bg-gradient-to-r md:from-background/75 md:via-background/20 md:to-transparent"
       />
       <div className="relative mx-auto flex min-h-[100svh] w-full max-w-content-max flex-col justify-center px-6 pb-20 pt-28 lg:px-12">
         <LiveryStripe className="mb-8" />
