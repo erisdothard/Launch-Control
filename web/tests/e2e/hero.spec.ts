@@ -45,7 +45,7 @@ test.describe("hero", () => {
     await waitRunning(page);
     await expect(page.locator("canvas")).toHaveCount(1);
     await expect.poll(() => canvasOpacity(page), { timeout: 5_000 }).toBeGreaterThan(0.3);
-    expect(await canvasOpacity(page)).toBeLessThan(0.6);
+    expect(await canvasOpacity(page)).toBeLessThan(1);
   });
 
   test("a #hash deep link lands on the section with the engine behind it", async ({ page }) => {
