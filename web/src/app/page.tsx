@@ -6,6 +6,7 @@
 import { Experience } from "@/components/experience/Experience";
 import { Nav } from "@/components/nav/Nav";
 import { Hero } from "@/components/sections/Hero";
+import { Clients } from "@/components/sections/Clients";
 import { Sections } from "@/components/sections";
 
 export default function Home() {
@@ -16,6 +17,7 @@ export default function Home() {
         <Experience>
           <Hero />
         </Experience>
+        <Clients />
         <Sections />
       </main>
     </>

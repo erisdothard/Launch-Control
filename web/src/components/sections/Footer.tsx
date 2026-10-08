@@ -1,39 +1,56 @@
 import { site } from "@/content/site";
 
-const { footer, brand } = site;
+const { footer, brand, nav } = site;
 
-/* Mono utility block. Carries the mandatory CC BY credit as a link. */
+/* Footer: wordmark and blurb, site nav, contact, elsewhere, then the legal line and the
+   mandatory CC BY credit for the engine model. */
 export function Footer() {
   const year = new Date().getFullYear();
   const credit = `${footer.credit.modelName}, ${footer.credit.author}, ${footer.credit.license}`;
+  const link = "no-underline transition-colors duration-fast ease-ui hover:text-ember";
   return (
-    <footer className="relative border-t border-border bg-surface font-mono text-caption font-medium text-subtle" style={{ zIndex: "var(--z-content)" }}>
-      <div className="mx-auto flex max-w-content-max flex-col gap-6 px-6 py-12 lg:flex-row lg:items-start lg:justify-between lg:gap-8 lg:px-12">
-        <p className="label-mono text-muted">{brand.wordmark}</p>
-        <div className="flex max-w-[60ch] flex-col gap-2">
-          <p>
+    <footer className="relative border-t border-border bg-surface" style={{ zIndex: "var(--z-content)" }}>
+      <div className="mx-auto grid max-w-content-max grid-cols-1 gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8 lg:px-12 lg:py-16">
+        <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-5">
+          <p className="m-0 font-display text-[13px] uppercase tracking-signage text-steel">{brand.wordmark}</p>
+          <p className="m-0 max-w-[36ch] text-body text-muted">{footer.blurb}</p>
+        </div>
+        <nav aria-label={footer.navLabel} className="flex flex-col gap-3 lg:col-span-2">
+          <p className="label-mono m-0 text-subtle">{footer.navLabel}</p>
+          {nav.map((item) => (
+            <a key={item.href} href={item.href} className={`text-body text-text ${link}`}>
+              {item.label}
+            </a>
+          ))}
+        </nav>
+        <div className="flex flex-col gap-3 lg:col-span-3">
+          <p className="label-mono m-0 text-subtle">{footer.contactLabel}</p>
+          <a href={`mailto:${footer.email}`} className={`text-body text-text ${link}`}>
+            {footer.email}
+          </a>
+          <p className="m-0 text-body text-muted">{footer.location}</p>
+        </div>
+        <div className="flex flex-col gap-3 lg:col-span-2">
+          <p className="label-mono m-0 text-subtle">{footer.socialLabel}</p>
+          {footer.social.map((item) => (
+            <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" className={`text-body text-text ${link}`}>
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </div>
+      <div className="border-t border-border">
+        <div className="mx-auto flex max-w-content-max flex-col gap-2 px-6 py-5 font-mono text-caption text-subtle lg:flex-row lg:items-center lg:justify-between lg:px-12">
+          <p className="m-0 tabular-nums">
+            © {year} {footer.legal}
+          </p>
+          <p className="m-0">
             {footer.credit.prefix}{" "}
-            <a
-              href={footer.credit.href}
-              target="_blank"
-              rel="noopener noreferrer license"
-              className="underline decoration-1 underline-offset-4 transition-colors duration-fast ease-ui hover:text-ember"
-            >
+            <a href={footer.credit.href} target="_blank" rel="noopener noreferrer license" className={`underline decoration-1 underline-offset-4 ${link}`}>
               {credit}
             </a>
           </p>
         </div>
-        <p className="flex flex-col gap-2 lg:items-end">
-          <a
-            href={`mailto:${footer.email}`}
-            className="underline decoration-1 underline-offset-4 transition-colors duration-fast ease-ui hover:text-ember"
-          >
-            {footer.email}
-          </a>
-          <span className="tabular-nums">
-            {footer.legal} {year}
-          </span>
-        </p>
       </div>
     </footer>
   );

@@ -6,7 +6,7 @@ import { site } from "@/content/site";
 const sora = Sora({
   variable: "--font-sora",
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -32,7 +32,9 @@ export const metadata: Metadata = {
     title: site.seo.title,
     description: site.seo.description,
     type: "website",
+    siteName: site.brand.name,
   },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
