@@ -23,7 +23,7 @@ import { STAGE_LIMITER_RPM } from "@/lib/scrollMap";
 import { engineSpin, stepSpin } from "@/lib/spin";
 import { token } from "@/lib/tokens";
 import { Driver } from "./Driver";
-import { CameraRig, getFocusDistance } from "./CameraRig";
+import { CameraRig, getFocusDistance, portraitAmount } from "./CameraRig";
 import { PlaceholderEngine, type EngineHandle } from "@/components/engine/PlaceholderEngine";
 import { EngineModel, ENGINE_GLB, ENGINE_GLB_MOBILE } from "@/components/engine/EngineModel";
 
@@ -38,7 +38,7 @@ export type SceneProps = {
   onFirstFrame?: () => void;
 };
 
-export const HDRI_URL = "/hdr/machine_shop_01_1k.hdr";
+export const HDRI_URL = "/hdr/machine_shop_01_512.hdr";
 /** Environment intensity at the stage and once the content has taken over. */
 const ENV_STAGE = 0.3;
 const ENV_CONTENT = 0.26;
@@ -141,11 +141,13 @@ function EngineStage({ engine, lowTier, onEngineReady }: { engine: EngineSource;
   const fireLight = useRef<THREE.PointLight>(null);
   const turntable = useRef<THREE.Group>(null);
 
-  useFrame((_, dt) => {
+  useFrame(({ size }, dt) => {
     const h = handle.current;
     const s = scrollState;
     stepSpin(dt);
     if (turntable.current) {
+      // Centred on portrait: the caption sits above the engine there, not beside it.
+      turntable.current.position.x = ENGINE_OFFSET_X * (1 - portraitAmount(size.width / Math.max(1, size.height)));
       const yaw = s.time * TURN_TIME + engineSpin.yaw;
       turntable.current.rotation.y = Number.isFinite(yaw) ? yaw : 0;
       turntable.current.rotation.x = Number.isFinite(engineSpin.pitch) ? engineSpin.pitch : 0;

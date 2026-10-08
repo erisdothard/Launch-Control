@@ -1,144 +1,150 @@
 ---
 project: Launch Control
 register: brand
-aesthetic_direction: industrial / signage
+aesthetic_direction: sleek automotive / dark luxury, steel and canary
 color_strategy: restrained
 design_system: bespoke
-design_variance: 8
-motion_intensity: 9
-visual_density: 4
+design_variance: 7
+motion_intensity: 7
+visual_density: 3
 ---
 
 # Launch Control. Design language (LOCKED)
 
+Rewritten 2026-10-07 to the direction Eris set on 2026-10-06. It replaces the 2026-10-03
+ember / Barlow / tachometer identity in full. The source of truth for values is
+`web/src/styles/tokens.css`; this file says why, and where each value is allowed.
+
 Every screen must read as the same product if placed side by side.
 
-## Design Read
+## Design read
 
-Hold the revs, then let go. A cold steel block that gets hot. Engine bay, not showroom.
+Sleek and sexy. A black room, one steel engine turning slowly in it, silver type cut from the same
+metal, one canary-yellow accent. The engine is atmosphere, not the main attraction: it sits behind
+the words and never competes with them.
 
-The bet: every automotive site is black with a red accent and a glossy car. We skip the car entirely.
-The product is the engine, shown from inside, and the only colour on the page is heat.
+In his words: "sleek and sexy", "not trying to show off the engine as the main attraction",
+"black, white, silver, canary yellow", "the steel color of that engine needs to be the same color
+of the font".
 
-## Counterfactual default test
+## Hard exclusions
 
-For any car brief the reflex answer is "dark luxury": black, red accent, serif, glossy hero. That is
-Rimac, that is every supercar page. We reject it. Industrial signage is chosen because the subject is
-an engine bay: stencil type, gauge faces, data plates, telemetry. Nothing on this page is shiny.
+- **No orange, and never black-and-orange.** That is Hyper Racer's identity. This includes the
+  combustion glow, which is canary.
+- No tachometer, no gauge, no telemetry readouts, no RPM digits. Captions are the only HUD.
+- No `backdrop-filter` over the canvas (it kills the compositor on this site). Solid fills only.
+- No shiny gradients, glass panels, gradient text, card grids, decorative status dots, fake logo rows.
 
 ## Signature
 
-**The tachometer.** One RPM gauge needle, fixed at the viewport edge, is the site's scroll progress
-indicator and navigation. It climbs through the ignition sequence, hits redline at the launch beat,
-then idles through the content sections. It replaces the generic progress bar and dot nav. Nothing
-else on the page is allowed to compete with it. The engine-start button at the gate is the
-tachometer's trigger, not a second signature.
-
-## Inspiration (visited and screenshotted 2026-10-03, board at docs/inspo/)
-
-| source | took | rejected |
-|---|---|---|
-| Oryzo (oryzo.ai) | one hero object held in frame, camera dives on scroll, warm near-black ground | the warm brown tint (ours is steel-cold until heat arrives) |
-| Igloo Inc (igloo.inc) | fog volume, emissive object as the only light source | monochrome grey ground, cold throughout |
-| Hubtown (hubtown.co.in) | emissive core with bloom as the focal point | blue glow (banned AI-blue family), lake reflection |
-| Rimac (rimac-automobili.com) | tracked uppercase display type, cinematic restraint, one accent | black + red automotive default, the car itself |
-| Shopify Editions S26 | particle dissolve into a light streak as a transition beat | pastel particle colours, white UI below |
-| Lusion (lusion.co) | numeric preloader counter as a gauge | fluid-sim playfulness |
-| Bruno Simon | a gate before the experience, "click to start" | game aesthetic |
-| iyO One | scroll-scrubbed exploded product view | product-marketing white sections |
-
-Synthesis: Oryzo's structure, Igloo's atmosphere, Hubtown's single light source, Shopify's launch beat,
-with an industrial-signage skin none of them use. It is not a reskin of any one of them.
+**Silver type, same metal as the engine.** Display type is Michroma in `steel` (#c6ccd3), the colour
+the engine's steel reads at under the studio lighting. The caption and the engine read as one
+object. Second beat: the canary **Book a launch** panel, the only full-bleed colour on the page.
 
 ## Color (locked)
 
-Neutrals are tinted toward cold steel (hue 250). The one accent is heat (hue 55) and it ramps hotter
-as the engine does. Light mode: none. This product is dark only, by brief.
+Neutral blacks and silvers, no hue tint. One accent: canary (sampled from the B&H Jordan 199 livery).
+Dark only, by brief.
 
-| role | OKLCH | hex | use |
+| role | hex | use |
+|---|---|---|
+| background | #050607 | page ground, canvas clear colour |
+| surface | #0b0d10 | content panels, the nav once content is under it |
+| elevated | #15181c | form fields, hover rows |
+| border | #262b31 | hairline rules (decorative only) |
+| text | #f4f6f8 | body copy, headings on panels |
+| **steel** | #c6ccd3 | display type: captions, section titles, the wordmark |
+| muted | #a7adb4 | secondary copy, nav items |
+| subtle | #7a8189 | small print, footer credits, control borders, placeholders |
+| **ember (accent)** | #f0c419 | THE accent, canary. Start ring, Book panel, primary button, the nav CTA, combustion heat |
+| ember-hot | #f07d1a | heat ramp stage 2, inside the engine's combustion only, never UI |
+| white-hot | #ffffff | heat ramp stage 3, the ignition flash only, never UI |
+| danger | #e3261d | the igniting ring and invalid-field borders. Never body text (fails AA) |
+| success / warning / info | #8fd49a / #f0c419 / #9ec5e8 | form sent / hints / notices |
+
+`--color-ember` keeps its name for the many call sites; it is canary. ember-hot is the one warm
+hue allowed, and only inside the engine during a firing pulse near the limiter, so the page never
+reads as orange.
+
+Proportion: background and surface carry ~90% of the page, steel/text ~8%, canary ≤2% outside the
+Book panel.
+
+### Contrast (WCAG 2.2 AA, measured 2026-10-07)
+
+| pair | on background | on surface | on elevated |
 |---|---|---|---|
-| background | oklch(13% 0.010 250) | #05080b | page ground, canvas clear colour |
-| surface | oklch(17% 0.012 250) | #0b1015 | content sections, panels |
-| elevated | oklch(22% 0.014 250) | #161b21 | hover rows, form fields |
-| border | oklch(30% 0.014 250) | #292e35 | hairline rules (decorative only) |
-| text | oklch(95% 0.006 250) | #ebeff2 | headlines, body |
-| muted | oklch(72% 0.012 250) | #9fa5ac | secondary copy, labels |
-| subtle | oklch(56% 0.014 250) | #6e757d | captions, telemetry idle, control borders |
-| **ember (accent)** | oklch(74% 0.170 55) | #fa8927 | the ONE accent: tach needle, start ring, links, primary button |
-| ember-hot | oklch(88% 0.120 75) | #ffcc79 | heat ramp stage 2, redline region, used only inside the ignition sequence |
-| white-hot | oklch(99% 0.010 75) | #fffbf5 | heat ramp stage 3, the launch flash only. Never as a UI colour |
-| success | oklch(74% 0.14 150) | #62c37a | form sent |
-| warning | oklch(80% 0.15 85) | #eab532 | validation hints |
-| danger | oklch(62% 0.21 28) | #ea3d35 | errors |
-| info | oklch(72% 0.10 230) | #5bb0d7 | system notices |
+| text | 18.72 | 17.96 | 16.44 |
+| steel | 12.53 | 12.03 | 11.01 |
+| muted | 8.96 | 8.60 | 7.87 |
+| subtle | 5.15 | 4.94 | 4.52 |
+| ember | 12.18 | 11.69 | 10.70 |
+| danger | 4.40 | 4.23 | 3.87 |
+| border | 1.42 | 1.36 | 1.25 |
 
-Heat ramp: ember → ember-hot → white-hot is a scripted gradient driven by RPM, used only by the
-3D scene and the tachometer. UI chrome never uses ember-hot or white-hot.
+Ink on the canary panel: background on ember 12.18.
 
-60-30-10: background and surface carry ~85% of the page, text/muted ~10%, ember ≤5%.
-
-Contrast (WCAG AA, computed 2026-10-03):
-
-| pair | ratio |
-|---|---|
-| text on background | 17.36 |
-| muted on background | 8.08 |
-| subtle on background | 4.31 (small text passes AA 4.5? No. Use subtle for ≥18px/14px-bold only, or captions on surface at 4.10 as large text) |
-| ember on background | 8.29 |
-| background on ember (button label) | 8.29 |
-| text on surface | 16.52 |
-| danger on background | 4.99 |
-| success / warning / info on background | 9.18 / 10.66 / 8.26 |
-| border on background | 1.47 (decorative hairlines only; interactive control borders use subtle at 4.31, passes 3:1) |
-
-Rule from the ratios: `subtle` is never used for body-size copy. Captions in subtle are 14px semibold
-or larger.
+Rules from the ratios:
+- `subtle` was #6c737b (4.05 on surface, failed AA for the 13px footer); raised to #7a8189 on
+  2026-10-07. Any change to a ground re-measures this table in the same commit.
+- `danger` passes 3:1 for non-text (borders, the ring) but not 4.5:1 for text. Error *text* on
+  the canary panel is `background` ink (`.field-error`); red on canary is 2.77 and is banned.
+- `border` is decorative only. Interactive control borders use `subtle`.
 
 ## Type (locked)
 
 | role | family | use | notes |
 |---|---|---|---|
-| display | Barlow Condensed 700/800 | headlines, the gate, section titles | uppercase, tracking -0.01em at ≥64px, 0.04em at ≤24px (signage spacing). Clamp 2.5rem to 9rem |
-| body | Barlow 400/500 | reading copy | measure 60 to 70ch, 1.55 line-height |
-| utility | IBM Plex Mono 400/500 | telemetry readouts, RPM digits, labels, form field labels, footer | tabular numerals, uppercase for labels at 0.08em tracking |
+| display | Michroma 400 (only weight) | captions, section titles, wordmark, button labels | uppercase, wide; tracking 0.05em display, 0.14em signage at ≤15px |
+| body | Sora 400/500 | reading copy | measure ≤ 65ch, 1.55 line-height |
+| utility | Chivo Mono 400/500 | labels, nav items, form labels, footer credits | uppercase labels at 0.14em |
 
-Pairing axis: width. Barlow Condensed against Barlow is one superfamily in two widths, which is the
-"one family in multiple weights" rule applied to width. Plex Mono is the contrast face for data.
-Barlow is derived from Californian public-sign and traffic typography, which is the signage brief.
-Two families total. Self-hosted, `font-display: swap`, metric-matched fallbacks: Arial Narrow for
-Condensed, Arial for Barlow, Menlo for Plex Mono.
+Self-hosted through `next/font`, `display: swap`. Fallbacks: Eurostile / Bank Gothic / Arial for
+Michroma, Arial for Sora, Menlo for Chivo Mono. Barlow, Barlow Condensed and IBM Plex Mono are out.
 
-Banned here by the anti-slop list and not used: Inter, Space Grotesk, Fraunces, Playfair.
+Sizes are tokens: caption 13px, body clamp(0.95–1.06rem), lead, title, `caption-3d`
+clamp(1.25–2.2rem) for the hero captions, display clamp(1.75–3.4rem).
 
 ## Scales (locked)
 
-spacing: 4px base. `0 2 4 8 12 16 24 32 48 64 96 128 192` px. Section rhythm uses 96/128/192 only.
-radius: `none 0 · hairline 2 · round 9999`. `round` is reserved for the engine-start button and the
-tachometer face. Every other element is square. Engines do not have rounded cards.
-shadow: none. Depth comes from the 3D scene, fog, and bloom, never from CSS drop shadows.
-motion: durations `fast 120 · base 300 · emphasis 600` ms. UI easing `cubic-bezier(0.16, 1, 0.3, 1)`.
-Scroll-scrubbed motion is linear by definition (scrub: true). Exit is 75% of enter. No bounce, no
-elastic, anywhere. `prefers-reduced-motion`: the ignition sequence is replaced by a single still
-render with the same copy, the tachometer becomes a static progress rule, and the gate becomes a
-plain "Enter" button.
-breakpoints: `sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1536`. Content max width 1200px.
-z-layers: `canvas 0 · content 10 · hud 30 · tach 40 · gate 50 · toast 70 · skipLink 80`.
+spacing: 4px base. Section rhythm uses `section-sm 96 · section-md 128 · section-lg 192`.
+Content max width 1200px.
+radius: `none 0 · hairline 2 · round 9999`. `round` is the engine-start button only. Everything
+else is square.
+shadow: none. Depth comes from the 3D scene, the backdrop glow and bloom.
+motion: `fast 120 · base 300 · emphasis 600` ms, UI easing `cubic-bezier(0.16, 1, 0.3, 1)`.
+No bounce, no elastic. Camera timing over scroll is a monotone cubic over arc length (never
+piecewise-linear; Eris called that "amateur"). The turntable turns with time only; scroll owns the
+camera. Shake is faint.
+z-layers: `canvas 0 · content 10 · hud 30 · tach 40 (unused) · gate 50 · toast 70 · skipLink 80`.
+
+## The engine (atmosphere rules)
+
+- Landscape: right of centre (`ENGINE_OFFSET_X 0.22`), about 55% of the viewport height, behind the
+  caption column on the left.
+- Portrait (phones, upright tablets): centred, pulled back and dropped into the lower part of the
+  frame (`portraitAmount` in CameraRig, 0 at aspect ≥ 1, 1 at ≤ 0.5). The caption moves to a top
+  band under the nav. Type never sits on steel.
+- Darker steel, a gentle pull-apart (`EXPLODE_AMPLITUDE 0.4`), pistons always running.
+- Revs are held, never pinned: idle 800, rebuild 1500, hold 2200, limiter 2200 to 2500, launch back
+  to 800. Audio pitch is sub-linear, (rpm/800)^0.55.
+- Drag (mouse or touch) rotates the engine about its centre.
+- After the launch the canvas stays behind the content at 0.5 opacity. The engine never leaves.
 
 ## Layout vocabulary (allowed families)
 
-1. Gate: one object centred on empty ground. Allowed once, as the entry gate only.
-2. Pinned stage: full-bleed canvas with a HUD of mono telemetry anchored to the four corners.
-3. Ruled editorial columns: 2-col, hairline rules, asymmetric 5/7 split.
-4. Horizontal stage strip: the four-stage sequence, scrolls sideways, each stage a full column.
-5. List with dividers: proof/work entries, no cards.
-6. Stat strip: real values only, mono digits.
+1. Gate: the round ENGINE START button centred on black. Once, as the entry only.
+2. Stage: 500svh of fixed full-bleed canvas, one caption per beat, nothing else on screen.
+3. Steel panels: Build, Proof, footer as solid `surface` panels sliding over the dimmed canvas,
+   ruled lists with hairline dividers, no cards.
+4. The canary panel: Book a launch, full-bleed `ember` with `background` ink, ≤4 fields.
 
-Banned on this project: three equal cards, nested cards, glass panels, gradient text, centred hero
-over a gradient mesh, decorative status dots, fake logo rows.
+The sequence strip and the Arrival section were removed on 2026-10-06 and stay out.
+
+Nav: wordmark left, ≤4 items, the last (Book a launch) the only canary item. Transparent over the
+stage, solid `surface` from the moment the raw scroll leaves the stage. Never backdrop-filter.
 
 ## Voice
 
-register: plain, confident, mechanical. Short sentences. Verbs first. No buzzwords from the
-anti-slop list. No em-dashes in any visible copy.
-action vocabulary: Start → Running → Launch. CTA flow: "Book a launch" → "Booking" → "Booked".
-Numbers: only real ones. If a number cannot be sourced, it is not on the page.
+Plain, confident, mechanical. Short sentences, verbs first, no buzzwords, no em-dashes in visible
+copy. Action vocabulary: Start → Running → Launch. CTA flow: "Book a launch" → "Booking" →
+"Booked". Numbers only when real. All copy lives in `web/src/content/site.ts`.

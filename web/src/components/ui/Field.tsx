@@ -21,7 +21,7 @@ export function FieldShell({ id, label, error, children }: FieldShellProps) {
       </label>
       {children}
       {error ? (
-        <p id={`${id}-error`} className="text-caption font-medium text-danger">
+        <p id={`${id}-error`} className="field-error text-caption font-medium text-danger">
           {error}
         </p>
       ) : null}

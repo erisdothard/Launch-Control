@@ -41,6 +41,12 @@ test.describe("content sections", () => {
   test("the engine canvas stays mounted behind the content, dimmed", async ({ page }) => {
     await openSections(page);
     await expect.poll(() => page.evaluate(() => Boolean(window.__lc)), { timeout: 30_000 }).toBe(true);
+    // The skip handoff resets the stage to 0 when it lands, so jump only once the engine is running.
+    await expect
+      .poll(() => page.evaluate(() => (window.__lc!.info() as { store: { phase: string } }).store.phase), {
+        timeout: 30_000,
+      })
+      .toMatch(/idle|scrolling|launched/);
     // Jump the stage to its end through the debug hook (snaps the smoothed progress), then check
     // the fixed canvas wrapper, #hero's first aria-hidden child (R3F adds its own inner div).
     await page.evaluate(() => window.__lc!.setProgress(1));

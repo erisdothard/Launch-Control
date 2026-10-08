@@ -86,7 +86,7 @@ function BookingForm() {
       {/* Announced summary. Field messages repeat inline, so the list is visually hidden. */}
       <div aria-live="polite" aria-atomic="true">
         {serverErrors.form ? (
-          <p className="text-caption font-medium text-danger">{serverErrors.form}</p>
+          <p className="field-error text-caption font-medium text-danger">{serverErrors.form}</p>
         ) : null}
         {fieldErrors.length > 0 ? (
           <ul className="sr-only">
@@ -151,7 +151,7 @@ export function Book() {
     <section
       id={book.id}
       aria-labelledby={titleId}
-      className="relative my-[20svh] bg-ember text-background [&_label]:text-background [&_label]:opacity-80"
+      className="relative my-[20svh] bg-ember text-background [&_label]:text-background [&_label]:opacity-80 [&_.field-error]:text-background"
       style={{ zIndex: "var(--z-content)" }}
     >
       <div className="mx-auto max-w-content-max px-6 py-section-sm lg:px-12 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-8">

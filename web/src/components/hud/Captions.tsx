@@ -2,7 +2,9 @@
 
 /*
   Captions: one line per beat, Michroma uppercase in silver.
-  Fixed to the viewport: left column, top locked at 30% so the baseline never jumps between beats.
+  Fixed to the viewport: left column, top locked at 38% so the baseline never jumps between beats.
+  Portrait (aspect < 9/10: phones, tablets upright): the caption moves to the top band under the nav and the camera
+  drops the engine into the lower part of the frame (CameraRig portraitAmount), so type never sits on steel.
   Crossfade `base` on beat change. aria-live="polite" region announces each caption once.
   The active beat is read from scrollState per frame; React re-renders only when it changes.
 */
@@ -41,7 +43,7 @@ export function Captions() {
     <div
       id={CAPTIONS_ID}
       tabIndex={-1}
-      className="fixed left-6 md:left-12 right-6 md:right-auto top-[38%] md:w-[36%] max-w-[22ch] outline-none"
+      className="fixed left-6 md:left-12 right-6 md:right-auto top-[38%] md:w-[36%] max-w-[22ch] outline-none [@media(max-aspect-ratio:9/10)]:top-[calc(3.5rem+7svh)] [@media(max-aspect-ratio:9/10)]:md:w-auto"
       style={{ zIndex: "var(--z-content)" }}
     >
       <div className="relative" aria-hidden="true">

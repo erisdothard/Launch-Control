@@ -14,7 +14,7 @@
   --color-text: #f4f6f8;
   --color-steel: #c6ccd3; /* display type, the engine's metal */
   --color-muted: #a7adb4;
-  --color-subtle: #6c737b;
+  --color-subtle: #7a8189; /* 4.94:1 on surface, 4.52:1 on elevated, 5.15:1 on background (AA) */
   --color-ember: #f0c419; /* THE accent: Jordan yellow. Start ring, links, the Book panel, heat */
   --color-ember-hot: #f07d1a; /* heat ramp stage 2: Jordan orange, inside the engine only, never UI */
   --color-white-hot: #ffffff; /* heat ramp stage 3, the flash only. Never as a UI colour */

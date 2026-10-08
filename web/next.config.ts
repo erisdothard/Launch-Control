@@ -3,6 +3,17 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // The dev badge overlaps the bottom-left HUD readout in review captures.
   devIndicators: false,
+  /* Asset filenames are versioned (engine-v2.glb), never overwritten in place, so they cache for a year.
+     The draco decoder keeps three's filenames; it gets a week. */
+  async headers() {
+    const year = "public, max-age=31536000, immutable";
+    return [
+      { source: "/models/:path*", headers: [{ key: "Cache-Control", value: year }] },
+      { source: "/hdr/:path*", headers: [{ key: "Cache-Control", value: year }] },
+      { source: "/audio/:path*", headers: [{ key: "Cache-Control", value: year }] },
+      { source: "/draco/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=604800" }] },
+    ];
+  },
   // .glsl files import as raw strings (src/shaders/*). Turbopack uses the local loader,
   // webpack uses the built-in asset/source type. Typed in src/shaders/glsl.d.ts.
   turbopack: {
