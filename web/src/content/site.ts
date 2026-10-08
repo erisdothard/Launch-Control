@@ -27,6 +27,8 @@ const workSchema = z.object({
   body: z.string(),
   year: z.string().length(4),
   href: z.string().url().optional(),
+  /** Shown as the large lead entry. At most one. */
+  featured: z.boolean().optional(),
 });
 
 const statSchema = z.object({
@@ -68,6 +70,7 @@ export const siteSchema = z.object({
     id: z.literal("proof"),
     title: z.string(),
     stats: z.array(statSchema).max(3),
+    visitLabel: z.string(),
     work: z.array(workSchema).min(1),
   }),
   book: z.object({
@@ -178,11 +181,20 @@ const content: SiteContent = {
     id: "proof",
     title: "Proof",
     stats: [],
+    visitLabel: "Visit site",
     work: [
       {
-        title: "FreightX",
-        body: "A multi-role freight marketplace for a trucking company. Shippers, carriers and dispatch on one platform.",
+        title: "Hyper Racer USA",
+        body: "The US home of the Hyper Racer X1 ground-effects race car. A full marketing site with specs, inventory, gallery and a configurator, plus the CRM behind it: leads, deals, customers, and an agent layer that classifies leads and drafts follow-ups.",
         year: "2026",
+        href: "https://www.hyperracerusa.com",
+        featured: true,
+      },
+      {
+        title: "DispatchRelay",
+        body: "A multi-role freight marketplace for carriers, brokers, shippers and drivers. Loads, dispatch and tracking on one platform.",
+        year: "2026",
+        href: "https://dispatchrelay.co",
       },
     ],
   },
