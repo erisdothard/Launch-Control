@@ -70,7 +70,67 @@ function CommandCenter() {
   );
 }
 
-/* The featured build: what the Hyper Racer CRM does, beside a demo-data mock of it. */
+/* The application as one connected system: three layers joined by arrows, then how they talk. */
+function System() {
+  return (
+    <div className="mb-16 lg:mb-20">
+      <ol className="m-0 grid list-none grid-cols-1 border border-border bg-surface/90 p-0 lg:grid-cols-[1fr_auto_1fr_auto_1fr]">
+        {crm.layers.map((layer, i) => (
+          <li key={layer.tag} className="contents">
+            {i > 0 && (
+              <span
+                aria-hidden="true"
+                className="flex items-center justify-center border-t border-border py-2 font-mono text-ember lg:border-t-0 lg:border-l lg:px-3 lg:py-0"
+              >
+                <span className="lg:hidden">↓</span>
+                <span className="hidden lg:inline">⇄</span>
+              </span>
+            )}
+            <div className="flex flex-col gap-4 p-6 lg:p-8">
+              <span className="label-mono text-ember">{layer.tag}</span>
+              <h3 className="font-display text-title uppercase leading-tight tracking-display text-steel">{layer.title}</h3>
+              <p className="text-body text-muted">{layer.body}</p>
+              <ul className="m-0 mt-2 flex list-none flex-col gap-2 border-t border-border p-0 pt-4">
+                {layer.items.map((item) => (
+                  <li key={item} className="flex gap-3 text-caption text-text">
+                    <span aria-hidden="true" className="mt-[0.55em] h-px w-2 shrink-0 bg-subtle" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
+        <div className="lg:col-span-8">
+          <p className="label-mono mb-4 text-muted">{crm.flowsTitle}</p>
+          <ul className="m-0 list-none border-b border-border p-0">
+            {crm.flows.map((flow) => (
+              <li key={flow.from} className="grid grid-cols-1 gap-1 border-t border-border py-3 sm:grid-cols-[1fr_auto_1fr] sm:items-baseline sm:gap-4">
+                <span className="text-body text-text">{flow.from}</span>
+                <span aria-hidden="true" className="hidden font-mono text-ember sm:inline">→</span>
+                <span className="text-body text-muted">{flow.to}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="lg:col-span-4">
+          <p className="label-mono mb-4 text-muted">{crm.stackTitle}</p>
+          <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+            {crm.stack.map((tech) => (
+              <li key={tech} className="label-mono border border-border px-3 py-2 text-[11px] text-steel">
+                {tech}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* The featured build: the whole application, then the agents inside its CRM beside a demo-data mock. */
 export function Crm() {
   return (
     <section
@@ -89,6 +149,12 @@ export function Crm() {
             </h2>
           </div>
           <p className="max-w-[56ch] text-lead text-muted lg:col-span-5 lg:self-end">{crm.intro}</p>
+        </Reveal>
+        <Reveal>
+          <System />
+        </Reveal>
+        <Reveal>
+          <h3 className="mb-8 font-display text-title uppercase leading-tight tracking-display text-steel">{crm.agentsTitle}</h3>
         </Reveal>
         <div className="grid grid-cols-1 gap-14 lg:grid-cols-12 lg:gap-12">
           <Reveal className="flex flex-col lg:col-span-6">
