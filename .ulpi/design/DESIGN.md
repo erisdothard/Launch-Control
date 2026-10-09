@@ -135,7 +135,9 @@ z-layers: `canvas 0 · content 10 · hud 30 · tach 40 (unused) · gate 50 · to
 ## Layout vocabulary (allowed families)
 
 Order of the page (from the reference agencies): hero → client logo row → work with real
-screenshots → what we build → book → footer. Work always comes before services.
+screenshots → what we build and run → team → book → footer. Work always comes before services.
+CRM screens are real admin captures from a local instance seeded with invented leads, captioned as
+such; production data never appears.
 
 0. Work: each project gets a browser-framed desktop shot with a phone shot overlapping its
    bottom-left corner, the client name in mono above, a sentence-case title, a summary, Visit site.
