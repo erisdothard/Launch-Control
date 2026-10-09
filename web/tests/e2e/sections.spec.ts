@@ -4,7 +4,7 @@ import { site } from "../../src/content/site";
 /*
   Content panels over the engine. Opens the real page with the placeholder engine.
 */
-const SECTION_IDS = [site.work.id, site.build.id, site.book.id] as const;
+const SECTION_IDS = [site.work.id, site.build.id, site.team.id, site.book.id] as const;
 
 async function openSections(page: Page): Promise<void> {
   await page.goto("/?debug&engine=placeholder");

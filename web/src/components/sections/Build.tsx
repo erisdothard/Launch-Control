@@ -25,17 +25,17 @@ export function Build() {
           </div>
           <p className="max-w-[60ch] text-lead text-muted lg:col-span-7 lg:self-end">{build.intro}</p>
         </Reveal>
-        <ul className="m-0 grid list-none grid-cols-1 border-t border-border p-0 sm:grid-cols-2 lg:grid-cols-5">
+        <ul className="m-0 grid list-none grid-cols-1 border-t border-border p-0 sm:grid-cols-2 lg:grid-cols-3">
           {build.services.map((service, index) => (
             <li
               key={service.id}
-              className="border-b border-border transition-colors duration-fast ease-ui hover:bg-elevated/70 sm:border-r sm:last:border-r-0 lg:border-b-0"
+              className="border-b border-border transition-colors duration-fast ease-ui hover:bg-elevated/70 sm:border-r sm:[&:nth-child(2n)]:border-r-0 lg:[&:nth-child(2n)]:border-r lg:[&:nth-child(3n)]:border-r-0"
             >
               <Reveal className="flex flex-col gap-3 px-0 py-6 sm:px-5" delay={0.05 * index}>
                 <h3 className="text-service">
                   {service.title}
                 </h3>
-                <p className="text-body text-muted">{service.body}</p>
+                <p className="text-pretty text-body text-muted">{service.body}</p>
               </Reveal>
             </li>
           ))}

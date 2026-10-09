@@ -6,62 +6,54 @@ import { BrowserFrame, PhoneFrame } from "@/components/ui/Frame";
 
 const { work } = site;
 const { featured } = work;
+const { crm } = featured;
 const titleId = `${work.id}-title`;
-const { mock } = featured;
 
-const PRIORITY_CLASS: Record<(typeof mock.briefing)[number]["priority"], string> = {
-  High: "border-ember-red/60 text-ember-red",
-  Medium: "border-ember-hot/60 text-ember-hot",
-  Low: "border-border text-muted",
-};
+/* The phone mockup overlapping a browser frame's bottom-left corner. Inside the gutter on a phone,
+   hanging past the frame from sm up. */
+const PHONE_OVERLAP = "absolute -bottom-6 left-0 w-[26%] max-w-[150px] sm:-left-6 lg:-left-10";
 
-/* The CRM mock: a window drawn in HTML with invented demo data. Never real client data. */
-function CommandCenter() {
+/* Items separated by a middle dot. Each item keeps its dot glued to it, so a wrap never starts a
+   line with "·". */
+function DotList({ items, className = "" }: { items: readonly string[]; className?: string }) {
   return (
-    <figure className="m-0 border border-border bg-surface">
-      <div className="flex items-center justify-between border-b border-border px-5 py-3">
-        <span className="label-mono text-steel">{mock.label}</span>
-        <span className="flex gap-1.5" aria-hidden="true">
-          <span className="h-2 w-2 rounded-round bg-border" />
-          <span className="h-2 w-2 rounded-round bg-border" />
-          <span className="h-2 w-2 rounded-round bg-border" />
-        </span>
-      </div>
-      <div className="flex flex-col gap-5 p-5">
-        <dl className="m-0 grid grid-cols-3 gap-3">
-          {mock.stats.map((stat) => (
-            <div key={stat.label} className="flex flex-col-reverse gap-2 border border-border bg-background/60 p-3">
-              <dt className="label-mono text-[11px] text-subtle">{stat.label}</dt>
-              <dd className="m-0 font-mono text-[1.5rem] leading-none tabular-nums text-text">{stat.value}</dd>
-            </div>
+    <ul className={`m-0 flex list-none flex-wrap gap-x-2 gap-y-1 p-0 ${className}`}>
+      {items.map((item, i) => (
+        <li key={item} className="whitespace-nowrap">
+          {item}
+          {i < items.length - 1 && (
+            <span aria-hidden="true" className="ml-2 text-subtle">
+              ·
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* Real admin screens, captured on a local instance seeded with invented leads (never production
+   data). The dashboard runs the full container width; the other screens follow as a strip. */
+function CrmScreens() {
+  const [first, ...rest] = crm.shots;
+  return (
+    <figure className="m-0">
+      <BrowserFrame shot={first} />
+      {rest.length > 0 && (
+        <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {rest.map((shot) => (
+            <BrowserFrame key={shot.src} shot={shot} />
           ))}
-        </dl>
-        <div>
-          <p className="label-mono mb-2 text-muted">{mock.briefingTitle}</p>
-          <ol className="m-0 list-none border-t border-border p-0">
-            {mock.briefing.map((item, i) => (
-              <li key={item.name} className="grid grid-cols-[1.25rem_1fr_auto] items-start gap-3 border-b border-border py-2.5">
-                <span className="font-mono text-caption text-ember">{i + 1}</span>
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-body text-text">
-                    {item.name} <span className="text-subtle">· {item.kind}</span>
-                  </span>
-                  <span className="text-caption text-muted">{item.reason}</span>
-                </span>
-                <span className={`label-mono border px-2 py-1 text-[11px] ${PRIORITY_CLASS[item.priority]}`}>{item.priority}</span>
-              </li>
-            ))}
-          </ol>
         </div>
-      </div>
-      <figcaption className="label-mono border-t border-border px-5 py-3 text-[11px] text-subtle">{mock.demoNote}</figcaption>
+      )}
+      <figcaption className="label-mono mt-4 text-right text-[11px] text-subtle">{crm.note}</figcaption>
     </figure>
   );
 }
 
 /* Work: shown before services, the way the reference agencies do it (docs/review/agency-refs).
-   The featured build gets real screenshots of its public pages, the system diagram and the CRM
-   mock. The others get one desktop and one phone shot each. */
+   The featured build gets real screenshots of its public pages, the system diagram, the agents and
+   the CRM screens. The others get one desktop and one phone shot each. */
 export function Work() {
   return (
     <section id={work.id} aria-labelledby={titleId} className="relative border-t border-border bg-background/88" style={{ zIndex: "var(--z-content)" }}>
@@ -95,7 +87,7 @@ export function Work() {
             </div>
             <div className="relative lg:col-span-7">
               <BrowserFrame shot={featured.shots.hero} />
-              <PhoneFrame shot={featured.shots.phone} className="absolute -bottom-6 -left-3 w-[26%] max-w-[150px] sm:-left-6 lg:-left-10" />
+              <PhoneFrame shot={featured.shots.phone} className={PHONE_OVERLAP} />
             </div>
           </Reveal>
 
@@ -111,32 +103,34 @@ export function Work() {
                 <li key={layer.tag} className="flex flex-col gap-3 border-t border-border p-6 first:border-t-0 lg:border-t-0 lg:border-l lg:first:border-l-0">
                   <span className="label-mono text-ember">{layer.tag}</span>
                   <h4 className="text-service">{layer.title}</h4>
-                  <p className="text-body text-muted">{layer.items.join(" · ")}</p>
+                  <DotList items={layer.items} className="text-body text-muted" />
                 </li>
               ))}
             </ol>
-            <p className="label-mono mt-4 text-subtle">
-              {featured.stackTitle}: <span className="text-muted">{featured.stack.join(" · ")}</span>
-            </p>
+            <div className="label-mono mt-4 flex flex-wrap gap-x-3 gap-y-1 text-subtle">
+              <span>{featured.stackTitle}:</span>
+              <DotList items={featured.stack} className="text-muted" />
+            </div>
           </Reveal>
 
-          <div className="mt-14 grid grid-cols-1 gap-10 lg:mt-16 lg:grid-cols-12 lg:gap-12">
-            <Reveal className="flex flex-col lg:col-span-5">
+          <Reveal className="mt-14 grid grid-cols-1 gap-6 lg:mt-16 lg:grid-cols-12 lg:gap-12">
+            <div className="lg:col-span-5">
               <h4 className="text-title">{featured.agents.title}</h4>
               <p className="mt-5 text-body text-muted">{featured.agents.body}</p>
-              <ul className="m-0 mt-6 flex list-none flex-col gap-3 p-0">
-                {featured.agents.guarantees.map((line) => (
-                  <li key={line} className="flex gap-3 text-body text-text">
-                    <span aria-hidden="true" className="mt-[0.6em] h-[2px] w-3 shrink-0 bg-ember" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-            <Reveal className="lg:col-span-7" delay={0.1}>
-              <CommandCenter />
-            </Reveal>
-          </div>
+            </div>
+            <ul className="m-0 flex list-none flex-col gap-3 p-0 lg:col-span-7 lg:self-end">
+              {featured.agents.guarantees.map((line) => (
+                <li key={line} className="flex gap-3 text-body text-text">
+                  <span aria-hidden="true" className="mt-[0.6em] h-[2px] w-3 shrink-0 bg-ember" />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+          <Reveal className="mt-8 lg:mt-10" delay={0.05}>
+            <p className="label-mono mb-4 text-steel">{crm.title}</p>
+            <CrmScreens />
+          </Reveal>
         </article>
 
         {/* The rest */}
@@ -159,7 +153,7 @@ export function Work() {
               </div>
               <div className="relative lg:col-span-7">
                 <BrowserFrame shot={entry.shots.hero} />
-                <PhoneFrame shot={entry.shots.phone} className="absolute -bottom-6 -left-3 w-[26%] max-w-[150px] sm:-left-6 lg:-left-10" />
+                <PhoneFrame shot={entry.shots.phone} className={PHONE_OVERLAP} />
                 {entry.demoNote && <p className="label-mono mt-4 text-right text-[11px] text-subtle">{entry.demoNote}</p>}
               </div>
             </Reveal>

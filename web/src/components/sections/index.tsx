@@ -3,6 +3,7 @@
 // "use client" island.
 import { Work } from "./Work";
 import { Build } from "./Build";
+import { Team } from "./Team";
 import { Book } from "./Book";
 import { Footer } from "./Footer";
 
@@ -11,6 +12,7 @@ export function Sections() {
     <>
       <Work />
       <Build />
+      <Team />
       <Book />
       <Footer />
     </>
