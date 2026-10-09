@@ -32,6 +32,28 @@ const DESK_SIZES = "(min-width: 1200px) 1104px, 100vw";
 const PHONE_IN_DESK_SIZES = "78vw";
 const PHONE_ROW_SIZES = "(min-width: 1024px) 380px, (min-width: 640px) 50vw, 78vw";
 
+/*
+  Fit the frame to the window. A 1280x800 capture at full column width is 715px tall, which with the
+  list above it overruns a 900px laptop window, so the frame's width is capped by the window height:
+  (100vh minus the room the label, controls and list take) times the capture's aspect ratio. On a
+  tall window that is wider than the column and nothing changes; on a short one the frame narrows,
+  centred, and the whole viewer sits in one screen. Phones: the drawn frame adds the status bar and
+  rim (`PHONE_CHROME` of the width) to the capture's height.
+*/
+const DESK_RESERVED = "22rem";
+const PHONE_RESERVED = "10rem";
+const PHONE_MAX_PX = 380;
+const PHONE_CHROME = 0.198;
+
+function fitWidth(screen: Screen, phonesOnly: boolean): string {
+  if (phonesOnly) {
+    const ratio = screen.phone.width / (screen.phone.height + PHONE_CHROME * screen.phone.width);
+    return `min(${PHONE_MAX_PX}px, calc((100vh - ${PHONE_RESERVED}) * ${ratio.toFixed(3)}))`;
+  }
+  const desk = screen.desk ?? screen.phone;
+  return `calc((100vh - ${DESK_RESERVED}) * ${(desk.width / desk.height).toFixed(3)})`;
+}
+
 function pad(n: number): string {
   return String(n).padStart(2, "0");
 }
@@ -113,7 +135,10 @@ export function ScreenViewer({
   );
 
   const frames = (
-    <div className={`relative ${phonesOnly ? "mx-auto w-[78%] max-w-[380px] sm:w-[60%] lg:w-full" : ""}`}>
+    <div
+      className={`relative mx-auto ${phonesOnly ? "w-[78%] sm:w-[60%] lg:w-full" : "w-full"}`}
+      style={{ maxWidth: fitWidth(screens[0], phonesOnly) }}
+    >
       {screens.map((screen, i) => {
         const active = i === index;
         return (

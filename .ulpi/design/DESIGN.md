@@ -150,7 +150,9 @@ data never appears. No demo-data caption on the page (Eris, 2026-10-09).
    the screen viewer (`ScreenViewer`): one frame, a list of the screens with a one-line note each,
    previous / next arrows and a `01 / 03` counter; the frame crossfades. Nothing scrolls sideways
    and nothing bleeds past the column (Eris, 2026-10-09: no sliding, no peek). Desktop captures:
-   the list runs above the frame as three ruled columns and the frame fills the column. Phone-only
+   the list runs above the frame as three ruled columns and the frame fills the column, capped by
+   the window height ((100vh - 22rem) x aspect) so list and frame sit in one screen on a 900px
+   laptop; phones are capped the same way ((100vh - 10rem) x aspect, max 380px). Phone-only
    captures: the project's copy and the list share the left column, one phone frame on the right.
    The active row carries a 2px yellow left bar; the counter is steel.
    Phone captures sit in a drawn iPhone (`PhoneFrame`): continuous corner radius 14% of the width,
