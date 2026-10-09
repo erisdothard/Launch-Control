@@ -24,6 +24,7 @@
   --color-warning: #f0c419;
   --color-danger: #e3261d; /* Jordan red: form errors (borders; error text on yellow uses background ink) */
   --color-info: #9ec5e8;
+  --color-device: #000000; /* true black: the Dynamic Island on the drawn iPhone frame, nothing else */
 
   /* Type. Michroma (display, wide technical) + Sora (body) + Chivo Mono (utility). */
   --font-display: var(--font-michroma), "Eurostile", "Bank Gothic", Arial, sans-serif;
