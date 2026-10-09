@@ -96,9 +96,10 @@ html.lenis body {
   edges. Everything is in container units so the frame reads the same at 150px and at 380px.
   The one rounded surface on the site besides the start button; it is a device, not a panel.
 */
+/* No `position` here: the collage positions the figure with Tailwind utilities (sm:absolute), and an
+   unlayered rule would beat them. The body below carries the positioning for the side buttons. */
 .phone-frame {
   container-type: inline-size;
-  position: relative;
 }
 .phone-frame__body {
   position: relative;
