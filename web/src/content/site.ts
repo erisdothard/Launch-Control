@@ -59,6 +59,8 @@ export const siteSchema = z.object({
     ogHeadline: z.string(),
   }),
   nav: z.array(z.object({ label: z.string(), href: z.string().startsWith("#") })).max(4),
+  /** The phone menu button: all nav items live behind it below the sm breakpoint. */
+  navMenu: z.object({ open: z.string(), close: z.string() }),
   hero: z.object({
     eyebrow: z.array(z.string()).min(1).max(5),
     title: z.string(),
@@ -86,9 +88,6 @@ export const siteSchema = z.object({
       year: z.string().length(4),
       /** The hero collage plus Visit site is the public-site proof; visitors can open the site. */
       shots: z.object({ hero: shotSchema, phone: shotSchema }),
-      layers: z.array(z.object({ tag: z.string(), title: z.string(), items: z.array(z.string()).min(3).max(8) })).length(3),
-      stackTitle: z.string(),
-      stack: z.array(z.string()).min(4).max(10),
       agents: z.object({
         title: z.string(),
         body: z.string(),
@@ -142,6 +141,7 @@ export const siteSchema = z.object({
       launching: z.string(),
       budget: z.string(),
       budgetOptions: z.array(z.string()).length(3),
+      placeholders: z.object({ name: z.string(), email: z.string(), launching: z.string(), budget: z.string() }),
     }),
     submit: z.string(),
     submitting: z.string(),
@@ -201,6 +201,7 @@ const content: SiteContent = {
     { label: "Team", href: "#team" },
     { label: "Book a launch", href: "#book" },
   ],
+  navMenu: { open: "Menu", close: "Close" },
   hero: {
     eyebrow: ["Brand", "Website", "CRM", "Lead generation", "Outreach"],
     title: "We build the whole engine. Then we launch it.",
@@ -214,7 +215,6 @@ const content: SiteContent = {
     items: [
       { name: "Hyper Racer USA", href: "https://www.hyperracerusa.com", mark: { src: "/clients/hyper-racer-v1.png", width: 73, height: 64 } },
       { name: "DispatchRelay", href: "https://dispatchrelay.co", mark: { src: "/clients/dispatchrelay-mark-v1.svg", width: 64, height: 64 } },
-      { name: "3 Aces Trucking" },
     ],
   },
   beats: [
@@ -228,41 +228,22 @@ const content: SiteContent = {
   work: {
     id: "work",
     title: "Work",
-    intro: "Systems we built and now help run. Public pages and screens with demo data shown; client data stays with the client.",
+    intro: "Systems we built and now help run.",
     visitLabel: "Visit site",
     featured: {
       client: "Hyper Racer USA",
       title: "One system: website, CRM, pipeline and outreach, connected.",
       summary:
-        "The US home of the Hyper Racer X1 race car runs on one system we built end to end. The public site buyers see, the CRM that takes every enquiry, the dealer and partner pipeline, and the outreach that goes out from it. A buyer sends a form and the lead is sorted, scheduled and followed up. We built it, and we run it with the team.",
+        "The US home of the Hyper Racer X1 runs on one system we built end to end: the public site, the CRM that takes every enquiry, the dealer and partner pipeline, and the outreach that goes out from it. We built it, and we run it with the team.",
       href: "https://www.hyperracerusa.com",
       year: "2026",
       shots: {
         hero: { src: "/work/hyper-racer-home-desk-v3.webp", alt: "Hyper Racer USA home page: the X1 race car with its headline specs", width: 2560, height: 1600 },
         phone: { src: "/work/hyper-racer-home-phone-v3.webp", alt: "Hyper Racer USA home page on a phone", width: 1170, height: 2532 },
       },
-      layers: [
-        {
-          tag: "Website",
-          title: "The public site",
-          items: ["Specs and configurator", "Inventory", "Gallery, news, events", "Dealer map", "Shop", "Enquiry forms"],
-        },
-        {
-          tag: "CRM and backend",
-          title: "Where every lead lands",
-          items: ["Leads, deals, customers", "Form intake with spam guard", "Tasks and approvals queue", "Email and payments", "Sync with HQ in Australia", "Full activity log"],
-        },
-        {
-          tag: "Business development",
-          title: "The pipeline we run",
-          items: ["Dealer and partner targeting", "Prospect lists", "Outreach campaigns", "Follow-up tracking", "Qualified opportunities"],
-        },
-      ],
-      stackTitle: "Built with",
-      stack: ["Next.js", "React", "TypeScript", "Postgres (Supabase)", "Claude agents", "Resend email", "Stripe", "Vercel"],
       agents: {
         title: "The agents inside the CRM",
-        body: "Every morning the agents screen out spam, fill in missing details, sort each lead by type and urgency, schedule the next follow-up, and write a short ranked briefing. People make the calls.",
+        body: "Every morning the agents screen out spam, fill in missing details, sort each lead by type and urgency, schedule the follow-up and write a ranked briefing. People make the calls.",
         guarantees: [
           "No email reaches a customer without a person approving it.",
           "Every automated decision shows its reasoning.",
@@ -368,13 +349,19 @@ const content: SiteContent = {
     id: "book",
     title: "Book a launch",
     body: "Tell us what you sell and who you need to reach. We reply within one working day.",
-    afterNote: "What happens next: we reply within one working day and book a 30-minute call. No proposal until we have talked.",
+    afterNote: "Next is a 30-minute call. No proposal until we have talked.",
     fields: {
       name: "Name",
       email: "Email",
       launching: "What are you launching",
       budget: "Budget",
       budgetOptions: ["Under 10k", "10k to 30k", "Over 30k"],
+      placeholders: {
+        name: "Your name",
+        email: "you@company.com",
+        launching: "What you sell, who you need to reach, and where you are today",
+        budget: "Select a range",
+      },
     },
     submit: "Book a launch",
     submitting: "Booking",

@@ -10,8 +10,8 @@ export function Footer() {
   const link = "no-underline transition-colors duration-fast ease-ui hover:text-ember";
   return (
     <footer className="relative border-t border-border bg-surface" style={{ zIndex: "var(--z-content)" }}>
-      <div className="mx-auto grid max-w-content-max grid-cols-1 gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8 lg:px-12 lg:py-16">
-        <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-5">
+      <div className="mx-auto grid max-w-content-max grid-cols-1 gap-10 px-6 py-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8 lg:px-12 lg:py-12">
+        <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-4">
           <p className="m-0 font-display text-[13px] uppercase tracking-signage text-steel">{brand.wordmark}</p>
           <p className="m-0 max-w-[36ch] text-body text-muted">{footer.blurb}</p>
         </div>
@@ -23,7 +23,7 @@ export function Footer() {
             </a>
           ))}
         </nav>
-        <div className="flex flex-col gap-3 lg:col-span-3">
+        <div className="flex flex-col gap-3 lg:col-span-4">
           <p className="label-mono m-0 text-subtle">{footer.contactLabel}</p>
           <a href={`mailto:${footer.email}`} className={`text-body text-text ${link}`}>
             {footer.email}

@@ -14,26 +14,7 @@ const titleId = `${work.id}-title`;
    From sm up the desktop frame shows with the phone hanging off its bottom-right corner, away from
    the copy column and off the page's headline. */
 const HERO_DESK = "hidden sm:block";
-const PHONE_OVERLAP = "mx-auto w-[78%] sm:absolute sm:-bottom-6 sm:-right-4 sm:mx-0 sm:w-[26%] sm:max-w-[150px] lg:-right-8";
-
-/* Items separated by a middle dot. Each item keeps its dot glued to it, so a wrap never starts a
-   line with "·". */
-function DotList({ items, className = "" }: { items: readonly string[]; className?: string }) {
-  return (
-    <ul className={`m-0 flex list-none flex-wrap gap-x-2 gap-y-1 p-0 ${className}`}>
-      {items.map((item, i) => (
-        <li key={item} className="whitespace-nowrap">
-          {item}
-          {i < items.length - 1 && (
-            <span aria-hidden="true" className="ml-2 text-subtle">
-              ·
-            </span>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
+const PHONE_OVERLAP = "mx-auto w-[78%] sm:absolute sm:-bottom-6 sm:right-4 sm:mx-0 sm:w-[26%] sm:max-w-[150px] lg:right-6";
 
 /* Real admin screens, captured on a local instance seeded with invented leads (never production
    data), one scrolling row. */
@@ -47,20 +28,20 @@ function CrmScreens() {
 }
 
 /* Work: shown before services, the way the reference agencies do it (docs/review/agency-refs).
-   The featured build gets real screenshots of its public pages, the system diagram, the agents and
-   the CRM screens. The others get one desktop and one phone shot each. */
+   The featured build gets the hero collage, the agents' three guarantees and the CRM screens.
+   The others get a collage or a row of screens. */
 export function Work() {
   return (
-    <section id={work.id} aria-labelledby={titleId} className="relative overflow-x-clip border-t border-border bg-background/88" style={{ zIndex: "var(--z-content)" }}>
-      <div className="mx-auto max-w-content-max px-6 py-20 lg:px-12 lg:py-24">
+    <section id={work.id} aria-labelledby={titleId} className="relative overflow-x-clip border-t border-border bg-background/90" style={{ zIndex: "var(--z-content)" }}>
+      <div className="mx-auto max-w-content-max px-6 py-16 lg:px-12 lg:py-20">
         <Reveal className="mb-10 grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-12">
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-5">
             <LiveryStripe className="mb-6" />
             <h2 id={titleId} className="text-display">
               {work.title}
             </h2>
           </div>
-          <p className="max-w-[56ch] text-lead text-muted lg:col-span-8 lg:self-end">{work.intro}</p>
+          <p className="max-w-[56ch] text-lead text-muted lg:col-span-7 lg:self-end">{work.intro}</p>
         </Reveal>
 
         {/* Featured: Hyper Racer USA */}
@@ -87,23 +68,8 @@ export function Work() {
           </Reveal>
 
 
-          <Reveal className="mt-14 lg:mt-16">
-            <ol className="m-0 grid list-none grid-cols-1 border border-border bg-surface/90 p-0 lg:grid-cols-3">
-              {featured.layers.map((layer) => (
-                <li key={layer.tag} className="flex flex-col gap-3 border-t border-border p-6 first:border-t-0 lg:border-t-0 lg:border-l lg:first:border-l-0">
-                  <span className="label-mono text-ember">{layer.tag}</span>
-                  <h4 className="text-service">{layer.title}</h4>
-                  <DotList items={layer.items} className="text-body text-muted" />
-                </li>
-              ))}
-            </ol>
-            <div className="label-mono mt-4 flex flex-wrap gap-x-3 gap-y-1 text-subtle">
-              <span>{featured.stackTitle}:</span>
-              <DotList items={featured.stack} className="text-muted" />
-            </div>
-          </Reveal>
 
-          <Reveal className="mt-14 grid grid-cols-1 gap-6 lg:mt-16 lg:grid-cols-12 lg:gap-12">
+          <Reveal className="mt-12 grid grid-cols-1 gap-6 lg:mt-14 lg:grid-cols-12 lg:gap-12">
             <div className="lg:col-span-5">
               <h4 className="text-title">{featured.agents.title}</h4>
               <p className="mt-5 text-body text-muted">{featured.agents.body}</p>
@@ -111,7 +77,7 @@ export function Work() {
             <ul className="m-0 flex list-none flex-col gap-3 p-0 lg:col-span-7 lg:self-end">
               {featured.agents.guarantees.map((line) => (
                 <li key={line} className="flex gap-3 text-body text-text">
-                  <span aria-hidden="true" className="mt-[0.6em] h-[2px] w-3 shrink-0 bg-ember" />
+                  <span aria-hidden="true" className="mt-[0.6em] h-[2px] w-3 shrink-0 bg-steel" />
                   {line}
                 </li>
               ))}
@@ -127,7 +93,7 @@ export function Work() {
 
         {/* The rest */}
         {work.more.map((entry) => (
-          <article key={entry.client} className="mt-16 border-t border-border pt-10 lg:mt-20 lg:pt-12" aria-labelledby={`work-${entry.client}-title`}>
+          <article key={entry.client} className="mt-14 border-t border-border pt-10 lg:mt-16 lg:pt-12" aria-labelledby={`work-${entry.client}-title`}>
             <Reveal className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
               <div className="lg:col-span-5">
                 <p className="label-mono mb-4 text-ember">

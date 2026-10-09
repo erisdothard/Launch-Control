@@ -69,7 +69,8 @@ from the B&H Jordan 199 livery photo) are small accents. Dark only, by brief.
 glow runs the livery ramp, yellow → orange → red, at background strength.
 
 Proportion: background and surface carry ~90% of the page, steel/text ~8%, yellow ≤2% outside the
-Book panel, orange and red only inside the stripe and the engine's faint glow.
+Book panel (eyebrows, the nav CTA and the primary button; counters, dashes and role labels are
+steel), orange and red only inside the stripe and the engine's faint glow.
 
 ### Contrast (WCAG 2.2 AA, measured 2026-10-07)
 
@@ -153,13 +154,19 @@ such; production data never appears.
    has phone captures only and shows as a row of phones on every device, three across on desktop.
    Only public pages or demo screens with invented data; never client data.
 1. Hero: stripe, mono eyebrow, one h1 (≤ 17ch), one lead sentence, primary + secondary button,
-   left-aligned over the engine with a soft left-to-right scrim.
-2. Ruled editorial panels: What we build, Proof. 5/7 split, hairline dividers, no cards.
+   left-aligned over the engine with a left-to-right scrim (90% at the edge, 50% at the end of
+   the text column, clear on the right) so the engine stays bright beside the copy, dim behind it.
+2. Ruled editorial panels: What we build and run (six numbered cells, `text-title` headings over
+   `text-body`), Team. 5/7 split for every title + lede, hairline dividers, no cards. Sections use
+   `py-16 lg:py-20`; the featured project shows the collage, the agents' three guarantees and the
+   CRM row (no feature diagram, no stack line: they restated the services grid).
 3. The yellow panel: Book a launch, full-bleed `ember` with `background` ink, ≤4 fields.
 4. Footer: mono utility block with the engine model's CC BY credit.
 
-Nav: wordmark left, ≤4 items, the last (Book a launch) the only yellow item. Transparent at the top
-of the hero, solid `surface` with a hairline once the page scrolls. Never backdrop-filter.
+Nav: wordmark left, ≤4 items, the last (Book a launch) the only yellow item, drawn as a small
+outlined yellow button. Below `sm` the bar is wordmark + Menu; the Menu opens a solid panel under
+the bar listing every item (Book a launch last, yellow). Transparent at the top of the hero, solid
+`surface` with a hairline once the page scrolls. Never backdrop-filter.
 
 ## Voice
 

@@ -47,7 +47,7 @@ export function Filmstrip({ screens, labelledBy }: { screens: readonly Screen[];
           {screen.desk && <BrowserFrame shot={screen.desk} sizes={DESK_SIZES} className="hidden sm:block" />}
           <PhoneFrame shot={screen.phone} sizes={phonesOnly ? PHONE_ROW_SIZES : PHONE_SIZES} className={screen.desk ? "sm:hidden" : ""} />
           <p className="label-mono mt-3 whitespace-nowrap text-subtle">
-            <span className="text-ember">{pad(index + 1)}</span>
+            <span className="text-steel">{pad(index + 1)}</span>
             <span className="mx-2">/</span>
             {pad(screens.length)}
             <span className="mx-3 text-border">·</span>

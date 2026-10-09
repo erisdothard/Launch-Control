@@ -25,7 +25,7 @@ export function Select({
         defaultValue=""
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`${controlClass} ${className}`}
+        className={`${controlClass} select-chevron ${className}`}
         {...rest}
       >
         <option value="" disabled>
