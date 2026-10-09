@@ -146,12 +146,13 @@ such; production data never appears.
    whatever its resolution, so the page shows the desktop capture in a browser frame from `sm` up
    and the real phone capture in a phone frame below it. Each project gets a browser-framed hero
    shot with a phone shot overlapping its bottom-left corner, the client name in mono above, a
-   sentence-case title, a summary, Visit site. Further screens (the public pages, the CRM) go in a
-   filmstrip: one row that scrolls sideways and snaps per screen, 82% of the container wide on
-   desktop so the type reads, the next screen peeking at the edge, a mono label under each. Never
-   a grid of thumbnails. The row bleeds to the viewport's right edge from lg up (the next screen
-   peeks past the column) and the section clips horizontally. A phone-first app (DispatchRelay)
-   has phone captures only and shows as a row of phones on every device, three across on desktop.
+   sentence-case title, a summary, Visit site. Further screens (the CRM, a phone-first app) go in
+   the screen viewer (`ScreenViewer`): one frame, a list of the screens with a one-line note each,
+   previous / next arrows and a `01 / 03` counter; the frame crossfades. Nothing scrolls sideways
+   and nothing bleeds past the column (Eris, 2026-10-09: no sliding, no peek). Desktop captures:
+   the list runs above the frame as three ruled columns and the frame fills the column. Phone-only
+   captures: the project's copy and the list share the left column, one phone frame on the right.
+   The active row carries a 2px yellow left bar; the counter is steel.
    Only public pages or demo screens with invented data; never client data.
 1. Hero: stripe, mono eyebrow, one h1 (≤ 17ch), one lead sentence, primary + secondary button,
    left-aligned over the engine with a left-to-right scrim (90% at the edge, 50% at the end of

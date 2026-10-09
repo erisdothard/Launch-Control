@@ -92,3 +92,22 @@ test.describe("content sections", () => {
     await expect(section.locator("form")).toHaveCount(0);
   });
 });
+
+test.describe("screen viewer", () => {
+  test("arrows and rows change the shown screen and the counter", async ({ page }) => {
+    await openSections(page);
+    const crm = site.work.featured.crm;
+    const viewer = page.locator(`#${site.work.id}`).locator("ol[aria-labelledby='work-crm-title']").locator("..");
+    const counter = viewer.locator("p").first();
+    const total = String(crm.screens.length).padStart(2, "0");
+    // The counter's spans carry the spacing as margin, so the text node reads "01/03".
+    await expect(counter).toHaveText(new RegExp(`01\\s*/\\s*${total}`));
+    await viewer.getByRole("button", { name: site.work.viewer.next }).click();
+    await expect(counter).toHaveText(/02\s*\//);
+    await expect(viewer.getByRole("button", { name: crm.screens[1].label })).toHaveAttribute("aria-current", "true");
+    await viewer.getByRole("button", { name: crm.screens[0].label }).click();
+    await expect(counter).toHaveText(/01\s*\//);
+    await viewer.getByRole("button", { name: site.work.viewer.previous }).click();
+    await expect(counter).toHaveText(new RegExp(`^${total}\\s*/`));
+  });
+});

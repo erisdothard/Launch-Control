@@ -3,7 +3,7 @@ import { Reveal } from "@/components/ui/Reveal";
 import { LiveryStripe } from "@/components/ui/LiveryStripe";
 import { ButtonLink } from "@/components/ui/Button";
 import { BrowserFrame, PhoneFrame } from "@/components/ui/Frame";
-import { Filmstrip } from "@/components/ui/Filmstrip";
+import { ScreenViewer } from "@/components/ui/ScreenViewer";
 
 const { work } = site;
 const { featured } = work;
@@ -17,13 +17,10 @@ const HERO_DESK = "hidden sm:block";
 const PHONE_OVERLAP = "mx-auto w-[78%] sm:absolute sm:-bottom-6 sm:right-4 sm:mx-0 sm:w-[26%] sm:max-w-[150px] lg:right-6";
 
 /* Real admin screens, captured on a local instance seeded with invented leads (never production
-   data), one scrolling row. */
+   data), in the screen viewer: one frame, a list of what each screen does, arrows. */
 function CrmScreens() {
   return (
-    <figure className="m-0">
-      <Filmstrip screens={crm.screens} labelledBy="work-crm-title" />
-      <figcaption className="label-mono mt-2 text-right text-[11px] text-subtle">{crm.note}</figcaption>
-    </figure>
+    <ScreenViewer screens={crm.screens} labelledBy="work-crm-title" caption={crm.note} />
   );
 }
 
@@ -92,38 +89,44 @@ export function Work() {
         </article>
 
         {/* The rest */}
-        {work.more.map((entry) => (
-          <article key={entry.client} className="mt-14 border-t border-border pt-10 lg:mt-16 lg:pt-12" aria-labelledby={`work-${entry.client}-title`}>
-            <Reveal className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
-              <div className="lg:col-span-5">
-                <p className="label-mono mb-4 text-ember">
-                  {entry.client} <span className="text-subtle">· {entry.year}</span>
-                </p>
-                <h3 id={`work-${entry.client}-title`} className="text-title">
-                  {entry.title}
-                </h3>
-                <p className="mt-5 max-w-[56ch] text-body text-muted">{entry.summary}</p>
-                <div className="mt-8">
-                  <ButtonLink href={entry.href} target="_blank" rel="noopener noreferrer" variant="secondary">
-                    {work.visitLabel}
-                  </ButtonLink>
-                </div>
+        {work.more.map((entry) => {
+          const titleId = `work-${entry.client}-title`;
+          const copy = (
+            <div>
+              <p className="label-mono mb-4 text-ember">
+                {entry.client} <span className="text-subtle">· {entry.year}</span>
+              </p>
+              <h3 id={titleId} className="text-title">
+                {entry.title}
+              </h3>
+              <p className="mt-5 max-w-[56ch] text-body text-muted">{entry.summary}</p>
+              <div className="mt-8">
+                <ButtonLink href={entry.href} target="_blank" rel="noopener noreferrer" variant="secondary">
+                  {work.visitLabel}
+                </ButtonLink>
               </div>
-              {entry.shots && (
-                <div className="relative lg:col-span-7">
-                  <BrowserFrame shot={entry.shots.hero} className={HERO_DESK} />
-                  <PhoneFrame shot={entry.shots.phone} sizes="(min-width: 640px) 150px, 78vw" className={PHONE_OVERLAP} />
-                </div>
+            </div>
+          );
+          return (
+            <article key={entry.client} className="mt-14 border-t border-border pt-10 lg:mt-16 lg:pt-12" aria-labelledby={titleId}>
+              {entry.screens ? (
+                <Reveal>
+                  <ScreenViewer screens={entry.screens} labelledBy={titleId} lead={copy} caption={entry.demoNote} />
+                </Reveal>
+              ) : (
+                <Reveal className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
+                  <div className="lg:col-span-5">{copy}</div>
+                  {entry.shots && (
+                    <div className="relative lg:col-span-7">
+                      <BrowserFrame shot={entry.shots.hero} className={HERO_DESK} />
+                      <PhoneFrame shot={entry.shots.phone} sizes="(min-width: 640px) 150px, 78vw" className={PHONE_OVERLAP} />
+                    </div>
+                  )}
+                </Reveal>
               )}
-              {entry.screens && (
-                <figure className="m-0 lg:col-span-7">
-                  <Filmstrip screens={entry.screens} labelledBy={`work-${entry.client}-title`} />
-                  {entry.demoNote && <figcaption className="label-mono mt-2 text-right text-[11px] text-subtle">{entry.demoNote}</figcaption>}
-                </figure>
-              )}
-            </Reveal>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </section>
   );
