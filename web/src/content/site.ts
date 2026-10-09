@@ -35,8 +35,9 @@ const shotSchema = z.object({
 });
 
 /** One screen of a product, captured twice: a 1280x800 desktop view and a 390x844 phone view.
-    The page shows whichever matches the visitor's device, so the type stays legible on both. */
-const screenSchema = z.object({ label: z.string(), desk: shotSchema, phone: shotSchema });
+    The page shows whichever matches the visitor's device, so the type stays legible on both.
+    A phone-first app (DispatchRelay) has only the phone view and shows as a phone on every device. */
+const screenSchema = z.object({ label: z.string(), desk: shotSchema.optional(), phone: shotSchema });
 
 const clientSchema = z.object({
   name: z.string(),
@@ -108,8 +109,11 @@ export const siteSchema = z.object({
           href: z.string().url(),
           year: z.string().length(4),
           demoNote: z.string().optional(),
-          shots: z.object({ hero: shotSchema, phone: shotSchema }),
-        }),
+          /** Either a hero collage (desktop page with a phone over it) or a row of screens. */
+          shots: z.object({ hero: shotSchema, phone: shotSchema }).optional(),
+          screens: z.array(screenSchema).min(3).max(8).optional(),
+        })
+        .refine((entry) => entry.shots || entry.screens, { message: "a project needs shots or screens" }),
       )
       .min(1)
       .max(3),
@@ -324,14 +328,19 @@ const content: SiteContent = {
         client: "DispatchRelay",
         title: "A freight marketplace for carriers, brokers, shippers and drivers.",
         summary:
-          "Loads, bids, dispatch and tracking on one platform, with a dashboard for each role. Built as FreightX for a trucking company, now a product of its own.",
+          "Loads, bids, dispatch and live tracking on one platform, with a home screen for each role: carrier, broker, shipper and driver. Built as FreightX for a trucking company, now a product of its own.",
         href: "https://dispatchrelay.co",
         year: "2026",
-        demoNote: "Demo dashboards with fictional users",
-        shots: {
-          hero: { src: "/work/dispatchrelay-carrier-desk-v3.webp", alt: "DispatchRelay carrier dashboard: loads to negotiate and pending dispatch", width: 2560, height: 1600 },
-          phone: { src: "/work/dispatchrelay-carrier-phone-v3.webp", alt: "DispatchRelay carrier dashboard on a phone", width: 1170, height: 2532 },
-        },
+        demoNote: "Public demo, sample data. Every name is invented.",
+        screens: [
+          { label: "Sign in", phone: { src: "/work/dispatchrelay-login-phone-v3.webp", alt: "DispatchRelay sign-in: pick a role, carrier, broker, shipper or driver", width: 1170, height: 2532 } },
+          { label: "Carrier", phone: { src: "/work/dispatchrelay-carrier-phone-v3.webp", alt: "Carrier dashboard: loads being negotiated, a counter offer to accept, pending dispatch", width: 1170, height: 2532 } },
+          { label: "Load board", phone: { src: "/work/dispatchrelay-loadboard-phone-v3.webp", alt: "Load board: bidding, needs dispatch and running loads with rates", width: 1170, height: 2532 } },
+          { label: "Tracking", phone: { src: "/work/dispatchrelay-track-phone-v3.webp", alt: "Tracking a shipment: load details and the route from Nashville to Chicago on a map", width: 1170, height: 2532 } },
+          { label: "Broker", phone: { src: "/work/dispatchrelay-broker-phone-v3.webp", alt: "Broker dashboard: bids to review, active loads, revenue and recent loads", width: 1170, height: 2532 } },
+          { label: "Driver", phone: { src: "/work/dispatchrelay-driver-phone-v3.webp", alt: "Driver home: share location, next stop, loads in transit", width: 1170, height: 2532 } },
+          { label: "Hours", phone: { src: "/work/dispatchrelay-hos-phone-v3.webp", alt: "Hours of service: driving, on-duty and weekly limits with status buttons", width: 1170, height: 2532 } },
+        ],
       },
     ],
   },

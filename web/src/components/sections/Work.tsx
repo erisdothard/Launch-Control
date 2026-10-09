@@ -10,9 +10,11 @@ const { featured } = work;
 const { crm } = featured;
 const titleId = `${work.id}-title`;
 
-/* The phone mockup overlapping a browser frame's bottom-left corner. Inside the gutter on a phone,
-   hanging past the frame from sm up. */
-const PHONE_OVERLAP = "absolute -bottom-6 left-0 w-[26%] max-w-[150px] sm:-left-6 lg:-left-10";
+/* The hero collage. On a phone only the phone capture shows (a desktop page at 27% is unreadable).
+   From sm up the desktop frame shows with the phone hanging off its bottom-right corner, away from
+   the copy column and off the page's headline. */
+const HERO_DESK = "hidden sm:block";
+const PHONE_OVERLAP = "mx-auto w-[78%] sm:absolute sm:-bottom-6 sm:-right-4 sm:mx-0 sm:w-[26%] sm:max-w-[150px] lg:-right-8";
 
 /* Items separated by a middle dot. Each item keeps its dot glued to it, so a wrap never starts a
    line with "·". */
@@ -49,7 +51,7 @@ function CrmScreens() {
    the CRM screens. The others get one desktop and one phone shot each. */
 export function Work() {
   return (
-    <section id={work.id} aria-labelledby={titleId} className="relative border-t border-border bg-background/88" style={{ zIndex: "var(--z-content)" }}>
+    <section id={work.id} aria-labelledby={titleId} className="relative overflow-x-clip border-t border-border bg-background/88" style={{ zIndex: "var(--z-content)" }}>
       <div className="mx-auto max-w-content-max px-6 py-20 lg:px-12 lg:py-24">
         <Reveal className="mb-10 grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-4">
@@ -79,8 +81,8 @@ export function Work() {
               </div>
             </div>
             <div className="relative lg:col-span-7">
-              <BrowserFrame shot={featured.shots.hero} />
-              <PhoneFrame shot={featured.shots.phone} className={PHONE_OVERLAP} />
+              <BrowserFrame shot={featured.shots.hero} className={HERO_DESK} />
+              <PhoneFrame shot={featured.shots.phone} sizes="(min-width: 640px) 150px, 78vw" className={PHONE_OVERLAP} />
             </div>
           </Reveal>
 
@@ -147,11 +149,18 @@ export function Work() {
                   </ButtonLink>
                 </div>
               </div>
-              <div className="relative lg:col-span-7">
-                <BrowserFrame shot={entry.shots.hero} />
-                <PhoneFrame shot={entry.shots.phone} className={PHONE_OVERLAP} />
-                {entry.demoNote && <p className="label-mono mt-4 text-right text-[11px] text-subtle">{entry.demoNote}</p>}
-              </div>
+              {entry.shots && (
+                <div className="relative lg:col-span-7">
+                  <BrowserFrame shot={entry.shots.hero} className={HERO_DESK} />
+                  <PhoneFrame shot={entry.shots.phone} sizes="(min-width: 640px) 150px, 78vw" className={PHONE_OVERLAP} />
+                </div>
+              )}
+              {entry.screens && (
+                <figure className="m-0 lg:col-span-7">
+                  <Filmstrip screens={entry.screens} labelledBy={`work-${entry.client}-title`} />
+                  {entry.demoNote && <figcaption className="label-mono mt-2 text-right text-[11px] text-subtle">{entry.demoNote}</figcaption>}
+                </figure>
+              )}
             </Reveal>
           </article>
         ))}
