@@ -148,7 +148,10 @@ such; production data never appears.
    sentence-case title, a summary, Visit site. Further screens (the public pages, the CRM) go in a
    filmstrip: one row that scrolls sideways and snaps per screen, 82% of the container wide on
    desktop so the type reads, the next screen peeking at the edge, a mono label under each. Never
-   a grid of thumbnails. Only public pages or demo screens with invented data; never client data.
+   a grid of thumbnails. The row bleeds to the viewport's right edge from lg up (the next screen
+   peeks past the column) and the section clips horizontally. A phone-first app (DispatchRelay)
+   has phone captures only and shows as a row of phones on every device, three across on desktop.
+   Only public pages or demo screens with invented data; never client data.
 1. Hero: stripe, mono eyebrow, one h1 (≤ 17ch), one lead sentence, primary + secondary button,
    left-aligned over the engine with a soft left-to-right scrim.
 2. Ruled editorial panels: What we build, Proof. 5/7 split, hairline dividers, no cards.
