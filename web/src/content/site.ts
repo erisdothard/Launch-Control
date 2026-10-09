@@ -266,8 +266,8 @@ const content: SiteContent = {
           {
             label: "Leads",
             note: "Every enquiry with its type, priority, next step and status. Filter by product, stage or how long it has waited.",
-            desk: { src: "/work/hyper-racer-crm-leads-desk-v3.webp", alt: "Leads list with product, type, organization, priority, next step and status for each lead", width: 2560, height: 1600 },
-            phone: { src: "/work/hyper-racer-crm-leads-phone-v3.webp", alt: "The leads list on a phone", width: 1170, height: 2532 },
+            desk: { src: "/work/hyper-racer-crm-leads-desk-v4.webp", alt: "Leads list with product, type, organization, priority, next step and status for each lead", width: 2560, height: 1600 },
+            phone: { src: "/work/hyper-racer-crm-leads-phone-v4.webp", alt: "The leads list on a phone", width: 1170, height: 2532 },
           },
           {
             label: "Pipeline",
