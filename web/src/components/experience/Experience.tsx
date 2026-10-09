@@ -18,6 +18,7 @@ import { preload } from "react-dom";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { site } from "@/content/site";
 import { scrollState } from "@/lib/scrollState";
+import { STAGE_SCREENS, explodeForProgress } from "@/lib/scrollMap";
 import {
   freezeTime,
   getContentTrigger,
@@ -107,7 +108,9 @@ export function Experience({ children }: { children: ReactNode }) {
     setMode("poster");
   }, []);
 
-  /* Full mode: the loop and the two scroll triggers. The engine's timeline spans the whole page. */
+  /* Full mode: the loop and the two scroll triggers. The engine's timeline (p) spans the pinned
+     hero stage: from the hero's top at the top of the window to its bottom at the bottom, which is
+     (STAGE_SCREENS - 1) screens of travel with the copy held sticky. q then runs over the content. */
   useLayoutEffect(() => {
     if (mode !== "full") return;
     const hero = heroRef.current;
@@ -115,12 +118,14 @@ export function Experience({ children }: { children: ReactNode }) {
     const stopLoop = startLoop();
 
     const st = ScrollTrigger.create({
-      trigger: document.documentElement,
+      trigger: hero,
       start: "top top",
       end: "bottom bottom",
       refreshPriority: 10,
       onUpdate: (self) => {
         scrollState.pRaw = self.progress;
+        /* The hero scrim thickens with the explode (Hero.tsx reads this); a CSS variable, no React. */
+        hero.style.setProperty("--stage-explode", explodeForProgress(self.progress).toFixed(3));
       },
     });
     setHeroTrigger(st);
@@ -214,8 +219,8 @@ export function Experience({ children }: { children: ReactNode }) {
       id="hero"
       ref={heroRef}
       aria-labelledby="hero-title"
-      className="relative min-h-[100svh]"
-      style={{ zIndex: "var(--z-canvas)" }}
+      className="relative"
+      style={{ zIndex: "var(--z-canvas)", minHeight: mode === "full" ? `calc(${STAGE_SCREENS} * 100svh)` : "100svh" }}
     >
       {mode === "full" && (
         <div

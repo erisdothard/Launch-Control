@@ -23,9 +23,11 @@ const KEYS: Array<[number, THREE.Vector3, THREE.Vector3]> = [
   // dive: the stack opens; the camera comes down and in so the layers read, never inside them
   [0.25, new THREE.Vector3(1.425, 1.000, 1.650), new THREE.Vector3(0.0, 0.1, 0.0)],
   [0.4, new THREE.Vector3(1.350, 0.900, 1.500), new THREE.Vector3(0.0, 0.1, 0.0)],
-  // combustion: pulls back as the parts come home
-  [0.52, new THREE.Vector3(1.075, 0.475, 1.200), new THREE.Vector3(0.0, 0.06, 0.0)],
-  [0.65, new THREE.Vector3(1.188, 0.300, 1.350), new THREE.Vector3(0.0, 0.03, 0.0)],
+  // combustion: stays as wide as the dive while the parts are still apart (the reviewer's 2026-10-09
+  // note: the old 1.075/0.475/1.2 key was 1.4x closer than the dive and cropped the stack), then
+  // settles lower as they come home
+  [0.52, new THREE.Vector3(1.400, 0.700, 1.550), new THREE.Vector3(0.0, 0.08, 0.0)],
+  [0.65, new THREE.Vector3(1.300, 0.420, 1.420), new THREE.Vector3(0.0, 0.04, 0.0)],
   // rev: low 3/4, orbiting
   [0.8, new THREE.Vector3(1.312, 0.175, 1.188), new THREE.Vector3(0.0, 0.04, 0.0)],
   [0.94, new THREE.Vector3(1.475, 0.375, 1.475), new THREE.Vector3(0.0, 0.03, 0.0)],
