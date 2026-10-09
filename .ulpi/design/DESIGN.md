@@ -137,8 +137,8 @@ z-layers: `canvas 0 · content 10 · hud 30 · tach 40 (unused) · gate 50 · to
 
 Order of the page (from the reference agencies): hero → client logo row → work with real
 screenshots → what we build and run → team → book → footer. Work always comes before services.
-CRM screens are real admin captures from a local instance seeded with invented leads, captioned as
-such; production data never appears.
+CRM screens are real admin captures from a local instance seeded with invented leads; production
+data never appears. No demo-data caption on the page (Eris, 2026-10-09).
 
 0. Work: every product screen is captured twice at 2x density, a 1280x800 desktop view
    (2560x1600) and a 390x844 phone view (1170x2532), webp q90, served at quality 90 with `sizes`
