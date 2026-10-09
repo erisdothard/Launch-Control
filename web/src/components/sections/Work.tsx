@@ -2,7 +2,8 @@ import { site } from "@/content/site";
 import { Reveal } from "@/components/ui/Reveal";
 import { LiveryStripe } from "@/components/ui/LiveryStripe";
 import { ButtonLink } from "@/components/ui/Button";
-import { BrowserFrame, FRAME_SIZES, PhoneFrame } from "@/components/ui/Frame";
+import { BrowserFrame, PhoneFrame } from "@/components/ui/Frame";
+import { Filmstrip } from "@/components/ui/Filmstrip";
 
 const { work } = site;
 const { featured } = work;
@@ -33,21 +34,12 @@ function DotList({ items, className = "" }: { items: readonly string[]; classNam
 }
 
 /* Real admin screens, captured on a local instance seeded with invented leads (never production
-   data). The dashboard runs the full container width; the other screens follow two across, large
-   enough that the rows of the leads list and the pipeline stay readable. */
+   data), one scrolling row. */
 function CrmScreens() {
-  const [first, ...rest] = crm.shots;
   return (
     <figure className="m-0">
-      <BrowserFrame shot={first} sizes={FRAME_SIZES.full} />
-      {rest.length > 0 && (
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6">
-          {rest.map((shot) => (
-            <BrowserFrame key={shot.src} shot={shot} sizes={FRAME_SIZES.half} />
-          ))}
-        </div>
-      )}
-      <figcaption className="label-mono mt-4 text-right text-[11px] text-subtle">{crm.note}</figcaption>
+      <Filmstrip screens={crm.screens} labelledBy="work-crm-title" />
+      <figcaption className="label-mono mt-2 text-right text-[11px] text-subtle">{crm.note}</figcaption>
     </figure>
   );
 }
@@ -92,10 +84,11 @@ export function Work() {
             </div>
           </Reveal>
 
-          <Reveal className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-16 lg:gap-6" delay={0.05}>
-            {featured.shots.more.map((shot) => (
-              <BrowserFrame key={shot.src} shot={shot} sizes={FRAME_SIZES.half} />
-            ))}
+          <Reveal className="mt-14 lg:mt-16" delay={0.05}>
+            <p id="work-pages-title" className="label-mono mb-4 text-steel">
+              {featured.shots.moreTitle}
+            </p>
+            <Filmstrip screens={featured.shots.more} labelledBy="work-pages-title" />
           </Reveal>
 
           <Reveal className="mt-14 lg:mt-16">
@@ -129,7 +122,9 @@ export function Work() {
             </ul>
           </Reveal>
           <Reveal className="mt-8 lg:mt-10" delay={0.05}>
-            <p className="label-mono mb-4 text-steel">{crm.title}</p>
+            <p id="work-crm-title" className="label-mono mb-4 text-steel">
+              {crm.title}
+            </p>
             <CrmScreens />
           </Reveal>
         </article>
