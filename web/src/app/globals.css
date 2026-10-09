@@ -90,6 +90,84 @@ html.lenis body {
 }
 
 
+/*
+  iPhone frame around phone captures (PhoneFrame). Proportions from the 6.1" body: corner radius
+  14% of the width, rim 2.4%, Dynamic Island 32% wide in a 15%-tall status bar, buttons on both
+  edges. Everything is in container units so the frame reads the same at 150px and at 380px.
+  The one rounded surface on the site besides the start button; it is a device, not a panel.
+*/
+.phone-frame {
+  container-type: inline-size;
+  position: relative;
+}
+.phone-frame__body {
+  position: relative;
+  border-radius: 14cqw;
+  padding: 2.4cqw;
+  background: var(--color-elevated);
+  /* Outer hairline in subtle (titanium edge) so the device reads against the black page. */
+  box-shadow:
+    0 0 0 0.3cqw var(--color-subtle),
+    inset 0 0 0 0.3cqw var(--color-surface);
+}
+/* Side buttons: action + volume on the left, power on the right. */
+.phone-frame__body::before,
+.phone-frame__body::after {
+  content: "";
+  position: absolute;
+  width: 0.9cqw;
+  background: var(--color-subtle);
+  border-radius: 0.3cqw;
+}
+.phone-frame__body::before {
+  left: -0.9cqw;
+  top: 24%;
+  height: 7%;
+  box-shadow:
+    0 -9.5% 0 0 var(--color-subtle),
+    0 12.5% 0 0 var(--color-subtle);
+}
+.phone-frame__body::after {
+  right: -0.9cqw;
+  top: 26%;
+  height: 11%;
+}
+.phone-frame__screen {
+  overflow: hidden;
+  border-radius: 11.6cqw;
+  background: var(--color-background);
+}
+.phone-frame__status {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 15cqw;
+  padding: 2.8cqw 7cqw 0;
+  color: var(--color-text);
+  background: var(--color-background);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 4.2cqw;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.phone-frame__island {
+  position: absolute;
+  left: 50%;
+  top: 2.8cqw;
+  width: 32cqw;
+  height: 9.4cqw;
+  transform: translateX(-50%);
+  border-radius: var(--radius-round);
+  background: var(--color-device);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.05);
+}
+.phone-frame__glyphs {
+  width: 18cqw;
+  height: auto;
+}
+
 /* Native select: hide the UA chevron and draw a steel one on the right, same on every browser. */
 .select-chevron {
   appearance: none;

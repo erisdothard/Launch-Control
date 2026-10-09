@@ -153,6 +153,12 @@ such; production data never appears.
    the list runs above the frame as three ruled columns and the frame fills the column. Phone-only
    captures: the project's copy and the list share the left column, one phone frame on the right.
    The active row carries a 2px yellow left bar; the counter is steel.
+   Phone captures sit in a drawn iPhone (`PhoneFrame`): continuous corner radius 14% of the width,
+   2.4% rim in elevated with a subtle hairline edge, side buttons, and a status bar on background
+   with the clock at 9:41 (`site.work.phoneClock`), the Dynamic Island in device black and the
+   signal / wifi / battery glyphs. Every dimension is a container unit so the same frame is right
+   at 150px and 380px. It is the one rounded surface besides the start button: a device, not a panel.
+   A phone-first app whose rows overflow at 390 is captured at 430x932 (1290x2796) instead.
    Only public pages or demo screens with invented data; never client data.
 1. Hero: stripe, mono eyebrow, one h1 (≤ 17ch), one lead sentence, primary + secondary button,
    left-aligned over the engine with a left-to-right scrim (90% at the edge, 50% at the end of

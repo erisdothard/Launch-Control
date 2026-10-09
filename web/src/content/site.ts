@@ -82,6 +82,8 @@ export const siteSchema = z.object({
     visitLabel: z.string(),
     /** The screen viewer's arrow labels (one frame, a list of screens, previous / next). */
     viewer: z.object({ previous: z.string(), next: z.string() }),
+    /** Clock shown in the drawn iPhone status bar. Apple's keynote time, so it reads as a device, not a screenshot. */
+    phoneClock: z.string(),
     featured: z.object({
       client: z.string(),
       title: z.string(),
@@ -233,6 +235,7 @@ const content: SiteContent = {
     intro: "Systems we built and now help run.",
     visitLabel: "Visit site",
     viewer: { previous: "Previous screen", next: "Next screen" },
+    phoneClock: "9:41",
     featured: {
       client: "Hyper Racer USA",
       title: "One system: website, CRM, pipeline and outreach, connected.",
@@ -289,13 +292,13 @@ const content: SiteContent = {
         demoNote: "Public demo, sample data. Every name is invented.",
         screens: [
           { label: "Sign in",
-            note: "One app, four roles. Carrier, broker, shipper or driver, each with its own home screen.", phone: { src: "/work/dispatchrelay-login-phone-v3.webp", alt: "DispatchRelay sign-in: pick a role, carrier, broker, shipper or driver", width: 1170, height: 2532 } },
+            note: "One app, four roles. Carrier, broker, shipper or driver, each with its own home screen.", phone: { src: "/work/dispatchrelay-login-phone-v4.webp", alt: "DispatchRelay sign-in: pick a role, carrier, broker, shipper or driver", width: 1290, height: 2796 } },
           { label: "Load board",
-            note: "Open loads with bids and counters, what needs dispatch and what is already running.", phone: { src: "/work/dispatchrelay-loadboard-phone-v3.webp", alt: "Load board: bidding, needs dispatch and running loads with rates", width: 1170, height: 2532 } },
+            note: "Open loads with bids and counters, what needs dispatch and what is already running.", phone: { src: "/work/dispatchrelay-loadboard-phone-v4.webp", alt: "Load board: bidding, needs dispatch and running loads with rates", width: 1290, height: 2796 } },
           { label: "Tracking",
-            note: "A load number brings up the route on the map, the status and live GPS once the driver shares it.", phone: { src: "/work/dispatchrelay-track-phone-v3.webp", alt: "Tracking a shipment: load details and the route from Nashville to Chicago on a map", width: 1170, height: 2532 } },
+            note: "A load number brings up the route on the map, the status and live GPS once the driver shares it.", phone: { src: "/work/dispatchrelay-track-phone-v4.webp", alt: "Tracking a shipment: load details and the route from Nashville to Chicago on a map", width: 1290, height: 2796 } },
           { label: "Hours",
-            note: "Driving and on-duty time against the daily and weekly limits, with one-tap status changes.", phone: { src: "/work/dispatchrelay-hos-phone-v3.webp", alt: "Hours of service: driving, on-duty and weekly limits with status buttons", width: 1170, height: 2532 } },
+            note: "Driving and on-duty time against the daily and weekly limits, with one-tap status changes.", phone: { src: "/work/dispatchrelay-hos-phone-v4.webp", alt: "Hours of service: driving, on-duty and weekly limits with status buttons", width: 1290, height: 2796 } },
         ],
       },
     ],
@@ -344,14 +347,14 @@ const content: SiteContent = {
     intro: "Two people, the whole model. One finds the market and works the pipeline. One builds the system and keeps it running.",
     people: [
       {
-        name: "Maxwell Hartmann",
-        role: "Business development and market strategy",
-        body: "Finds the market, the people and the message. Builds the prospect lists, runs the outreach and the follow-up, and moves opportunities forward.",
-      },
-      {
         name: "Eris Dothard",
         role: "Systems and development",
         body: "Builds the website, the CRM, the backend and the agents inside it, and keeps all of it running after launch.",
+      },
+      {
+        name: "Maxwell Hartmann",
+        role: "Business development and market strategy",
+        body: "Finds the market, the people and the message. Builds the prospect lists, runs the outreach and the follow-up, and moves opportunities forward.",
       },
     ],
   },
