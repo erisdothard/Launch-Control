@@ -8,7 +8,7 @@
     its first frame is drawn. Its scroll timeline (scrollMap: slow pull-apart, gentle revs) runs over
     the WHOLE page, so it keeps moving quietly behind every section.
   - Poster mode (reduced motion, no WebGL, context lost): the same hero, no canvas.
-  - Debug hook: `?debug` exposes window.__lc = { setProgress(p), freezeTime(t), info() }.
+  - Debug hook: `?debug` exposes window.__lc = { setProgress(p), freezeTime(t), setSpin(yaw, pitch), info() }.
   - The 3D chunk is dynamically imported with ssr:false from this client component.
 */
 
@@ -18,6 +18,7 @@ import { preload } from "react-dom";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { site } from "@/content/site";
 import { scrollState } from "@/lib/scrollState";
+import { engineSpin } from "@/lib/spin";
 import { STAGE_SCREENS, explodeForProgress } from "@/lib/scrollMap";
 import {
   freezeTime,
@@ -45,6 +46,8 @@ declare global {
     __lc?: {
       setProgress: (p: number) => void;
       freezeTime: (t: number | null) => void;
+      /** Debug: set the drag-spin yaw/pitch (rad) so a pose can be reproduced from a script. */
+      setSpin: (yaw: number, pitch: number) => void;
       info: () => Record<string, unknown>;
     };
   }
@@ -180,6 +183,13 @@ export function Experience({ children }: { children: ReactNode }) {
       },
       freezeTime: (t) => {
         freezeTime(t);
+        tickOnce();
+      },
+      setSpin: (yaw, pitch) => {
+        engineSpin.yaw = yaw;
+        engineSpin.pitch = pitch;
+        engineSpin.vyaw = 0;
+        engineSpin.vpitch = 0;
         tickOnce();
       },
       info: () => ({

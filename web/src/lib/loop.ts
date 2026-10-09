@@ -19,7 +19,7 @@ import { scrollState } from "./scrollState";
 import { getPhase, setPhase } from "./phase";
 import {
   beatForProgress,
-  explodeForProgress,
+  explodeForState,
   fogForRpm,
   ignitionFlash,
   ignitionRpm,
@@ -78,7 +78,7 @@ function writeState(timeSec: number, dt: number) {
   const gap = s.pRaw - s.p;
   if (frozenTime !== null || Math.abs(gap) < P_SNAP) s.p = s.pRaw;
   else s.p += gap * (1 - Math.exp(-dt * P_SMOOTHING));
-  s.explode = explodeForProgress(s.p);
+  s.explode = explodeForState(s.p, s.q);
 
   let rpm = 0;
   if (ph === "igniting") rpm = ignitionRpm(s.ignition);
@@ -172,7 +172,7 @@ export function snapProgress(p: number) {
   const v = Math.max(0, Math.min(1, p));
   scrollState.pRaw = v;
   scrollState.p = v;
-  scrollState.explode = explodeForProgress(v);
+  scrollState.explode = explodeForState(v, scrollState.q);
 }
 
 /** DOM-side per-frame work (tach, HUD). Returns an unsubscribe. */

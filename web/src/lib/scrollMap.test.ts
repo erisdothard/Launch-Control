@@ -8,6 +8,10 @@ import {
   EXPLODE_START,
   beatForProgress,
   explodeForProgress,
+  contentExplodeForProgress,
+  explodeForState,
+  CONTENT_EXPLODE_START,
+  CONTENT_EXPLODE_END,
   fogForRpm,
   ignitionRpm,
   launchForProgress,
@@ -54,6 +58,18 @@ describe("scrollMap", () => {
     expect(launchForProgress(0.94)).toBe(0);
     expect(launchForProgress(1)).toBe(1);
     expect(launchForProgress(0.97)).toBeGreaterThan(0);
+  });
+
+  it("the content era takes the engine apart again, slowly, and holds it apart", () => {
+    expect(contentExplodeForProgress(0)).toBe(0);
+    expect(contentExplodeForProgress(CONTENT_EXPLODE_START)).toBe(0);
+    expect(contentExplodeForProgress((CONTENT_EXPLODE_START + CONTENT_EXPLODE_END) / 2)).toBeCloseTo(0.5, 5);
+    expect(contentExplodeForProgress(CONTENT_EXPLODE_END)).toBe(1);
+    expect(contentExplodeForProgress(1)).toBe(1);
+    // the stage's own explode wins while the stage runs; the content's once it is over
+    expect(explodeForState(EXPLODE_PEAK, 0)).toBe(1);
+    expect(explodeForState(1, 0)).toBe(0);
+    expect(explodeForState(1, 1)).toBe(1);
   });
 
   it("explode is 0 at idle, 1 at the peak, 0 again from the end, and eased in between", () => {
