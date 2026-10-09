@@ -13,7 +13,7 @@
 */
 
 /** Screens of scroll the hero holds for: the stage is (STAGE_SCREENS - 1) screens of travel. */
-export const STAGE_SCREENS = 3;
+export const STAGE_SCREENS = 2;
 
 import type { BeatId } from "@/content/site";
 import { ENGINE_GEOMETRY } from "./engine/engineContract";

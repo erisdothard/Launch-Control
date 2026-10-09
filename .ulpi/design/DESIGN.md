@@ -165,9 +165,10 @@ data never appears. No demo-data caption on the page (Eris, 2026-10-09).
 1. Hero: stripe, mono eyebrow, one h1 (≤ 17ch), one lead sentence, primary + secondary button,
    left-aligned over the engine with a left-to-right scrim (90% at the edge, 50% at the end of
    the text column, clear on the right) so the engine stays bright beside the copy, dim behind it.
-   The hero is pinned for a three-screen stage (`STAGE_SCREENS` in scrollMap.ts): the copy holds
-   sticky while the engine comes apart and back together over two screens of scroll, then the
-   content arrives over the assembled, dimmed engine. The engine stays background, but the
+   The hero is pinned for a two-screen stage (`STAGE_SCREENS` in scrollMap.ts, Eris 2026-10-09:
+   "only 2 scrolls", same on mobile): the copy holds sticky while the engine comes apart and back
+   together over one screen of scroll, then scrolls away over the second and the content arrives
+   over the assembled, dimmed engine. The engine stays background, but the
    sequence must be seen (Eris, 2026-10-09: "they never really see it deconstruct").
    Start pose: turntable base yaw 330 deg (`BASE_YAW` in Scene.tsx), front of the block to the
    viewer, crank out to the right (Eris's pick, 2026-10-09). After the stage the engine comes apart
