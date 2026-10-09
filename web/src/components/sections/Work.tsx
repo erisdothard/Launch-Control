@@ -86,12 +86,6 @@ export function Work() {
             </div>
           </Reveal>
 
-          <Reveal className="mt-14 lg:mt-16" delay={0.05}>
-            <p id="work-pages-title" className="label-mono mb-4 text-steel">
-              {featured.shots.moreTitle}
-            </p>
-            <Filmstrip screens={featured.shots.more} labelledBy="work-pages-title" />
-          </Reveal>
 
           <Reveal className="mt-14 lg:mt-16">
             <ol className="m-0 grid list-none grid-cols-1 border border-border bg-surface/90 p-0 lg:grid-cols-3">

@@ -84,7 +84,8 @@ export const siteSchema = z.object({
       summary: z.string(),
       href: z.string().url(),
       year: z.string().length(4),
-      shots: z.object({ hero: shotSchema, phone: shotSchema, moreTitle: z.string(), more: z.array(screenSchema).min(1).max(4) }),
+      /** The hero collage plus Visit site is the public-site proof; visitors can open the site. */
+      shots: z.object({ hero: shotSchema, phone: shotSchema }),
       layers: z.array(z.object({ tag: z.string(), title: z.string(), items: z.array(z.string()).min(3).max(8) })).length(3),
       stackTitle: z.string(),
       stack: z.array(z.string()).min(4).max(10),
@@ -239,29 +240,6 @@ const content: SiteContent = {
       shots: {
         hero: { src: "/work/hyper-racer-home-desk-v3.webp", alt: "Hyper Racer USA home page: the X1 race car with its headline specs", width: 2560, height: 1600 },
         phone: { src: "/work/hyper-racer-home-phone-v3.webp", alt: "Hyper Racer USA home page on a phone", width: 1170, height: 2532 },
-        moreTitle: "The public site",
-        more: [
-          {
-            label: "Inventory",
-            desk: { src: "/work/hyper-racer-inventory-desk-v3.webp", alt: "Hyper Racer USA inventory page with cars for sale", width: 2560, height: 1600 },
-            phone: { src: "/work/hyper-racer-inventory-phone-v3.webp", alt: "Inventory page on a phone", width: 1170, height: 2532 },
-          },
-          {
-            label: "Configurator",
-            desk: { src: "/work/hyper-racer-configurator-desk-v3.webp", alt: "Hyper Racer USA configurator: build your X1", width: 2560, height: 1600 },
-            phone: { src: "/work/hyper-racer-configurator-phone-v3.webp", alt: "Configurator on a phone", width: 1170, height: 2532 },
-          },
-          {
-            label: "Dealers",
-            desk: { src: "/work/hyper-racer-dealers-desk-v3.webp", alt: "Hyper Racer USA dealer page: represent the X1, apply to become a dealer", width: 2560, height: 1600 },
-            phone: { src: "/work/hyper-racer-dealers-phone-v3.webp", alt: "Dealer page on a phone", width: 1170, height: 2532 },
-          },
-          {
-            label: "Enquiry form",
-            desk: { src: "/work/hyper-racer-contact-desk-v3.webp", alt: "Hyper Racer USA enquiry form: timeline, involvement, which car, purchase readiness", width: 2560, height: 1600 },
-            phone: { src: "/work/hyper-racer-contact-phone-v3.webp", alt: "Enquiry form on a phone", width: 1170, height: 2532 },
-          },
-        ],
       },
       layers: [
         {
@@ -334,11 +312,8 @@ const content: SiteContent = {
         demoNote: "Public demo, sample data. Every name is invented.",
         screens: [
           { label: "Sign in", phone: { src: "/work/dispatchrelay-login-phone-v3.webp", alt: "DispatchRelay sign-in: pick a role, carrier, broker, shipper or driver", width: 1170, height: 2532 } },
-          { label: "Carrier", phone: { src: "/work/dispatchrelay-carrier-phone-v3.webp", alt: "Carrier dashboard: loads being negotiated, a counter offer to accept, pending dispatch", width: 1170, height: 2532 } },
           { label: "Load board", phone: { src: "/work/dispatchrelay-loadboard-phone-v3.webp", alt: "Load board: bidding, needs dispatch and running loads with rates", width: 1170, height: 2532 } },
           { label: "Tracking", phone: { src: "/work/dispatchrelay-track-phone-v3.webp", alt: "Tracking a shipment: load details and the route from Nashville to Chicago on a map", width: 1170, height: 2532 } },
-          { label: "Broker", phone: { src: "/work/dispatchrelay-broker-phone-v3.webp", alt: "Broker dashboard: bids to review, active loads, revenue and recent loads", width: 1170, height: 2532 } },
-          { label: "Driver", phone: { src: "/work/dispatchrelay-driver-phone-v3.webp", alt: "Driver home: share location, next stop, loads in transit", width: 1170, height: 2532 } },
           { label: "Hours", phone: { src: "/work/dispatchrelay-hos-phone-v3.webp", alt: "Hours of service: driving, on-duty and weekly limits with status buttons", width: 1170, height: 2532 } },
         ],
       },
