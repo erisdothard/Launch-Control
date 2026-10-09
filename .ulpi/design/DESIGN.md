@@ -139,7 +139,7 @@ screenshots → what we build and run → team → book → footer. Work always 
 CRM screens are real admin captures from a local instance seeded with invented leads, captioned as
 such; production data never appears.
 
-0. Work: each project gets a browser-framed desktop shot with a phone shot overlapping its
+0. Work: screenshots are captured at device pixel ratio 2 (3200x2000 for a 1600x1000 viewport, phones 780x1688), webp q90, served at quality 90 with `sizes` matching the slot; 1x captures read as blur on Retina. Each project gets a browser-framed desktop shot with a phone shot overlapping its
    bottom-left corner, the client name in mono above, a sentence-case title, a summary, Visit site.
    Only public pages or demo dashboards with fictional users. Never admin screens, never client data.
 1. Hero: stripe, mono eyebrow, one h1 (≤ 17ch), one lead sentence, primary + secondary button,

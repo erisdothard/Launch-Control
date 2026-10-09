@@ -2,7 +2,7 @@ import { site } from "@/content/site";
 import { Reveal } from "@/components/ui/Reveal";
 import { LiveryStripe } from "@/components/ui/LiveryStripe";
 import { ButtonLink } from "@/components/ui/Button";
-import { BrowserFrame, PhoneFrame } from "@/components/ui/Frame";
+import { BrowserFrame, FRAME_SIZES, PhoneFrame } from "@/components/ui/Frame";
 
 const { work } = site;
 const { featured } = work;
@@ -33,16 +33,17 @@ function DotList({ items, className = "" }: { items: readonly string[]; classNam
 }
 
 /* Real admin screens, captured on a local instance seeded with invented leads (never production
-   data). The dashboard runs the full container width; the other screens follow as a strip. */
+   data). The dashboard runs the full container width; the other screens follow two across, large
+   enough that the rows of the leads list and the pipeline stay readable. */
 function CrmScreens() {
   const [first, ...rest] = crm.shots;
   return (
     <figure className="m-0">
-      <BrowserFrame shot={first} />
+      <BrowserFrame shot={first} sizes={FRAME_SIZES.full} />
       {rest.length > 0 && (
-        <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6">
           {rest.map((shot) => (
-            <BrowserFrame key={shot.src} shot={shot} />
+            <BrowserFrame key={shot.src} shot={shot} sizes={FRAME_SIZES.half} />
           ))}
         </div>
       )}
@@ -91,9 +92,9 @@ export function Work() {
             </div>
           </Reveal>
 
-          <Reveal className="mt-14 grid grid-cols-2 gap-4 lg:mt-16 lg:gap-6" delay={0.05}>
+          <Reveal className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-16 lg:gap-6" delay={0.05}>
             {featured.shots.more.map((shot) => (
-              <BrowserFrame key={shot.src} shot={shot} />
+              <BrowserFrame key={shot.src} shot={shot} sizes={FRAME_SIZES.half} />
             ))}
           </Reveal>
 
