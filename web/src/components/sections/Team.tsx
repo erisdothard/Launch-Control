@@ -10,8 +10,8 @@ const titleId = `${team.id}-title`;
 export function Team() {
   return (
     <section id={team.id} aria-labelledby={titleId} className="relative border-t border-border bg-background/80" style={{ zIndex: "var(--z-content)" }}>
-      <div className="mx-auto max-w-content-max px-6 py-20 lg:px-12 lg:py-24">
-        <Reveal className="mb-12 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-12">
+      <div className="mx-auto max-w-content-max px-6 py-16 lg:px-12 lg:py-20">
+        <Reveal className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-5">
             <LiveryStripe className="mb-6" />
             <h2 id={titleId} className="text-display">
@@ -23,8 +23,8 @@ export function Team() {
         <ul className="m-0 grid list-none grid-cols-1 border-t border-border p-0 md:grid-cols-2">
           {team.people.map((person, index) => (
             <li key={person.name} className="border-b border-border md:border-r md:pr-8 md:last:border-r-0 md:last:pl-8 md:last:pr-0">
-              <Reveal className="flex flex-col gap-3 py-8" delay={0.05 * index}>
-                <p className="label-mono text-ember">{person.role}</p>
+              <Reveal className="flex flex-col gap-3 py-6" delay={0.05 * index}>
+                <p className="label-mono text-steel">{person.role}</p>
                 <h3 className="text-title">{person.name}</h3>
                 <p className="max-w-[44ch] text-body text-muted">{person.body}</p>
               </Reveal>

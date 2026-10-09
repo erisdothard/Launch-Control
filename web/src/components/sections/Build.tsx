@@ -12,11 +12,11 @@ export function Build() {
     <section
       id={build.id}
       aria-labelledby={titleId}
-      className="relative border-t border-border bg-background/80"
+      className="relative border-t border-border bg-background/90"
       style={{ zIndex: "var(--z-content)" }}
     >
-      <div className="mx-auto max-w-content-max px-6 py-20 lg:px-12 lg:py-24">
-        <Reveal className="mb-12 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-12">
+      <div className="mx-auto max-w-content-max px-6 py-16 lg:px-12 lg:py-20">
+        <Reveal className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-5">
             <LiveryStripe className="mb-6" />
             <h2 id={titleId} className="text-display">
@@ -32,10 +32,9 @@ export function Build() {
               className="border-b border-border transition-colors duration-fast ease-ui hover:bg-elevated/70 sm:border-r sm:[&:nth-child(2n)]:border-r-0 lg:[&:nth-child(2n)]:border-r lg:[&:nth-child(3n)]:border-r-0"
             >
               <Reveal className="flex flex-col gap-3 px-0 py-6 sm:px-5" delay={0.05 * index}>
-                <h3 className="text-service">
-                  {service.title}
-                </h3>
-                <p className="text-pretty text-body text-muted">{service.body}</p>
+                <p className="label-mono m-0 text-subtle tabular-nums">{String(index + 1).padStart(2, "0")}</p>
+                <h3 className="text-title">{service.title}</h3>
+                <p className="max-w-[34ch] text-pretty text-body text-muted">{service.body}</p>
               </Reveal>
             </li>
           ))}

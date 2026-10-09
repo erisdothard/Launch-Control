@@ -7,7 +7,8 @@ const { hero } = site;
 /*
   The hero: real HTML, readable before any 3D arrives. The engine turns behind it (Experience owns
   the canvas); the type sits over the engine. A soft left-to-right scrim keeps the copy legible
-  where it overlaps steel; on a phone, where the type spans the full width, it is an even veil.
+  where it overlaps steel (90% at the left edge, 50% at the column's end, the engine still bright
+  on the right); on a phone, where the type spans the full width, it is an even veil.
   No backdrop-filter.
 */
 export function Hero() {
@@ -15,9 +16,9 @@ export function Hero() {
     <>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-background/45 md:bg-transparent md:bg-gradient-to-r md:from-background/75 md:via-background/20 md:to-transparent"
+        className="pointer-events-none absolute inset-0 bg-background/55 md:bg-transparent md:bg-gradient-to-r md:from-background/90 md:via-background/50 md:to-transparent"
       />
-      <div className="relative mx-auto flex min-h-[100svh] w-full max-w-content-max flex-col justify-center px-6 pb-20 pt-28 lg:px-12">
+      <div className="relative mx-auto flex min-h-[100svh] w-full max-w-content-max flex-col justify-center px-6 pb-32 pt-16 lg:px-12">
         <LiveryStripe className="mb-8" />
         <ul className="label-mono m-0 mb-6 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-muted">
           {hero.eyebrow.map((item, i) => (

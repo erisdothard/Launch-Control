@@ -102,6 +102,7 @@ function BookingForm() {
         id="book-name"
         name="name"
         label={book.fields.name}
+        placeholder={book.fields.placeholders.name}
         autoComplete="name"
         error={errorFor("name")}
         onBlur={onBlur}
@@ -111,6 +112,7 @@ function BookingForm() {
         name="email"
         type="email"
         label={book.fields.email}
+        placeholder={book.fields.placeholders.email}
         autoComplete="email"
         error={errorFor("email")}
         onBlur={onBlur}
@@ -120,6 +122,7 @@ function BookingForm() {
           id="book-launching"
           name="launching"
           label={book.fields.launching}
+          placeholder={book.fields.placeholders.launching}
           error={errorFor("launching")}
           onBlur={onBlur}
         />
@@ -129,7 +132,7 @@ function BookingForm() {
         name="budget"
         label={book.fields.budget}
         options={book.fields.budgetOptions}
-        placeholder={book.fields.budget}
+        placeholder={book.fields.placeholders.budget}
         error={errorFor("budget")}
         onBlur={onBlur}
       />
@@ -156,7 +159,7 @@ export function Book() {
       className="relative bg-ember text-background [&_label]:text-background [&_label]:opacity-80 [&_.field-error]:text-background"
       style={{ zIndex: "var(--z-content)" }}
     >
-      <div className="mx-auto max-w-content-max px-6 py-20 lg:px-12 lg:py-24 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-8">
+      <div className="mx-auto max-w-content-max px-6 py-16 lg:px-12 lg:py-20 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-12">
         <Reveal className="flex flex-col gap-6 lg:col-span-5">
           <h2 id={titleId} className="text-display text-background">
             {book.title}
