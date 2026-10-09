@@ -284,19 +284,9 @@ const content: SiteContent = {
             phone: { src: "/work/hyper-racer-crm-leads-phone-v3.webp", alt: "The leads list on a phone", width: 1170, height: 2532 },
           },
           {
-            label: "One lead",
-            desk: { src: "/work/hyper-racer-crm-lead-desk-v3.webp", alt: "A single lead: the enquiry message, status, lead type and classification details", width: 2560, height: 1600 },
-            phone: { src: "/work/hyper-racer-crm-lead-phone-v3.webp", alt: "A single lead on a phone", width: 1170, height: 2532 },
-          },
-          {
             label: "Pipeline",
             desk: { src: "/work/hyper-racer-crm-deals-desk-v3.webp", alt: "Sales pipeline board: deals by stage from inquiry to deposit with their values", width: 2560, height: 1600 },
             phone: { src: "/work/hyper-racer-crm-deals-phone-v3.webp", alt: "The pipeline on a phone", width: 1170, height: 2532 },
-          },
-          {
-            label: "Tasks",
-            desk: { src: "/work/hyper-racer-crm-tasks-desk-v3.webp", alt: "Tasks list with priority, due date, the related lead and an overdue follow-up flagged", width: 2560, height: 1600 },
-            phone: { src: "/work/hyper-racer-crm-tasks-phone-v3.webp", alt: "The tasks list on a phone", width: 1170, height: 2532 },
           },
         ],
       },
