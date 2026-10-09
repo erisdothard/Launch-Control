@@ -89,12 +89,6 @@ html.lenis body {
   }
 }
 
-/* Work filmstrips: a thin, quiet scrollbar on the hairline colour. The row snaps per screen. */
-.filmstrip {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
-  -webkit-overflow-scrolling: touch;
-}
 
 /* Native select: hide the UA chevron and draw a steel one on the right, same on every browser. */
 .select-chevron {

@@ -37,7 +37,7 @@ const shotSchema = z.object({
 /** One screen of a product, captured twice: a 1280x800 desktop view and a 390x844 phone view.
     The page shows whichever matches the visitor's device, so the type stays legible on both.
     A phone-first app (DispatchRelay) has only the phone view and shows as a phone on every device. */
-const screenSchema = z.object({ label: z.string(), desk: shotSchema.optional(), phone: shotSchema });
+const screenSchema = z.object({ label: z.string(), note: z.string(), desk: shotSchema.optional(), phone: shotSchema });
 
 const clientSchema = z.object({
   name: z.string(),
@@ -80,6 +80,8 @@ export const siteSchema = z.object({
     title: z.string(),
     intro: z.string(),
     visitLabel: z.string(),
+    /** The screen viewer's arrow labels (one frame, a list of screens, previous / next). */
+    viewer: z.object({ previous: z.string(), next: z.string() }),
     featured: z.object({
       client: z.string(),
       title: z.string(),
@@ -230,6 +232,7 @@ const content: SiteContent = {
     title: "Work",
     intro: "Systems we built and now help run.",
     visitLabel: "Visit site",
+    viewer: { previous: "Previous screen", next: "Next screen" },
     featured: {
       client: "Hyper Racer USA",
       title: "One system: website, CRM, pipeline and outreach, connected.",
@@ -256,16 +259,19 @@ const content: SiteContent = {
         screens: [
           {
             label: "Dashboard",
+            note: "Who to call today, ranked by the agents, with lead counts and pipeline value at a glance.",
             desk: { src: "/work/hyper-racer-crm-dashboard-desk-v3.webp", alt: "Hyper Racer command center dashboard: lead counts, pipeline value and the advisor's ranked list of who to contact", width: 2560, height: 1600 },
             phone: { src: "/work/hyper-racer-crm-dashboard-phone-v3.webp", alt: "The dashboard on a phone", width: 1170, height: 2532 },
           },
           {
             label: "Leads",
+            note: "Every enquiry with its type, priority, next step and status. Filter by product, stage or how long it has waited.",
             desk: { src: "/work/hyper-racer-crm-leads-desk-v3.webp", alt: "Leads list with product, type, organization, priority, next step and status for each lead", width: 2560, height: 1600 },
             phone: { src: "/work/hyper-racer-crm-leads-phone-v3.webp", alt: "The leads list on a phone", width: 1170, height: 2532 },
           },
           {
             label: "Pipeline",
+            note: "Deals by stage from inquiry to deposit, with the value of each column.",
             desk: { src: "/work/hyper-racer-crm-deals-desk-v3.webp", alt: "Sales pipeline board: deals by stage from inquiry to deposit with their values", width: 2560, height: 1600 },
             phone: { src: "/work/hyper-racer-crm-deals-phone-v3.webp", alt: "The pipeline on a phone", width: 1170, height: 2532 },
           },
@@ -282,10 +288,14 @@ const content: SiteContent = {
         year: "2026",
         demoNote: "Public demo, sample data. Every name is invented.",
         screens: [
-          { label: "Sign in", phone: { src: "/work/dispatchrelay-login-phone-v3.webp", alt: "DispatchRelay sign-in: pick a role, carrier, broker, shipper or driver", width: 1170, height: 2532 } },
-          { label: "Load board", phone: { src: "/work/dispatchrelay-loadboard-phone-v3.webp", alt: "Load board: bidding, needs dispatch and running loads with rates", width: 1170, height: 2532 } },
-          { label: "Tracking", phone: { src: "/work/dispatchrelay-track-phone-v3.webp", alt: "Tracking a shipment: load details and the route from Nashville to Chicago on a map", width: 1170, height: 2532 } },
-          { label: "Hours", phone: { src: "/work/dispatchrelay-hos-phone-v3.webp", alt: "Hours of service: driving, on-duty and weekly limits with status buttons", width: 1170, height: 2532 } },
+          { label: "Sign in",
+            note: "One app, four roles. Carrier, broker, shipper or driver, each with its own home screen.", phone: { src: "/work/dispatchrelay-login-phone-v3.webp", alt: "DispatchRelay sign-in: pick a role, carrier, broker, shipper or driver", width: 1170, height: 2532 } },
+          { label: "Load board",
+            note: "Open loads with bids and counters, what needs dispatch and what is already running.", phone: { src: "/work/dispatchrelay-loadboard-phone-v3.webp", alt: "Load board: bidding, needs dispatch and running loads with rates", width: 1170, height: 2532 } },
+          { label: "Tracking",
+            note: "A load number brings up the route on the map, the status and live GPS once the driver shares it.", phone: { src: "/work/dispatchrelay-track-phone-v3.webp", alt: "Tracking a shipment: load details and the route from Nashville to Chicago on a map", width: 1170, height: 2532 } },
+          { label: "Hours",
+            note: "Driving and on-duty time against the daily and weekly limits, with one-tap status changes.", phone: { src: "/work/dispatchrelay-hos-phone-v3.webp", alt: "Hours of service: driving, on-duty and weekly limits with status buttons", width: 1170, height: 2532 } },
         ],
       },
     ],
