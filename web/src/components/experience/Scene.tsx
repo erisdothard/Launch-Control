@@ -19,7 +19,7 @@ import { ScreenQuad } from "@react-three/drei";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { Effects, type FxQuality } from "@/components/fx/Effects";
 import { scrollState } from "@/lib/scrollState";
-import { STAGE_LIMITER_RPM } from "@/lib/scrollMap";
+import { STAGE_LIMITER_RPM, smooth } from "@/lib/scrollMap";
 import { engineSpin, stepSpin } from "@/lib/spin";
 import { token } from "@/lib/tokens";
 import { Driver } from "./Driver";
@@ -227,7 +227,10 @@ function Lights({ onEnvReady }: { onEnvReady: () => void }) {
       const n = Math.min(1, s.rpm / STAGE_LIMITER_RPM);
       rim.intensity = s.phase === "igniting" ? 0.6 : 0.15 + 0.45 * n * n;
     }
-    scene.environmentIntensity = ENV_STAGE + (ENV_CONTENT - ENV_STAGE) * s.q;
+    /* Reflections calm down while the stack is apart (25% off past half explode): the HDRI glints on
+       bores and headers were the thing breaking up the body copy at the peak, not the lights. */
+    const calm = 1 - 0.25 * smooth((s.explode - 0.5) / 0.5);
+    scene.environmentIntensity = (ENV_STAGE + (ENV_CONTENT - ENV_STAGE) * s.q) * calm;
   });
   return (
     <>

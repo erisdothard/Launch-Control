@@ -10,15 +10,18 @@ const { hero } = site;
   where it overlaps steel (90% at the left edge, 50% at the column's end, the engine still bright
   on the right); on a phone, where the type spans the full width, it is an even veil.
   No backdrop-filter.
+  The section behind this (Experience) is STAGE_SCREENS tall; this one-screen frame sticks to the
+  top of the window while the engine runs its stage, then scrolls away with the page.
 */
 export function Hero() {
   return (
-    <>
+    <div className="sticky top-0 h-[100svh]">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-background/55 md:bg-transparent md:bg-gradient-to-r md:from-background/90 md:via-background/50 md:to-transparent"
+        className="pointer-events-none absolute inset-0 bg-background/60 md:bg-transparent md:bg-gradient-to-r md:from-background/90 md:via-background/65 md:to-transparent"
+        style={{ opacity: "calc(0.78 + 0.22 * var(--stage-explode, 0))" }}
       />
-      <div className="relative mx-auto flex min-h-[100svh] w-full max-w-content-max flex-col justify-center px-6 pb-32 pt-16 lg:px-12">
+      <div className="relative mx-auto flex h-full w-full max-w-content-max flex-col justify-center px-6 pb-32 pt-16 lg:px-12">
         <LiveryStripe className="mb-8" />
         <ul className="label-mono m-0 mb-6 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-muted">
           {hero.eyebrow.map((item, i) => (
@@ -37,6 +40,6 @@ export function Hero() {
           </ButtonLink>
         </div>
       </div>
-    </>
+    </div>
   );
 }

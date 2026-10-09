@@ -165,6 +165,10 @@ data never appears. No demo-data caption on the page (Eris, 2026-10-09).
 1. Hero: stripe, mono eyebrow, one h1 (≤ 17ch), one lead sentence, primary + secondary button,
    left-aligned over the engine with a left-to-right scrim (90% at the edge, 50% at the end of
    the text column, clear on the right) so the engine stays bright beside the copy, dim behind it.
+   The hero is pinned for a three-screen stage (`STAGE_SCREENS` in scrollMap.ts): the copy holds
+   sticky while the engine comes apart and back together over two screens of scroll, then the
+   content arrives over the assembled, dimmed engine. The engine stays background, but the
+   sequence must be seen (Eris, 2026-10-09: "they never really see it deconstruct").
 2. Ruled editorial panels: What we build and run (six numbered cells, `text-title` headings over
    `text-body`), Team. 5/7 split for every title + lede, hairline dividers, no cards. Sections use
    `py-16 lg:py-20`; the featured project shows the collage, the agents' three guarantees and the

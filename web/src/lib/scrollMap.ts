@@ -5,7 +5,15 @@
   Narrative (decided 2026-10-06): the engine idles assembled, scroll takes it apart layer by
   layer (dive), it slams back together (combustion), revs, hits the limiter, launches, then idles
   dimmed behind the content for the rest of the page.
+
+  Where the stage lives (2026-10-09): the hero is pinned for STAGE_SCREENS screens, so p runs over
+  the first (STAGE_SCREENS - 1) screens of scroll with the hero copy held in place. Before this the
+  timeline ran over the whole page and the explode peaked behind the Work panels, where nobody
+  saw it (Eris: "they never really see it deconstruct").
 */
+
+/** Screens of scroll the hero holds for: the stage is (STAGE_SCREENS - 1) screens of travel. */
+export const STAGE_SCREENS = 3;
 
 import type { BeatId } from "@/content/site";
 import { ENGINE_GEOMETRY } from "./engine/engineContract";
@@ -45,7 +53,7 @@ export const EXPLODE_END = 0.9;
 /** Part stagger: outer parts leave last and come home first. 0 = all parts move together. */
 export const EXPLODE_STAGGER = 0.35;
 /** Fraction of the author's exploded offsets used at full explode, so the stack stays in frame. */
-export const EXPLODE_AMPLITUDE = 1;
+export const EXPLODE_AMPLITUDE = 0.9;
 /** Hz of the fuel-cut stutter on the limiter. */
 export const LIMITER_STUTTER_HZ = 11;
 
