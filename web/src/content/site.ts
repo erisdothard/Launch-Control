@@ -100,7 +100,6 @@ export const siteSchema = z.object({
       /** Real admin screens, captured on a local instance seeded with invented leads. Never production data. */
       crm: z.object({
         title: z.string(),
-        note: z.string(),
         screens: z.array(screenSchema).min(2).max(6),
       }),
     }),
@@ -112,7 +111,6 @@ export const siteSchema = z.object({
           summary: z.string(),
           href: z.string().url(),
           year: z.string().length(4),
-          demoNote: z.string().optional(),
           /** Either a hero collage (desktop page with a phone over it) or a row of screens. */
           shots: z.object({ hero: shotSchema, phone: shotSchema }).optional(),
           screens: z.array(screenSchema).min(3).max(8).optional(),
@@ -258,7 +256,6 @@ const content: SiteContent = {
       },
       crm: {
         title: "Inside the CRM",
-        note: "Real screens, demo data. Every name is invented.",
         screens: [
           {
             label: "Dashboard",
@@ -289,7 +286,6 @@ const content: SiteContent = {
           "Loads, bids, dispatch and live tracking on one platform, with a home screen for each role: carrier, broker, shipper and driver. Built as FreightX for a trucking company, now a product of its own.",
         href: "https://dispatchrelay.co",
         year: "2026",
-        demoNote: "Public demo, sample data. Every name is invented.",
         screens: [
           { label: "Sign in",
             note: "One app, four roles. Carrier, broker, shipper or driver, each with its own home screen.", phone: { src: "/work/dispatchrelay-login-phone-v4.webp", alt: "DispatchRelay sign-in: pick a role, carrier, broker, shipper or driver", width: 1290, height: 2796 } },

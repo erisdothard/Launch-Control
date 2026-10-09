@@ -20,7 +20,7 @@ const PHONE_OVERLAP = "mx-auto w-[78%] sm:absolute sm:-bottom-6 sm:right-4 sm:mx
    data), in the screen viewer: one frame, a list of what each screen does, arrows. */
 function CrmScreens() {
   return (
-    <ScreenViewer screens={crm.screens} labelledBy="work-crm-title" caption={crm.note} />
+    <ScreenViewer screens={crm.screens} labelledBy="work-crm-title" />
   );
 }
 
@@ -111,7 +111,7 @@ export function Work() {
             <article key={entry.client} className="mt-14 border-t border-border pt-10 lg:mt-16 lg:pt-12" aria-labelledby={titleId}>
               {entry.screens ? (
                 <Reveal>
-                  <ScreenViewer screens={entry.screens} labelledBy={titleId} lead={copy} caption={entry.demoNote} />
+                  <ScreenViewer screens={entry.screens} labelledBy={titleId} lead={copy} />
                 </Reveal>
               ) : (
                 <Reveal className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">

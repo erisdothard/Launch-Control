@@ -52,14 +52,11 @@ export function ScreenViewer({
   screens,
   labelledBy,
   lead,
-  caption,
 }: {
   screens: readonly Screen[];
   labelledBy: string;
   /** Copy block placed above the list (phone-only layout). */
   lead?: ReactNode;
-  /** Small note under the frame, e.g. the demo-data disclaimer. */
-  caption?: string;
 }) {
   const [index, setIndex] = useState(0);
   const count = screens.length;
@@ -139,19 +136,12 @@ export function ScreenViewer({
     </div>
   );
 
-  const captionNode = caption ? (
-    <div className="mt-3 flex justify-end">
-      <p className="label-mono m-0 text-right text-[11px] text-subtle">{caption}</p>
-    </div>
-  ) : null;
-
   if (phonesOnly) {
     return (
       <div onKeyDown={onKeyDown} className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-x-12 lg:gap-y-10">
         {lead && <div className="lg:col-span-7">{lead}</div>}
         <div className="lg:col-span-5 lg:row-span-2 lg:self-center">
           {frames}
-          {captionNode}
         </div>
         <div className="flex flex-col gap-2 lg:col-span-7">
           {controls}
@@ -169,7 +159,6 @@ export function ScreenViewer({
       </div>
       <div className="order-1 sm:order-2">
         {frames}
-        {captionNode}
       </div>
     </div>
   );
