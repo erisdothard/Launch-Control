@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // The dev badge overlaps the bottom-left HUD readout in review captures.
   devIndicators: false,
+  /* Work screenshots are text-heavy UI captured at 2x; 75 softens the type. Next 16 allowlists qualities. */
+  images: { qualities: [75, 90] },
   /* Asset filenames are versioned (engine-v2.glb), never overwritten in place, so they cache for a year.
      The draco decoder keeps three's filenames; it gets a week. */
   async headers() {
