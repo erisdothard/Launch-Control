@@ -2,12 +2,14 @@
   The ONE content file. Every word on the site comes from here.
   Components must not contain literal copy.
 
-  Assumption on record (2026-10-03): Launch Control is a launch service that takes a business
-  from zero to launched. If that changes, change this file and nothing else.
+  Positioning on record (Max Hartmann, "Company Branding" 2026-10-02 and "Site revisions"
+  2026-10-08): Launch Control builds and operates business development systems. Brand, website,
+  CRM, lead generation, outreach and automation, then we help run it. Hyper Racer USA is the
+  prototype. Not a marketing agency.
 
   Copy rules (DESIGN.md voice): plain, confident, mechanical. Verbs first. No buzzwords. No em-dashes.
   Numbers only when real. Client data never appears here: project images are the clients' PUBLIC
-  pages or demo dashboards with fictional users, and the CRM mock is invented.
+  pages or screens with demo data, and any mock is invented.
 */
 
 import { z } from "zod";
@@ -77,7 +79,7 @@ export const siteSchema = z.object({
       summary: z.string(),
       href: z.string().url(),
       year: z.string().length(4),
-      shots: z.object({ hero: shotSchema, phone: shotSchema, more: z.array(shotSchema).min(1).max(3) }),
+      shots: z.object({ hero: shotSchema, phone: shotSchema, more: z.array(shotSchema).min(1).max(4) }),
       layers: z.array(z.object({ tag: z.string(), title: z.string(), items: z.array(z.string()).min(3).max(8) })).length(3),
       stackTitle: z.string(),
       stack: z.array(z.string()).min(4).max(10),
@@ -86,15 +88,11 @@ export const siteSchema = z.object({
         body: z.string(),
         guarantees: z.array(z.string()).min(2).max(4),
       }),
-      mock: z.object({
-        label: z.string(),
-        demoNote: z.string(),
-        stats: z.array(z.object({ label: z.string(), value: z.string() })).length(3),
-        briefingTitle: z.string(),
-        briefing: z
-          .array(z.object({ name: z.string(), kind: z.string(), reason: z.string(), priority: z.enum(["High", "Medium", "Low"]) }))
-          .min(3)
-          .max(5),
+      /** Real admin screens, captured on a local instance seeded with invented leads. Never production data. */
+      crm: z.object({
+        title: z.string(),
+        note: z.string(),
+        shots: z.array(shotSchema).min(2).max(6),
       }),
     }),
     more: z
@@ -117,6 +115,12 @@ export const siteSchema = z.object({
     title: z.string(),
     intro: z.string(),
     services: z.array(serviceSchema).min(3).max(6),
+  }),
+  team: z.object({
+    id: z.literal("team"),
+    title: z.string(),
+    intro: z.string(),
+    people: z.array(z.object({ name: z.string(), role: z.string(), body: z.string() })).length(2),
   }),
   book: z.object({
     id: z.literal("book"),
@@ -176,21 +180,22 @@ const content: SiteContent = {
     tagline: "From idle to launched.",
   },
   seo: {
-    title: "Launch Control. Websites, backends and systems, built and launched.",
+    title: "Launch Control. Business development systems, built and run.",
     description:
-      "Launch Control builds the website, backend and systems a business runs on, and takes it to launch. One team, one build.",
+      "Launch Control builds the commercial system behind a business: brand, website, CRM, lead generation, outreach and automation. Then we help run it.",
     url: "https://launch-control-flame.vercel.app",
     ogHeadline: "We build the whole engine. Then we launch it.",
   },
   nav: [
     { label: "Work", href: "#work" },
-    { label: "What we build", href: "#build" },
+    { label: "What we do", href: "#build" },
+    { label: "Team", href: "#team" },
     { label: "Book a launch", href: "#book" },
   ],
   hero: {
-    eyebrow: ["Brand", "Website", "Systems", "Automation"],
+    eyebrow: ["Brand", "Website", "CRM", "Lead generation", "Outreach"],
     title: "We build the whole engine. Then we launch it.",
-    body: "Launch Control takes a business from idle to launched: the brand, the website, the systems behind it, and the day it goes live. One team, one build.",
+    body: "We build the commercial system behind the business: brand, website, CRM, lead generation, outreach and automation. Then we help run it.",
     primaryCta: { label: "Book a launch", href: "#book" },
     secondaryCta: { label: "See the work", href: "#work" },
     webglOffNotice: "3D is off on this device. The site works without it.",
@@ -214,13 +219,13 @@ const content: SiteContent = {
   work: {
     id: "work",
     title: "Work",
-    intro: "Full builds, shipped and running. Public pages and demo dashboards shown; client data stays with the client.",
+    intro: "Systems we built and now help run. Public pages and screens with demo data shown; client data stays with the client.",
     visitLabel: "Visit site",
     featured: {
       client: "Hyper Racer USA",
-      title: "One application: website, backend and CRM, connected.",
+      title: "One system: website, CRM, pipeline and outreach, connected.",
       summary:
-        "The US home of the Hyper Racer X1 race car runs on one application we built end to end. The public site buyers see, the backend that takes every enquiry, and the command center the team runs the business from. Change the inventory in the admin and the site updates. A buyer sends a form and the lead is sorted by morning.",
+        "The US home of the Hyper Racer X1 race car runs on one system we built end to end. The public site buyers see, the CRM that takes every enquiry, the dealer and partner pipeline, and the outreach that goes out from it. A buyer sends a form and the lead is sorted, scheduled and followed up. We built it, and we run it with the team.",
       href: "https://www.hyperracerusa.com",
       year: "2026",
       shots: {
@@ -229,23 +234,25 @@ const content: SiteContent = {
         more: [
           { src: "/work/hyper-racer-inventory-v1.webp", alt: "Hyper Racer USA inventory page with cars for sale", width: 1600, height: 1000 },
           { src: "/work/hyper-racer-configurator-v1.webp", alt: "Hyper Racer USA configurator: build your X1", width: 1600, height: 1000 },
+          { src: "/work/hyper-racer-dealers-v1.webp", alt: "Hyper Racer USA dealer page: represent the X1, apply to become a dealer", width: 1600, height: 1000 },
+          { src: "/work/hyper-racer-contact-v1.webp", alt: "Hyper Racer USA enquiry form: timeline, involvement, which car, purchase readiness", width: 1600, height: 1000 },
         ],
       },
       layers: [
         {
-          tag: "Front end",
+          tag: "Website",
           title: "The public site",
           items: ["Specs and configurator", "Inventory", "Gallery, news, events", "Dealer map", "Shop", "Enquiry forms"],
         },
         {
-          tag: "Backend",
-          title: "Data and services",
-          items: ["Postgres database", "Form intake with spam guard", "Offline event kiosk", "Sync with HQ in Australia", "Email and payments", "Scheduled daily jobs"],
+          tag: "CRM and backend",
+          title: "Where every lead lands",
+          items: ["Leads, deals, customers", "Form intake with spam guard", "Tasks and approvals queue", "Email and payments", "Sync with HQ in Australia", "Full activity log"],
         },
         {
-          tag: "Admin",
-          title: "The command center",
-          items: ["Leads, deals, customers", "Tasks and approvals queue", "Agent activity and cost", "Editors for every page", "Full activity log"],
+          tag: "Business development",
+          title: "The pipeline we run",
+          items: ["Dealer and partner targeting", "Prospect lists", "Outreach campaigns", "Follow-up tracking", "Qualified opportunities"],
         },
       ],
       stackTitle: "Built with",
@@ -259,20 +266,15 @@ const content: SiteContent = {
           "Nothing is deleted. Every change is logged and reversible.",
         ],
       },
-      mock: {
-        label: "Command center",
-        demoNote: "Illustration with demo data",
-        stats: [
-          { label: "Screened", value: "14" },
-          { label: "Scheduled", value: "6" },
-          { label: "To approve", value: "2" },
-        ],
-        briefingTitle: "Morning briefing",
-        briefing: [
-          { name: "Avery C.", kind: "Buyer", reason: "Asked for a quote twice. Never contacted.", priority: "High" },
-          { name: "Sam O.", kind: "Track club", reason: "One day past the next follow-up.", priority: "High" },
-          { name: "Morgan L.", kind: "Racing school", reason: "Due for step 2 of 4.", priority: "Medium" },
-          { name: "Riley P.", kind: "Event organizer", reason: "Replied overnight. Draft waiting.", priority: "Medium" },
+      crm: {
+        title: "Inside the CRM",
+        note: "Real screens, demo data. Every name is invented.",
+        shots: [
+          { src: "/work/hyper-racer-crm-dashboard-v1.webp", alt: "Hyper Racer command center dashboard: lead counts, pipeline value and the advisor's ranked list of who to contact", width: 1600, height: 1000 },
+          { src: "/work/hyper-racer-crm-leads-v1.webp", alt: "Leads list with product, type, organization, priority, next step and status for each lead", width: 1600, height: 1000 },
+          { src: "/work/hyper-racer-crm-lead-v1.webp", alt: "A single lead: the enquiry message, status, lead type and classification details", width: 1600, height: 1000 },
+          { src: "/work/hyper-racer-crm-deals-v1.webp", alt: "Sales pipeline board: deals by stage from inquiry to deposit with their values", width: 1600, height: 1000 },
+          { src: "/work/hyper-racer-crm-tasks-v1.webp", alt: "Tasks list with priority, due date, the related lead and an overdue follow-up flagged", width: 1600, height: 1000 },
         ],
       },
     },
@@ -294,41 +296,63 @@ const content: SiteContent = {
   },
   build: {
     id: "build",
-    title: "What we build",
+    title: "What we build and run",
     intro:
-      "No decks. No handoffs between five vendors. You get a working business with every part connected, and we stay on after launch to keep it running.",
+      "Not a marketing agency. We build the business development machine behind the company, then we operate it with you: find the market, find the people, contact them, track them, follow up.",
     services: [
       {
         id: "brand",
-        title: "Brand",
-        body: "Name, mark, voice and the rules that keep them consistent after we leave.",
+        title: "Brand and positioning",
+        body: "Name, mark, voice, and the message that gets the right people interested. Who you target and how you explain what you do.",
       },
       {
         id: "site",
         title: "Website",
-        body: "Designed and built to the last pixel, fast on a phone, measured against real references, not templates.",
+        body: "Designed and built to the last pixel, fast on a phone. Landing pages, lead forms and the sales material behind the outreach.",
       },
       {
-        id: "systems",
-        title: "Systems",
-        body: "CRM, booking, payments, email, the back office. Connected so one entry moves through all of it.",
+        id: "crm",
+        title: "CRM and pipeline",
+        body: "Lead database, pipeline stages, follow-up tracking, contact history and reporting. Nothing lost in a spreadsheet or an inbox.",
       },
       {
-        id: "automation",
-        title: "Automation",
-        body: "The repetitive work handled by software and agents, with a human in the loop where it matters.",
+        id: "leads",
+        title: "Lead generation",
+        body: "We find the customers, partners, dealers, distributors or sponsors your business needs, and the decision makers inside them.",
+      },
+      {
+        id: "outreach",
+        title: "Outreach and follow-up",
+        body: "Prospect lists, campaigns, replies, qualification and the next step, with agents doing the repetitive work and a person approving every send.",
       },
       {
         id: "retainer",
         title: "After launch",
-        body: "Monitoring, fixes and the next build, on a monthly retainer. We keep it running.",
+        body: "Ongoing growth, not maintenance: lead generation, outreach, CRM management and new campaigns, month after month.",
+      },
+    ],
+  },
+  team: {
+    id: "team",
+    title: "Who you work with",
+    intro: "Two people, the whole model. One finds the market and works the pipeline. One builds the system and keeps it running.",
+    people: [
+      {
+        name: "Maxwell Hartmann",
+        role: "Business development and market strategy",
+        body: "Finds the market, the people and the message. Builds the prospect lists, runs the outreach and the follow-up, and moves opportunities forward.",
+      },
+      {
+        name: "Eris Dothard",
+        role: "Systems and development",
+        body: "Builds the website, the CRM, the backend and the agents inside it, and keeps all of it running after launch.",
       },
     ],
   },
   book: {
     id: "book",
     title: "Book a launch",
-    body: "Tell us what you are launching. We reply within one working day.",
+    body: "Tell us what you sell and who you need to reach. We reply within one working day.",
     afterNote: "What happens next: we reply within one working day and book a 30-minute call. No proposal until we have talked.",
     fields: {
       name: "Name",
@@ -348,7 +372,7 @@ const content: SiteContent = {
     },
   },
   footer: {
-    blurb: "Websites, backends and the systems behind them, built and launched by one team.",
+    blurb: "Business development systems: brand, website, CRM, lead generation and outreach, built and run by one team.",
     navLabel: "Site",
     contactLabel: "Contact",
     email: "hello@launchcontrol.example",
