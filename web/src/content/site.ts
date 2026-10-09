@@ -34,6 +34,10 @@ const shotSchema = z.object({
   height: z.number().int().positive(),
 });
 
+/** One screen of a product, captured twice: a 1280x800 desktop view and a 390x844 phone view.
+    The page shows whichever matches the visitor's device, so the type stays legible on both. */
+const screenSchema = z.object({ label: z.string(), desk: shotSchema, phone: shotSchema });
+
 const clientSchema = z.object({
   name: z.string(),
   href: z.string().url().optional(),
@@ -79,7 +83,7 @@ export const siteSchema = z.object({
       summary: z.string(),
       href: z.string().url(),
       year: z.string().length(4),
-      shots: z.object({ hero: shotSchema, phone: shotSchema, more: z.array(shotSchema).min(1).max(4) }),
+      shots: z.object({ hero: shotSchema, phone: shotSchema, moreTitle: z.string(), more: z.array(screenSchema).min(1).max(4) }),
       layers: z.array(z.object({ tag: z.string(), title: z.string(), items: z.array(z.string()).min(3).max(8) })).length(3),
       stackTitle: z.string(),
       stack: z.array(z.string()).min(4).max(10),
@@ -92,7 +96,7 @@ export const siteSchema = z.object({
       crm: z.object({
         title: z.string(),
         note: z.string(),
-        shots: z.array(shotSchema).min(2).max(6),
+        screens: z.array(screenSchema).min(2).max(6),
       }),
     }),
     more: z
@@ -229,13 +233,30 @@ const content: SiteContent = {
       href: "https://www.hyperracerusa.com",
       year: "2026",
       shots: {
-        hero: { src: "/work/hyper-racer-home-v2.webp", alt: "Hyper Racer USA home page: the X1 race car with its headline specs", width: 3200, height: 2000 },
-        phone: { src: "/work/hyper-racer-phone-v2.webp", alt: "Hyper Racer USA home page on a phone", width: 780, height: 1688 },
+        hero: { src: "/work/hyper-racer-home-desk-v3.webp", alt: "Hyper Racer USA home page: the X1 race car with its headline specs", width: 2560, height: 1600 },
+        phone: { src: "/work/hyper-racer-home-phone-v3.webp", alt: "Hyper Racer USA home page on a phone", width: 1170, height: 2532 },
+        moreTitle: "The public site",
         more: [
-          { src: "/work/hyper-racer-inventory-v2.webp", alt: "Hyper Racer USA inventory page with cars for sale", width: 3200, height: 2000 },
-          { src: "/work/hyper-racer-configurator-v2.webp", alt: "Hyper Racer USA configurator: build your X1", width: 3200, height: 2000 },
-          { src: "/work/hyper-racer-dealers-v2.webp", alt: "Hyper Racer USA dealer page: represent the X1, apply to become a dealer", width: 3200, height: 2000 },
-          { src: "/work/hyper-racer-contact-v2.webp", alt: "Hyper Racer USA enquiry form: timeline, involvement, which car, purchase readiness", width: 3200, height: 2000 },
+          {
+            label: "Inventory",
+            desk: { src: "/work/hyper-racer-inventory-desk-v3.webp", alt: "Hyper Racer USA inventory page with cars for sale", width: 2560, height: 1600 },
+            phone: { src: "/work/hyper-racer-inventory-phone-v3.webp", alt: "Inventory page on a phone", width: 1170, height: 2532 },
+          },
+          {
+            label: "Configurator",
+            desk: { src: "/work/hyper-racer-configurator-desk-v3.webp", alt: "Hyper Racer USA configurator: build your X1", width: 2560, height: 1600 },
+            phone: { src: "/work/hyper-racer-configurator-phone-v3.webp", alt: "Configurator on a phone", width: 1170, height: 2532 },
+          },
+          {
+            label: "Dealers",
+            desk: { src: "/work/hyper-racer-dealers-desk-v3.webp", alt: "Hyper Racer USA dealer page: represent the X1, apply to become a dealer", width: 2560, height: 1600 },
+            phone: { src: "/work/hyper-racer-dealers-phone-v3.webp", alt: "Dealer page on a phone", width: 1170, height: 2532 },
+          },
+          {
+            label: "Enquiry form",
+            desk: { src: "/work/hyper-racer-contact-desk-v3.webp", alt: "Hyper Racer USA enquiry form: timeline, involvement, which car, purchase readiness", width: 2560, height: 1600 },
+            phone: { src: "/work/hyper-racer-contact-phone-v3.webp", alt: "Enquiry form on a phone", width: 1170, height: 2532 },
+          },
         ],
       },
       layers: [
@@ -269,12 +290,32 @@ const content: SiteContent = {
       crm: {
         title: "Inside the CRM",
         note: "Real screens, demo data. Every name is invented.",
-        shots: [
-          { src: "/work/hyper-racer-crm-dashboard-v2.webp", alt: "Hyper Racer command center dashboard: lead counts, pipeline value and the advisor's ranked list of who to contact", width: 3200, height: 2000 },
-          { src: "/work/hyper-racer-crm-leads-v2.webp", alt: "Leads list with product, type, organization, priority, next step and status for each lead", width: 3200, height: 2000 },
-          { src: "/work/hyper-racer-crm-lead-v2.webp", alt: "A single lead: the enquiry message, status, lead type and classification details", width: 3200, height: 2000 },
-          { src: "/work/hyper-racer-crm-deals-v2.webp", alt: "Sales pipeline board: deals by stage from inquiry to deposit with their values", width: 3200, height: 2000 },
-          { src: "/work/hyper-racer-crm-tasks-v2.webp", alt: "Tasks list with priority, due date, the related lead and an overdue follow-up flagged", width: 3200, height: 2000 },
+        screens: [
+          {
+            label: "Dashboard",
+            desk: { src: "/work/hyper-racer-crm-dashboard-desk-v3.webp", alt: "Hyper Racer command center dashboard: lead counts, pipeline value and the advisor's ranked list of who to contact", width: 2560, height: 1600 },
+            phone: { src: "/work/hyper-racer-crm-dashboard-phone-v3.webp", alt: "The dashboard on a phone", width: 1170, height: 2532 },
+          },
+          {
+            label: "Leads",
+            desk: { src: "/work/hyper-racer-crm-leads-desk-v3.webp", alt: "Leads list with product, type, organization, priority, next step and status for each lead", width: 2560, height: 1600 },
+            phone: { src: "/work/hyper-racer-crm-leads-phone-v3.webp", alt: "The leads list on a phone", width: 1170, height: 2532 },
+          },
+          {
+            label: "One lead",
+            desk: { src: "/work/hyper-racer-crm-lead-desk-v3.webp", alt: "A single lead: the enquiry message, status, lead type and classification details", width: 2560, height: 1600 },
+            phone: { src: "/work/hyper-racer-crm-lead-phone-v3.webp", alt: "A single lead on a phone", width: 1170, height: 2532 },
+          },
+          {
+            label: "Pipeline",
+            desk: { src: "/work/hyper-racer-crm-deals-desk-v3.webp", alt: "Sales pipeline board: deals by stage from inquiry to deposit with their values", width: 2560, height: 1600 },
+            phone: { src: "/work/hyper-racer-crm-deals-phone-v3.webp", alt: "The pipeline on a phone", width: 1170, height: 2532 },
+          },
+          {
+            label: "Tasks",
+            desk: { src: "/work/hyper-racer-crm-tasks-desk-v3.webp", alt: "Tasks list with priority, due date, the related lead and an overdue follow-up flagged", width: 2560, height: 1600 },
+            phone: { src: "/work/hyper-racer-crm-tasks-phone-v3.webp", alt: "The tasks list on a phone", width: 1170, height: 2532 },
+          },
         ],
       },
     },
@@ -288,8 +329,8 @@ const content: SiteContent = {
         year: "2026",
         demoNote: "Demo dashboards with fictional users",
         shots: {
-          hero: { src: "/work/dispatchrelay-carrier-v2.webp", alt: "DispatchRelay carrier dashboard: loads to negotiate and pending dispatch", width: 3200, height: 2000 },
-          phone: { src: "/work/dispatchrelay-phone-v2.webp", alt: "DispatchRelay carrier dashboard on a phone", width: 780, height: 1688 },
+          hero: { src: "/work/dispatchrelay-carrier-desk-v3.webp", alt: "DispatchRelay carrier dashboard: loads to negotiate and pending dispatch", width: 2560, height: 1600 },
+          phone: { src: "/work/dispatchrelay-carrier-phone-v3.webp", alt: "DispatchRelay carrier dashboard on a phone", width: 1170, height: 2532 },
         },
       },
     ],

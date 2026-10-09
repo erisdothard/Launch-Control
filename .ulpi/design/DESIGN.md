@@ -139,9 +139,16 @@ screenshots → what we build and run → team → book → footer. Work always 
 CRM screens are real admin captures from a local instance seeded with invented leads, captioned as
 such; production data never appears.
 
-0. Work: screenshots are captured at device pixel ratio 2 (3200x2000 for a 1600x1000 viewport, phones 780x1688), webp q90, served at quality 90 with `sizes` matching the slot; 1x captures read as blur on Retina. Each project gets a browser-framed desktop shot with a phone shot overlapping its
-   bottom-left corner, the client name in mono above, a sentence-case title, a summary, Visit site.
-   Only public pages or demo dashboards with fictional users. Never admin screens, never client data.
+0. Work: every product screen is captured twice at 2x density, a 1280x800 desktop view
+   (2560x1600) and a 390x844 phone view (1170x2532), webp q90, served at quality 90 with `sizes`
+   matching the slot. A desktop page squeezed into a phone or a half-width frame is unreadable
+   whatever its resolution, so the page shows the desktop capture in a browser frame from `sm` up
+   and the real phone capture in a phone frame below it. Each project gets a browser-framed hero
+   shot with a phone shot overlapping its bottom-left corner, the client name in mono above, a
+   sentence-case title, a summary, Visit site. Further screens (the public pages, the CRM) go in a
+   filmstrip: one row that scrolls sideways and snaps per screen, 82% of the container wide on
+   desktop so the type reads, the next screen peeking at the edge, a mono label under each. Never
+   a grid of thumbnails. Only public pages or demo screens with invented data; never client data.
 1. Hero: stripe, mono eyebrow, one h1 (≤ 17ch), one lead sentence, primary + secondary button,
    left-aligned over the engine with a soft left-to-right scrim.
 2. Ruled editorial panels: What we build, Proof. 5/7 split, hairline dividers, no cards.
