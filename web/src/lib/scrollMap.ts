@@ -54,6 +54,11 @@ export const EXPLODE_END = 0.9;
 export const EXPLODE_STAGGER = 0.35;
 /** Fraction of the author's exploded offsets used at full explode, so the stack stays in frame. */
 export const EXPLODE_AMPLITUDE = 0.9;
+/** Content era: once the stage is over the engine comes apart again, slowly, as the page scrolls
+    (q = content progress), and stays apart. Faint behind the panels, it is texture, not a show. */
+export const CONTENT_EXPLODE_START = 0.04;
+export const CONTENT_EXPLODE_END = 0.7;
+
 /** Hz of the fuel-cut stutter on the limiter. */
 export const LIMITER_STUTTER_HZ = 11;
 
@@ -114,6 +119,17 @@ export function explodeForProgress(p: number): number {
   if (x < EXPLODE_PEAK) return smooth((x - EXPLODE_START) / (EXPLODE_PEAK - EXPLODE_START));
   if (x < EXPLODE_END) return 1 - smooth((x - EXPLODE_PEAK) / (EXPLODE_END - EXPLODE_PEAK));
   return 0;
+}
+
+/** Explode amount 0..1 from the content progress q: 0 until CONTENT_EXPLODE_START, eased to 1 at
+    CONTENT_EXPLODE_END, held there to the bottom of the page. */
+export function contentExplodeForProgress(q: number): number {
+  return smooth((clamp01(q) - CONTENT_EXPLODE_START) / (CONTENT_EXPLODE_END - CONTENT_EXPLODE_START));
+}
+
+/** The explode the scene shows: the stage's own, or the content era's, whichever is larger. */
+export function explodeForState(p: number, q: number): number {
+  return Math.max(explodeForProgress(p), contentExplodeForProgress(q));
 }
 
 /**

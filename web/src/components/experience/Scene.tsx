@@ -123,6 +123,10 @@ function Backdrop() {
 }
 /** Turntable: a slow constant turn with time. The camera path owns every scroll-driven move. */
 const TURN_TIME = 0.025;
+/* Base yaw of the turntable: the pose Eris picked on 2026-10-09 from a drag ("I like this angle
+   better as a starting point"): front of the block to the viewer, crank running out to the right,
+   heads angled. Matched against a rendered ring of yaws; the slow turn and the drag add to it. */
+const BASE_YAW = (330 * Math.PI) / 180;
 /** The engine sits right of centre, behind the hero type. */
 const ENGINE_OFFSET_X = 0.36;
 /** The engine is background: its combustion glow runs at a fraction of the old stage strength. */
@@ -148,7 +152,7 @@ function EngineStage({ engine, lowTier, onEngineReady }: { engine: EngineSource;
     const s = scrollState;
     stepSpin(dt);
     if (turntable.current) {
-      const yaw = s.time * TURN_TIME + engineSpin.yaw;
+      const yaw = BASE_YAW + s.time * TURN_TIME + engineSpin.yaw;
       turntable.current.rotation.y = Number.isFinite(yaw) ? yaw : 0;
       turntable.current.rotation.x = Number.isFinite(engineSpin.pitch) ? engineSpin.pitch : 0;
     }

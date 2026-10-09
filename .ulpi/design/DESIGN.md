@@ -169,6 +169,11 @@ data never appears. No demo-data caption on the page (Eris, 2026-10-09).
    sticky while the engine comes apart and back together over two screens of scroll, then the
    content arrives over the assembled, dimmed engine. The engine stays background, but the
    sequence must be seen (Eris, 2026-10-09: "they never really see it deconstruct").
+   Start pose: turntable base yaw 330 deg (`BASE_YAW` in Scene.tsx), front of the block to the
+   viewer, crank out to the right (Eris's pick, 2026-10-09). After the stage the engine comes apart
+   again slowly over the content scroll (`CONTENT_EXPLODE_START/END` in scrollMap.ts, q 0.04 to
+   0.7) and stays apart, faint behind the panels (Eris: "deconstruct again faint as the scroll
+   scrolls").
 2. Ruled editorial panels: What we build and run (six numbered cells, `text-title` headings over
    `text-body`), Team. 5/7 split for every title + lede, hairline dividers, no cards. Sections use
    `py-16 lg:py-20`; the featured project shows the collage, the agents' three guarantees and the
