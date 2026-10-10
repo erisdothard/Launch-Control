@@ -34,7 +34,7 @@ export function Build() {
             >
               <Reveal className="flex flex-col gap-3 px-0 py-6 sm:px-5" delay={0.05 * index}>
                 <p className={`label-mono m-0 tabular-nums ${liveryText(index)}`}>{String(index + 1).padStart(2, "0")}</p>
-                <h3 className={`text-title ${liveryText(index)}`}>{service.title}</h3>
+                <h3 className="text-title">{service.title}</h3>
                 <p className="max-w-[34ch] text-pretty text-body text-muted">{service.body}</p>
               </Reveal>
             </li>

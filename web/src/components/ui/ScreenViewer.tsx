@@ -125,7 +125,7 @@ export function ScreenViewer({
                 active ? "border-ember" : "border-transparent hover:border-subtle"
               }`}
             >
-              <span className={`label-mono ${active ? "text-ember" : "text-muted"}`}>{screen.label}</span>
+              <span className={`label-mono ${active ? "text-text" : "text-muted"}`}>{screen.label}</span>
               <span className={`max-w-[38ch] text-caption leading-snug ${active ? "text-muted" : "text-subtle"}`}>{screen.note}</span>
             </button>
           </li>
