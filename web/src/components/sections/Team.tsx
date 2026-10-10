@@ -1,7 +1,6 @@
 import { site } from "@/content/site";
 import { Reveal } from "@/components/ui/Reveal";
 import { LiveryStripe } from "@/components/ui/LiveryStripe";
-import { liveryText } from "@/components/ui/livery";
 
 const { team } = site;
 const titleId = `${team.id}-title`;
@@ -25,8 +24,8 @@ export function Team() {
           {team.people.map((person, index) => (
             <li key={person.name} className="border-b border-border md:border-r md:pr-8 md:last:border-r-0 md:last:pl-8 md:last:pr-0">
               <Reveal className="flex flex-col gap-3 py-6" delay={0.05 * index}>
-                <p className={`label-mono ${liveryText(index)}`}>{person.role}</p>
-                <h3 className={`text-title ${liveryText(index)}`}>{person.name}</h3>
+                <p className="label-mono text-steel">{person.role}</p>
+                <h3 className="text-title">{person.name}</h3>
                 <p className="max-w-[44ch] text-body text-muted">{person.body}</p>
               </Reveal>
             </li>

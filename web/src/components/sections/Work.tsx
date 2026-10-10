@@ -1,7 +1,6 @@
 import { site } from "@/content/site";
 import { Reveal } from "@/components/ui/Reveal";
 import { LiveryStripe } from "@/components/ui/LiveryStripe";
-import { liveryText } from "@/components/ui/livery";
 import { ButtonLink } from "@/components/ui/Button";
 import { BrowserFrame, PhoneFrame } from "@/components/ui/Frame";
 import { ScreenViewer } from "@/components/ui/ScreenViewer";
@@ -49,7 +48,7 @@ export function Work() {
               <p className="label-mono mb-4 text-ember">
                 {featured.client} <span className="text-subtle">· {featured.year}</span>
               </p>
-              <h3 id="work-featured-title" className="text-title text-ember">
+              <h3 id="work-featured-title" className="text-title">
                 {featured.title}
               </h3>
               <p className="mt-5 max-w-[56ch] text-body text-muted">{featured.summary}</p>
@@ -69,20 +68,20 @@ export function Work() {
 
           <Reveal className="mt-12 grid grid-cols-1 gap-6 lg:mt-14 lg:grid-cols-12 lg:gap-12">
             <div className="lg:col-span-5">
-              <h4 className="text-title text-ember">{featured.agents.title}</h4>
+              <h4 className="text-title">{featured.agents.title}</h4>
               <p className="mt-5 text-body text-muted">{featured.agents.body}</p>
             </div>
             <ul className="m-0 flex list-none flex-col gap-3 p-0 lg:col-span-7 lg:self-end">
               {featured.agents.guarantees.map((line) => (
                 <li key={line} className="flex gap-3 text-body text-text">
-                  <span aria-hidden="true" className="mt-[0.6em] h-[2px] w-3 shrink-0 bg-ember" />
+                  <span aria-hidden="true" className="mt-[0.6em] h-[2px] w-3 shrink-0 bg-steel" />
                   {line}
                 </li>
               ))}
             </ul>
           </Reveal>
           <Reveal className="mt-8 lg:mt-10" delay={0.05}>
-            <p id="work-crm-title" className="label-mono mb-4 text-ember">
+            <p id="work-crm-title" className="label-mono mb-4 text-steel">
               {crm.title}
             </p>
             <CrmScreens />
@@ -90,15 +89,14 @@ export function Work() {
         </article>
 
         {/* The rest */}
-        {work.more.map((entry, index) => {
+        {work.more.map((entry) => {
           const titleId = `work-${entry.client}-title`;
-          const tone = liveryText(index + 1);
           const copy = (
             <div>
-              <p className={`label-mono mb-4 ${tone}`}>
+              <p className="label-mono mb-4 text-ember">
                 {entry.client} <span className="text-subtle">· {entry.year}</span>
               </p>
-              <h3 id={titleId} className={`text-title ${tone}`}>
+              <h3 id={titleId} className="text-title">
                 {entry.title}
               </h3>
               <p className="mt-5 max-w-[56ch] text-body text-muted">{entry.summary}</p>
