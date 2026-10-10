@@ -1,4 +1,5 @@
 import { site } from "@/content/site";
+import { BrandMark } from "@/components/ui/BrandMark";
 
 const { footer, brand, nav } = site;
 
@@ -12,7 +13,10 @@ export function Footer() {
     <footer className="relative border-t border-border bg-surface" style={{ zIndex: "var(--z-content)" }}>
       <div className="mx-auto grid max-w-content-max grid-cols-1 gap-10 px-6 py-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8 lg:px-12 lg:py-12">
         <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-4">
-          <p className="m-0 font-display text-[13px] uppercase tracking-signage text-steel">{brand.wordmark}</p>
+          <p className="m-0 flex items-center gap-3 font-display text-[13px] uppercase tracking-signage text-steel">
+            <BrandMark className="h-8 w-auto" />
+            {brand.wordmark}
+          </p>
           <p className="m-0 max-w-[36ch] text-body text-muted">{footer.blurb}</p>
         </div>
         <nav aria-label={footer.navLabel} className="flex flex-col gap-3 lg:col-span-2">
