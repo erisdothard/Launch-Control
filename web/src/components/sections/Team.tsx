@@ -25,7 +25,7 @@ export function Team() {
             <li key={person.name} className="border-b border-border md:border-r md:pr-8 md:last:border-r-0 md:last:pl-8 md:last:pr-0">
               <Reveal className="flex flex-col gap-3 py-6" delay={0.05 * index}>
                 <p className="label-mono text-steel">{person.role}</p>
-                <h3 className="text-title">{person.name}</h3>
+                <h3 className="text-title text-ember">{person.name}</h3>
                 <p className="max-w-[44ch] text-body text-muted">{person.body}</p>
               </Reveal>
             </li>
