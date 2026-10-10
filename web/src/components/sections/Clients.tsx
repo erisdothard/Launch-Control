@@ -9,7 +9,7 @@ export function Clients() {
   return (
     <div className="relative border-t border-border bg-background/80" style={{ zIndex: "var(--z-content)" }}>
       <div className="mx-auto flex max-w-content-max flex-col gap-5 px-6 py-8 lg:flex-row lg:items-center lg:gap-12 lg:px-12">
-        <p className="label-mono m-0 text-subtle">{clients.label}</p>
+        <p className="label-mono m-0 text-ember">{clients.label}</p>
         <ul className="m-0 flex list-none flex-wrap items-center gap-x-10 gap-y-4 p-0">
           {clients.items.map((client) => {
             const inner = (

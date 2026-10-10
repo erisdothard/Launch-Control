@@ -1,6 +1,7 @@
 import { site } from "@/content/site";
 import { Reveal } from "@/components/ui/Reveal";
 import { LiveryStripe } from "@/components/ui/LiveryStripe";
+import { liveryText } from "@/components/ui/livery";
 
 const { build } = site;
 const titleId = `${build.id}-title`;
@@ -32,8 +33,8 @@ export function Build() {
               className="border-b border-border transition-colors duration-fast ease-ui hover:bg-elevated/70 sm:border-r sm:[&:nth-child(2n)]:border-r-0 lg:[&:nth-child(2n)]:border-r lg:[&:nth-child(3n)]:border-r-0"
             >
               <Reveal className="flex flex-col gap-3 px-0 py-6 sm:px-5" delay={0.05 * index}>
-                <p className="label-mono m-0 text-subtle tabular-nums">{String(index + 1).padStart(2, "0")}</p>
-                <h3 className="text-title">{service.title}</h3>
+                <p className={`label-mono m-0 tabular-nums ${liveryText(index)}`}>{String(index + 1).padStart(2, "0")}</p>
+                <h3 className={`text-title ${liveryText(index)}`}>{service.title}</h3>
                 <p className="max-w-[34ch] text-pretty text-body text-muted">{service.body}</p>
               </Reveal>
             </li>

@@ -27,7 +27,7 @@ export function Hero() {
           {hero.eyebrow.map((item, i) => (
             <li key={item} className="flex gap-x-3">
               {item}
-              {i < hero.eyebrow.length - 1 && <span aria-hidden="true" className="text-subtle">·</span>}
+              {i < hero.eyebrow.length - 1 && <span aria-hidden="true" className="text-ember">·</span>}
             </li>
           ))}
         </ul>
