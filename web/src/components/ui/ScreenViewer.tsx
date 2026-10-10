@@ -93,7 +93,7 @@ export function ScreenViewer({
   const controls = (
     <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
       <p className="label-mono m-0 text-subtle">
-        <span className="text-steel">{pad(index + 1)}</span>
+        <span className="text-ember">{pad(index + 1)}</span>
         <span className="mx-2">/</span>
         {pad(count)}
       </p>
@@ -125,7 +125,7 @@ export function ScreenViewer({
                 active ? "border-ember" : "border-transparent hover:border-subtle"
               }`}
             >
-              <span className={`label-mono ${active ? "text-text" : "text-muted"}`}>{screen.label}</span>
+              <span className={`label-mono ${active ? "text-ember" : "text-muted"}`}>{screen.label}</span>
               <span className={`max-w-[38ch] text-caption leading-snug ${active ? "text-muted" : "text-subtle"}`}>{screen.note}</span>
             </button>
           </li>
