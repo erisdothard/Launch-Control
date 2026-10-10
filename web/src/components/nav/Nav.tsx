@@ -12,6 +12,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { site } from "@/content/site";
+import { BrandMark } from "@/components/ui/BrandMark";
 
 /** Scroll distance after which the bar turns solid. */
 const SOLID_AFTER_PX = 24;
@@ -45,7 +46,8 @@ export function Nav() {
       style={{ zIndex: "var(--z-hud)", transition: "background-color var(--duration-base) var(--ease-ui)" }}
     >
       <nav className="mx-auto max-w-content-max flex items-center justify-between gap-4 h-14 px-6 md:px-12">
-        <a href="#hero" className="shrink-0 font-display uppercase tracking-signage text-[11px] sm:text-[13px] text-steel no-underline">
+        <a href="#hero" className="flex shrink-0 items-center gap-2.5 font-display uppercase tracking-signage text-[11px] sm:text-[13px] text-steel no-underline">
+          <BrandMark className="h-6 w-auto sm:h-7" />
           {site.brand.wordmark}
         </a>
         <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
