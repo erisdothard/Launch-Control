@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import type { Shot } from "@/content/site";
 import { site } from "@/content/site";
 import { BrowserFrame, PhoneFrame } from "@/components/ui/Frame";
@@ -45,11 +45,12 @@ const PHONE_RESERVED = "10rem";
 const PHONE_MAX_PX = 380;
 const PHONE_CHROME = 0.198;
 
-function fitWidth(screen: Screen, phonesOnly: boolean): string {
-  if (phonesOnly) {
-    const ratio = screen.phone.width / (screen.phone.height + PHONE_CHROME * screen.phone.width);
-    return `min(${PHONE_MAX_PX}px, calc((100vh - ${PHONE_RESERVED}) * ${ratio.toFixed(3)}))`;
-  }
+function fitPhone(screen: Screen): string {
+  const ratio = screen.phone.width / (screen.phone.height + PHONE_CHROME * screen.phone.width);
+  return `min(${PHONE_MAX_PX}px, calc((100vh - ${PHONE_RESERVED}) * ${ratio.toFixed(3)}))`;
+}
+
+function fitDesk(screen: Screen): string {
   const desk = screen.desk ?? screen.phone;
   return `calc((100vh - ${DESK_RESERVED}) * ${(desk.width / desk.height).toFixed(3)})`;
 }
@@ -136,8 +137,12 @@ export function ScreenViewer({
 
   const frames = (
     <div
-      className={`relative mx-auto ${phonesOnly ? "w-[78%] sm:w-[60%] lg:w-full" : "w-full"}`}
-      style={{ maxWidth: fitWidth(screens[0], phonesOnly) }}
+      className={`relative mx-auto ${
+        phonesOnly
+          ? "w-[78%] max-w-[var(--fit-phone)] sm:w-[60%] lg:w-full"
+          : "w-[78%] max-w-[var(--fit-phone)] sm:w-full sm:max-w-[var(--fit-desk)]"
+      }`}
+      style={{ "--fit-phone": fitPhone(screens[0]), "--fit-desk": fitDesk(screens[0]) } as CSSProperties}
     >
       {screens.map((screen, i) => {
         const active = i === index;
