@@ -128,3 +128,23 @@ def test_page_text_dedupes_repeated_nav() -> None:
 def test_people_rejects_product_and_marketing_text() -> None:
     assert find_people(["Temperature Sensor Kit", "GM IAT – Stainless Steel Bung"]) == []
     assert find_people(["Social Media", "Our Partner"]) == []
+
+
+def test_cloudflare_protected_emails_decoded() -> None:
+    def enc(addr: str, key: int = 0x5A) -> str:
+        return f"{key:02x}" + "".join(f"{ord(ch) ^ key:02x}" for ch in addr)
+    html = (f'<a href="/cdn-cgi/l/email-protection#{enc("ross@kaizen.com")}">'
+            f'<span class="__cf_email__" data-cfemail="{enc("info@kaizen.com", 0x21)}">[email protected]</span></a>')
+    assert extract.find_emails(html, "[email protected]") == ["info@kaizen.com", "ross@kaizen.com"]
+    assert extract.decode_cfemail("zz") == ""
+
+
+def test_placeholder_emails_and_role_locals() -> None:
+    assert extract.find_emails("<p>x</p>", "info@yourcompany.example.com info@yourbusiness.com ok@shop.com") == ["ok@shop.com"]
+    assert extract.classify_email("merch@winwithksr.com", "winwithksr.com") == "role"
+
+
+def test_find_phones_tel_text_and_placeholders() -> None:
+    html = '<a href="tel:+1 (650) 555-0111">call</a><a href="tel:5618188186">call</a>'
+    text = "Shop: 904.719.1010 | order #20261017 | (561) 818-8186"
+    assert extract.find_phones(html, text) == ["(561) 818-8186", "(904) 719-1010"]

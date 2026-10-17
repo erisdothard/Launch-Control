@@ -26,6 +26,9 @@ LINK_KEYWORDS = re.compile(
     r"rental|program|arrive|book|services|coaching|school",
     re.I,
 )
+# Tried when the home page links to no contact page (menus built by JavaScript hide them from us).
+FALLBACK_CONTACT_PATHS = ("/contact", "/contact-us", "/about")
+_CONTACTISH = re.compile(r"contact|about", re.I)
 _SKIP_EXT = re.compile(r"\.(pdf|jpe?g|png|gif|webp|svg|zip|mp4|mov|docx?|xlsx?)(\?|$)", re.I)
 _CHALLENGE = re.compile(r"cf-chl|challenge-platform|Just a moment\.\.\.|captcha", re.I)
 
@@ -103,7 +106,7 @@ def _page_key(url: str) -> str:
 def pick_links(base_url: str, html: str, site_domain: str | None, limit: int) -> list[str]:
     """Same-site links whose text or href looks like contact/about/events/pricing/etc."""
     tree = HTMLParser(html)
-    picked: list[str] = []
+    picked: list[tuple[str, str]] = []
     seen = {_page_key(base_url)}
     for a in tree.css("a[href]"):
         href = (a.attributes.get("href") or "").strip()
@@ -118,10 +121,10 @@ def pick_links(base_url: str, html: str, site_domain: str | None, limit: int) ->
         text = a.text(strip=True)
         if LINK_KEYWORDS.search(text) or LINK_KEYWORDS.search(urlsplit(url).path):
             seen.add(key)
-            picked.append(url)
-        if len(picked) >= limit:
-            break
-    return picked
+            picked.append((text, url))
+    # Contact/about pages first: they hold the email, phone and names, and the page budget is small.
+    picked.sort(key=lambda tu: not (_CONTACTISH.search(tu[0]) or _CONTACTISH.search(urlsplit(tu[1]).path)))
+    return [url for _, url in picked[:limit]]
 
 
 class Crawler:
@@ -177,7 +180,13 @@ class Crawler:
             return CrawlResult(start_url=url, error=first)
         pages = [first]
         site_domain = normalize_domain(first.url)
-        for link in pick_links(first.url, first.html, site_domain, self.max_pages - 1):
+        links = pick_links(first.url, first.html, site_domain, self.max_pages - 1)
+        if not any(_CONTACTISH.search(urlsplit(u).path) for u in links):
+            seen = {_page_key(first.url), *(_page_key(u) for u in links)}
+            extra = [u for u in (urljoin(first.url, p) for p in FALLBACK_CONTACT_PATHS) if _page_key(u) not in seen]
+            budget = self.max_pages - 1
+            links = links[: max(0, budget - len(extra))] + extra[:budget]
+        for link in links:
             got = await self._get(link)
             if isinstance(got, Page):
                 pages.append(got)

@@ -42,6 +42,7 @@ def signals_for(lead: Lead) -> dict[str, Any]:
         "rating": p.rating,
         "maps_url": p.maps_url or None,
         "excluded_reason": "; ".join(lead.exclude_reasons) or None,
+        "score_capped_by": list(lead.score.capped_by) if lead.score else [],
         "google_category": p.category or None,
         "discovered_by": p.query or p.source,
     }
@@ -61,7 +62,7 @@ def lead_row(lead: Lead, cfg: Config) -> dict[str, Any]:
     return {
         "business_name": p.name,
         "email": (e.email if e else "") or (p.emails[0].lower() if p.emails else ""),
-        "phone": p.phone,
+        "phone": p.phone or (e.phone if e else ""),
         "segment": segment_label(lead, cfg),
         "city": p.city or None,
         "state": p.state or None,

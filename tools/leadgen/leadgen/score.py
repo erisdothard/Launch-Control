@@ -49,6 +49,34 @@ def weighted_score(breakdown: dict[str, FactorRating], weights: dict[str, float]
     return round(raw / (5 * total_w) * 100)
 
 
+# Dealbreakers: a weighted average lets strong factors paper over one that rules the lead out
+# (a big venue already on HubSpot, a street-tuning shop). (factor, rating at or below, score cap, why).
+# The CRM bands are Hot 80 / Strong 65 / Possible 50, so 64 keeps a lead out of Strong and 49 out of Possible.
+SCORE_CAPS: tuple[tuple[str, int, int, str], ...] = (
+    ("niche_fit", 1, 40, "not a motorsport business"),
+    ("niche_fit", 2, 64, "only partly motorsport"),
+    ("decision_maker_size", 1, 49, "too big for one decision-maker"),
+    ("decision_maker_size", 2, 64, "larger than the ideal size"),
+    ("weak_backend", 1, 64, "already runs a CRM or booking system"),
+    ("high_ticket_value", 1, 64, "low-ticket customers"),
+)
+
+
+def final_score(breakdown: dict[str, FactorRating], weights: dict[str, float]) -> tuple[int, list[str]]:
+    """Weighted score, then capped by any dealbreaker. Returns (score, reasons for the caps that bit)."""
+    raw = weighted_score(breakdown, weights)
+    score = raw
+    capped_by: list[str] = []
+    for key, at_or_below, cap, why in SCORE_CAPS:
+        rating = breakdown[key].rating if key in breakdown else None
+        if rating is not None and rating <= at_or_below and raw > cap:
+            score = min(score, cap)
+            if not (key == "niche_fit" and "not a motorsport business" in capped_by) and \
+                    not (key == "decision_maker_size" and "too big for one decision-maker" in capped_by):
+                capped_by.append(why)
+    return score, capped_by
+
+
 def _name_in_evidence(name: str, lead: Lead) -> bool:
     e = lead.enrichment
     hay = " ".join([e.page_text if e else "", json.dumps(e.signals.get("people", []) if e else [])]).lower()
@@ -63,8 +91,10 @@ def to_result(parsed: LLMScore, lead: Lead, cfg: ScoreCfg, segment_labels: list[
     dm = parsed.decision_maker
     contact = Contact(name=dm.name.strip(), title=dm.title.strip()) if _name_in_evidence(dm.name.strip(), lead) else None
     segment = parsed.segment if parsed.segment in segment_labels else "Other"
+    score, capped_by = final_score(breakdown, cfg.weights)
     return ScoreResult(
-        score=weighted_score(breakdown, cfg.weights),
+        score=score,
+        capped_by=tuple(capped_by),
         breakdown=breakdown,
         segment=segment,
         decision_maker=contact,
@@ -114,8 +144,9 @@ class Scorer:
             if data.get("tag") != _cache_tag(self.cfg):
                 return None
             cached = ScoreResult.model_validate(data["result"])
-            # Weights may have changed since caching: the score is always recomputed.
-            return cached.model_copy(update={"score": weighted_score(cached.breakdown, self.cfg.weights)})
+            # Weights or caps may have changed since caching: the score is always recomputed.
+            score, capped_by = final_score(cached.breakdown, self.cfg.weights)
+            return cached.model_copy(update={"score": score, "capped_by": tuple(capped_by)})
         except (json.JSONDecodeError, KeyError, ValidationError):
             return None
 

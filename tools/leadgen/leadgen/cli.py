@@ -9,6 +9,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from leadgen.backfill import backfill
 from leadgen.config import PACKAGE_ROOT, load_config, load_env, supabase_env
 from leadgen.export import latest_run_file, read_jsonl, write_csv
 from leadgen.pipeline import RunOptions, RunSummary, run
@@ -44,6 +45,10 @@ def build_parser() -> argparse.ArgumentParser:
     w = sub.add_parser("worker", help="run queued jobs from the CRM's Find leads button, forever")
     w.add_argument("--config", default=str(PACKAGE_ROOT / "config.yaml"))
     w.add_argument("--poll", type=float, default=20.0, help="seconds between queue checks when idle")
+
+    b = sub.add_parser("backfill", help="apply current scoring caps and contact finding to leads already in the CRM")
+    b.add_argument("--config", default=str(PACKAGE_ROOT / "config.yaml"))
+    b.add_argument("--no-crawl", action="store_true", help="only re-apply score caps; don't re-read websites")
 
     e = sub.add_parser("export", help="write a CSV of scored leads")
     e.add_argument("--config", default=str(PACKAGE_ROOT / "config.yaml"))
@@ -103,6 +108,17 @@ def cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_backfill(args: argparse.Namespace) -> int:
+    env = supabase_env()
+    if env is None:
+        raise RuntimeError("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set")
+    s = backfill(load_config(args.config), Store(*env), crawl=not args.no_crawl)
+    lines = [*s.changes, f"rescored={s.rescored} crawled={s.crawled} emails+={s.emails_added} "
+             f"phones+={s.phones_added} names+={s.names_added}"]
+    sys.stdout.write("\n".join(lines) + "\n")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     logging.basicConfig(
@@ -116,6 +132,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "worker":
             serve(load_config(args.config), args.poll)
             return 0
+        if args.command == "backfill":
+            return cmd_backfill(args)
         return cmd_run(args) if args.command == "run" else cmd_export(args)
     except (RuntimeError, FileNotFoundError, ValueError) as exc:
         log.error("%s", exc)

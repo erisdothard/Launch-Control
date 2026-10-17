@@ -32,6 +32,7 @@ export function FactorBars({ lead }: { lead: Lead }) {
 export function SignalChips({ lead }: { lead: Lead }) {
   const s = readSignals(lead.prospect?.signals ?? null);
   const chips: { label: string; value: string; tone: "warn" | "plain" }[] = [
+    ...s.cappedBy.map((why) => ({ label: "Score held down:", value: why, tone: "warn" as const })),
     {
       label: "Booking",
       value: s.bookingTech.length ? s.bookingTech.join(", ") : "None detected",

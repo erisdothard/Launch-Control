@@ -13,7 +13,7 @@ from conftest import make_lead
 from leadgen.config import FACTOR_KEYS, Config
 from leadgen.models import Enrichment, FactorRating
 from leadgen.prompt import output_schema, user_payload
-from leadgen.score import LLMScore, ScoreError, Scorer, to_result, weighted_score
+from leadgen.score import LLMScore, ScoreError, Scorer, final_score, to_result, weighted_score
 
 
 def _llm_json(rating: int = 4, name: str = "Mike Thompson", segment: str = "Arrive & drive", exclude: bool = False) -> str:
@@ -72,6 +72,19 @@ def test_weighted_score_math() -> None:
     assert weighted_score(mixed, skew) == round((3 * 10 + 5 * 4) / (5 * 14) * 100)
     clamped = {**all3, "niche_fit": FactorRating(rating=9, evidence="")}
     assert weighted_score(clamped, weights) == weighted_score(mixed, weights)
+
+
+def test_dealbreakers_cap_the_score() -> None:
+    weights = {k: 1.0 for k in FACTOR_KEYS}
+    strong = {k: FactorRating(rating=5, evidence="") for k in FACTOR_KEYS}
+    assert final_score(strong, weights) == (100, [])
+    big_on_crm = {**strong, "decision_maker_size": FactorRating(rating=2, evidence=""),
+                  "weak_backend": FactorRating(rating=1, evidence="")}
+    assert final_score(big_on_crm, weights) == (64, ["larger than the ideal size", "already runs a CRM or booking system"])
+    not_motorsport = {**strong, "niche_fit": FactorRating(rating=1, evidence="")}
+    assert final_score(not_motorsport, weights) == (40, ["not a motorsport business"])
+    weak = {k: FactorRating(rating=1, evidence="") for k in FACTOR_KEYS}
+    assert final_score(weak, weights) == (weighted_score(weak, weights), [])  # already under every cap
 
 
 def test_to_result_verifies_decision_maker_and_segment(cfg: Config) -> None:

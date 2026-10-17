@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import re
 from datetime import date
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
+import phonenumbers
 from selectolax.lexbor import LexborHTMLParser as HTMLParser
 
-from leadgen.dedupe import normalize_domain
+from leadgen.dedupe import normalize_domain, normalize_phone
 from leadgen.enrich import fingerprints
 from leadgen.enrich.crawl import CrawlResult
 from leadgen.enrich.people import find_people
@@ -23,7 +24,8 @@ _HEXISH = re.compile(r"^[0-9a-f]{16,}$", re.I)
 JUNK_EMAIL_DOMAINS = frozenset({
     "example.com", "sentry.io", "wixpress.com", "sentry-next.wixpress.com", "domain.com", "email.com",
     "yourdomain.com", "mysite.com", "godaddy.com", "squarespace.com", "wix.com", "company.com",
-    "website.com", "yourcompany.com", "sentry.wixpress.com", "address.com",
+    "website.com", "yourcompany.com", "sentry.wixpress.com", "address.com", "example.org", "example.net",
+    "test.com", "yoursite.com", "emailaddress.com",
 })
 FREEMAIL = frozenset({
     "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "me.com",
@@ -37,6 +39,9 @@ ROLE_LOCALS = frozenset({
     "accounts", "billing", "shop", "mail", "general", "registration", "register", "track", "rentals",
     "school", "noreply", "no-reply", "webmaster", "customerservice", "store", "membership",
     "members", "frontdesk", "reception", "hr", "jobs", "careers", "staff", "garage", "drive",
+    "merch", "merchandise", "quote", "quotes", "tech", "dyno", "fab", "fabrication", "race",
+    "motorsport", "motorsports", "academy", "club", "rental", "tickets", "ticketing", "partners",
+    "sponsorship", "sponsors", "accounting", "invoices", "ar", "ap", "teamsales", "owner", "us",
 })
 EMAIL_KIND_RANK = {"personal": 0, "role": 1, "offsite": 2, "freemail": 3}
 
@@ -97,17 +102,38 @@ def deobfuscate(text: str) -> str:
 
 def _valid_email(e: str) -> bool:
     local, _, dom = e.partition("@")
+    # Template filler: example.com and friends, yourbusiness.com, yourdomain.net, ...
+    placeholder = dom.startswith(("example.", "your")) or ".example." in dom or dom.endswith(".example")
     return bool(local and dom) and not _JUNK_TLD.search(e) and dom not in JUNK_EMAIL_DOMAINS \
-        and not _HEXISH.match(local) and len(e) <= 80
+        and not placeholder and not _HEXISH.match(local) and len(e) <= 80
+
+
+_CF_HREF = re.compile(r"/cdn-cgi/l/email-protection#([0-9a-f]+)", re.I)
+
+
+def decode_cfemail(hexstr: str) -> str:
+    """Cloudflare email obfuscation: first byte is an XOR key for the rest. '' when malformed."""
+    try:
+        data = bytes.fromhex(hexstr)
+    except ValueError:
+        return ""
+    if len(data) < 2:
+        return ""
+    return bytes(b ^ data[0] for b in data[1:]).decode("utf-8", errors="ignore")
 
 
 def find_emails(html: str, text: str) -> list[str]:
-    """mailto: links first, then emails in (de-obfuscated) visible text. Lower-cased, unique."""
+    """mailto: links and Cloudflare-protected addresses first, then emails in (de-obfuscated)
+    visible text. Lower-cased, unique."""
     found: list[str] = []
     tree = HTMLParser(html)
     for a in tree.css('a[href^="mailto:"], a[href^="MAILTO:"]'):
-        addr = (a.attributes.get("href") or "")[7:].split("?")[0].strip()
+        addr = unquote((a.attributes.get("href") or "")[7:]).split("?")[0].strip()
         found.extend(EMAIL_RE.findall(addr))
+    for node in tree.css("[data-cfemail]"):
+        found.extend(EMAIL_RE.findall(decode_cfemail(node.attributes.get("data-cfemail") or "")))
+    for hexstr in _CF_HREF.findall(html):
+        found.extend(EMAIL_RE.findall(decode_cfemail(hexstr)))
     found.extend(EMAIL_RE.findall(deobfuscate(text)))
     out: list[str] = []
     for e in (x.lower().strip(".") for x in found):
@@ -135,6 +161,29 @@ def best_email(emails: list[str], site_domain: str | None) -> tuple[str, str]:
         return "", ""
     _, _, e = ranked[0]
     return e, classify_email(e, site_domain)
+
+
+_PHONE_TEXT = re.compile(r"(?<![\d-])(?:\+?1[\s.-]?)?\(?[2-9]\d{2}\)?[\s.-]?[2-9]\d{2}[\s.-]?\d{4}(?![\d-])")
+
+
+def _real_phone(raw: str) -> str:
+    """National format ('(561) 818-8186') for a valid US number that isn't a 555 placeholder."""
+    e164 = normalize_phone(raw)
+    if not e164 or e164[5:8] == "555":
+        return ""
+    return phonenumbers.format_number(phonenumbers.parse(e164), phonenumbers.PhoneNumberFormat.NATIONAL)
+
+
+def find_phones(html: str, text: str) -> list[str]:
+    """tel: links first, then US numbers in visible text. National format, unique."""
+    found = [unquote(a.attributes.get("href") or "")[4:] for a in HTMLParser(html).css('a[href^="tel:"]')]
+    found.extend(_PHONE_TEXT.findall(text))
+    out: list[str] = []
+    for raw in found:
+        phone = _real_phone(raw)
+        if phone and phone not in out:
+            out.append(phone)
+    return out
 
 
 def find_phrases(text: str) -> list[str]:
@@ -230,6 +279,12 @@ def build_enrichment(crawl: CrawlResult, gmaps_emails: tuple[str, ...], today: d
             emails.append(e.lower())
     email, kind = best_email(emails, site_domain)
 
+    phones: list[str] = []
+    for page, (_, lines) in zip(crawl.pages, per_page, strict=True):
+        for ph in find_phones(page.html, "\n".join(lines)):
+            if ph not in phones:
+                phones.append(ph)
+
     people: list[Contact] = []
     for url, lines in per_page:
         for c in find_people(lines, url):
@@ -250,6 +305,7 @@ def build_enrichment(crawl: CrawlResult, gmaps_emails: tuple[str, ...], today: d
         "site_builder": fingerprints.primary_builder(tech),
         "phrases": find_phrases(all_text),
         "emails": emails[:10],
+        "site_phones": phones[:5],
         "socials": find_socials(" ".join(p.html for p in crawl.pages)),
         "copyright_year": copyright_year(all_text),
         "latest_event_date": latest.isoformat() if latest else None,
@@ -275,5 +331,6 @@ def build_enrichment(crawl: CrawlResult, gmaps_emails: tuple[str, ...], today: d
         page_text=build_page_text(per_page, max_text_chars),
         email=email,
         email_kind=kind,
+        phone=phones[0] if phones else "",
         people=tuple(people[:5]),
     )
