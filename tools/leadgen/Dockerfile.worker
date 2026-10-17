@@ -18,7 +18,10 @@ COPY config.yaml ./
 COPY seeds ./seeds
 RUN uv sync --frozen --no-dev
 
-RUN useradd --create-home leadgen && mkdir -p /app/out && chown -R leadgen /app/out
+# gosom runs the Playwright installer on every start; it is a no-op when the browsers are present,
+# but it takes a lock inside these folders, so the non-root user must own them.
+RUN useradd --create-home leadgen && mkdir -p /app/out \
+    && chown -R leadgen /app/out /opt/browsers /opt/ms-playwright-go
 USER leadgen
 ENTRYPOINT ["uv", "run", "--no-sync", "python", "-m", "leadgen"]
 CMD ["worker"]
