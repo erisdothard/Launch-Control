@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { LEAD_STATUSES, type Lead, type LeadStatus } from "@/lib/store/types";
 import { updateLeadStatusAction, deleteLeadAction } from "./actions";
+import ContactFilterChips from "@/components/admin/ContactFilterChips";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -88,7 +89,7 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
               key={s}
               type="button"
               onClick={() => handleStatusFilter(s)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+              className={`rounded-[2px] px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
                 active
                   ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
                   : "bg-[var(--color-bg-card)] text-[var(--color-text-muted)] hover:bg-white/[0.05]"
@@ -98,6 +99,10 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
             </button>
           );
         })}
+      </div>
+
+      <div className="mb-4">
+        <ContactFilterChips />
       </div>
 
       <div className="overflow-hidden rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)]">

@@ -66,3 +66,7 @@ def test_cancelled_run_stops_at_next_stage(cfg: Config) -> None:
     report = worker._progress(FakeStore(None, status="cancelled"), "abc")  # type: ignore[arg-type]
     with pytest.raises(RunCancelled):
         report("scoring")
+
+
+def test_require_param_only_accepts_known_contact_fields(cfg: Config) -> None:
+    assert worker.options_from_params({"require": ["email", "fax"]}, cfg).require == ["email"]

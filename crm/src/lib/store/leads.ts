@@ -1,4 +1,5 @@
 import { getStoreClient, type StoreClient } from "./db";
+import type { ContactFilterKey } from "@/lib/leads/contactFilter";
 import { logActivity } from "./activity";
 import { createCustomer, type Customer } from "./customers";
 import type { Lead, LeadStatus, Prospect, ScoreFactor } from "./types";
@@ -89,6 +90,7 @@ export interface GetLeadsParams {
   state?: string;
   minScore?: number;
   sortByScore?: boolean;
+  has?: ContactFilterKey[];
 }
 
 export async function getLeads(params?: GetLeadsParams, client?: StoreClient): Promise<Lead[]> {
@@ -104,6 +106,13 @@ export async function getLeads(params?: GetLeadsParams, client?: StoreClient): P
   if (params?.minScore !== undefined) query = query.gte("score", params.minScore);
   if (params?.status) {
     query = query.eq("status", params.status);
+  }
+  // email/phone are NOT NULL with '' for "none"; contact_name/website are nullable.
+  for (const field of params?.has ?? []) {
+    if (field === "email") query = query.neq("email", "");
+    if (field === "phone") query = query.neq("phone", "");
+    if (field === "contact") query = query.not("contact_name", "is", null).neq("contact_name", "");
+    if (field === "website") query = query.not("website", "is", null).neq("website", "");
   }
   if (params?.search) {
     // Strip characters that would break out of PostgREST's or() filter syntax.

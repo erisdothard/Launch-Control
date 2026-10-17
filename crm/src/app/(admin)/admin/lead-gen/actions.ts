@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { updateLead } from "@/lib/store/leads";
 import { cancelRun, queueRun } from "@/lib/store/leadgen";
 import { LEAD_STATUSES, type LeadStatus } from "@/lib/store/types";
-import { LEADGEN_SEGMENTS, LEADGEN_SIZES, LEADGEN_STATES } from "@/lib/leadgen/catalog";
+import { LEADGEN_REQUIRE, LEADGEN_SEGMENTS, LEADGEN_SIZES, LEADGEN_STATES, type LeadGenRequireKey } from "@/lib/leadgen/catalog";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function setProspectStatusAction(id: string, status: LeadStatus) {
@@ -21,12 +21,14 @@ export interface FindLeadsInput {
   states: string[];
   segments: string[];
   size: string;
+  require: string[];
 }
 
 export type FindLeadsResult = { ok: true } | { ok: false; error: string };
 
 const STATE_SET = new Set<string>(LEADGEN_STATES);
 const SEGMENT_SET = new Set<string>(LEADGEN_SEGMENTS.map((s) => s.key));
+const REQUIRE_SET = new Set<string>(LEADGEN_REQUIRE.map((r) => r.key));
 
 // Queue a search for the Railway worker. Empty states/segments mean "all of them".
 export async function findLeadsAction(input: FindLeadsInput): Promise<FindLeadsResult> {
@@ -34,6 +36,9 @@ export async function findLeadsAction(input: FindLeadsInput): Promise<FindLeadsR
   if (!size) return { ok: false, error: "Pick a run size." };
   const states = (Array.isArray(input.states) ? input.states : []).filter((s) => STATE_SET.has(s));
   const segments = (Array.isArray(input.segments) ? input.segments : []).filter((s) => SEGMENT_SET.has(s));
+  const require = (Array.isArray(input.require) ? input.require : []).filter((r): r is LeadGenRequireKey =>
+    REQUIRE_SET.has(r),
+  );
 
   const supabase = await createServerSupabaseClient();
   const {
@@ -48,6 +53,7 @@ export async function findLeadsAction(input: FindLeadsInput): Promise<FindLeadsR
         max_queries: size.maxQueries,
         ...(states.length ? { states } : {}),
         ...(segments.length ? { segments } : {}),
+        ...(require.length ? { require } : {}),
       },
       user.email,
     );

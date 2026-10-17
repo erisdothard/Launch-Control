@@ -13,6 +13,7 @@ import time
 from typing import Any
 
 from leadgen.config import Config, supabase_env
+from leadgen.filters import CONTACT_FIELDS
 from leadgen.pipeline import RunCancelled, RunOptions, run
 from leadgen.store import Store
 
@@ -43,6 +44,7 @@ def options_from_params(params: dict[str, Any], cfg: Config) -> RunOptions:
         segments=_str_list(params.get("segments"), set(cfg.segments)),
         max_queries=_bounded_int(params.get("max_queries"), MAX_QUERIES_CAP),
         limit=_bounded_int(params.get("limit"), LIMIT_CAP),
+        require=_str_list(params.get("require"), set(CONTACT_FIELDS)),
     )
 
 
