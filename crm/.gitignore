@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+.env.local
+*.tsbuildinfo
+.DS_Store
+
+# Per-deployment local data store (see src/lib/store/) and uploaded logos —
+# each client's own runtime state, not template source.
+public/uploads/*
+!public/uploads/.gitkeep

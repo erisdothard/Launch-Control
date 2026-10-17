@@ -1,0 +1,228 @@
+# Launch Control lead-gen config. Max's spec (2026-10-15) translated into knobs.
+# Secrets are NOT here: see .env.example.
+
+# Goes in the crawler User-Agent so site owners can reach us. Replace the placeholder
+# with a real monitored inbox before large runs.
+contact_email: hello@launchcontrol.example
+bot_url: https://launch-control-flame.vercel.app
+out_dir: out
+
+# Total Google Maps queries per run, split across states by weight (below).
+max_queries: 200
+
+# Fixed segment list. Labels are what the CRM shows; the scorer must pick one of them.
+# Keywords become Google Maps queries: "<keyword> near <track>" / "<keyword> in <metro>".
+segments:
+  arrive_and_drive:
+    label: Arrive & drive
+    keywords: [arrive and drive racing, race car rental program]
+  endurance_team:
+    label: Endurance team
+    keywords: [endurance racing team, champcar team, lucky dog racing team]
+  race_prep:
+    label: Race prep shop
+    keywords: [race prep shop, race car fabrication, motorsport engineering shop]
+  racing_school:
+    label: Racing school
+    keywords: [racing school, performance driving school]
+  hpde:
+    label: HPDE / track day
+    keywords: [track day organizer, HPDE track day]
+  driver_development:
+    label: Driver development
+    keywords: [driver development program racing, race driver coaching]
+  club:
+    label: Motorsport club
+    keywords: [private motorsport country club, motorsport club]
+  car_builder:
+    label: Race car manufacturer
+    keywords: [race car manufacturer, performance car builder]
+  parts:
+    label: Parts manufacturer
+    keywords: [motorsport parts manufacturer, racing parts manufacturer]
+  logistics:
+    label: Transport & logistics
+    keywords: [race car transport, race car storage, enclosed race trailer]
+  sim:
+    label: Sim racing
+    keywords: [sim racing center, racing simulator]
+  karting:
+    label: Karting
+    keywords: [karting club racing, outdoor kart track]
+  experience:
+    label: Driving experience
+    keywords: [exotic car driving experience, supercar track experience]
+  rental:
+    label: Rental fleet
+    keywords: [race car rental, track car rental]
+  trackside:
+    label: Trackside services
+    keywords: [motorsport data acquisition, racing radios, race fuel supplier, racing tire service]
+  other:
+    label: Other
+    keywords: []
+
+# weight > 1 gets a bigger share of the query budget. Max: extra weight on the Southeast,
+# TX, AZ, CA and the Great Lakes racing markets.
+states:
+  FL: {weight: 1.5, metros: [Miami, Orlando, Tampa, Jacksonville, Fort Lauderdale]}
+  GA: {weight: 1.5, metros: [Atlanta, Savannah, Braselton]}
+  NC: {weight: 1.5, metros: [Charlotte, Mooresville, Concord, Raleigh]}
+  SC: {weight: 1.3, metros: [Greenville, Columbia, Charleston]}
+  TN: {weight: 1.3, metros: [Nashville, Knoxville, Chattanooga]}
+  VA: {weight: 1.3, metros: [Richmond, Virginia Beach, Danville]}
+  TX: {weight: 1.5, metros: [Houston, Dallas, Austin, San Antonio]}
+  AZ: {weight: 1.3, metros: [Phoenix, Scottsdale, Tucson]}
+  CA: {weight: 1.5, metros: [Los Angeles, San Diego, San Jose, Sacramento]}
+  MI: {weight: 1.2, metros: [Detroit, Grand Rapids]}
+  OH: {weight: 1.2, metros: [Columbus, Cleveland]}
+  IN: {weight: 1.2, metros: [Indianapolis]}
+  IL: {weight: 1.2, metros: [Chicago]}
+  WI: {weight: 1.2, metros: [Milwaukee, Elkhart Lake]}
+  AL: {weight: 0.6, metros: [Birmingham]}
+  KY: {weight: 0.6, metros: [Louisville]}
+  WV: {weight: 0.5, metros: []}
+  NJ: {weight: 0.5, metros: []}
+  PA: {weight: 0.5, metros: [Pittsburgh]}
+
+# Road courses / tracks. Queries run "<keyword> near <name>" — paddock businesses cluster here.
+tracks:
+  - {name: Sebring International Raceway, state: FL}
+  - {name: Daytona International Speedway, state: FL}
+  - {name: Homestead-Miami Speedway, state: FL}
+  - {name: Palm Beach International Raceway, state: FL}
+  - {name: Michelin Raceway Road Atlanta, state: GA}
+  - {name: Atlanta Motorsports Park, state: GA}
+  - {name: Roebling Road Raceway, state: GA}
+  - {name: Charlotte Motor Speedway, state: NC}
+  - {name: GoPro Motorplex, state: NC}
+  - {name: Carolina Motorsports Park, state: SC}
+  - {name: Darlington Raceway, state: SC}
+  - {name: Bristol Motor Speedway, state: TN}
+  - {name: Nashville Superspeedway, state: TN}
+  - {name: Virginia International Raceway, state: VA}
+  - {name: Dominion Raceway, state: VA}
+  - {name: Richmond Raceway, state: VA}
+  - {name: Circuit of the Americas, state: TX}
+  - {name: Harris Hill Road, state: TX}
+  - {name: MSR Houston, state: TX}
+  - {name: Motorsport Ranch Cresson, state: TX}
+  - {name: Eagles Canyon Raceway, state: TX}
+  - {name: Texas Motor Speedway, state: TX}
+  - {name: Inde Motorsports Ranch, state: AZ}
+  - {name: Arizona Motorsports Park, state: AZ}
+  - {name: Wild Horse Pass Motorsports Park, state: AZ}
+  - {name: Phoenix Raceway, state: AZ}
+  - {name: Thunderhill Raceway Park, state: CA}
+  - {name: Buttonwillow Raceway Park, state: CA}
+  - {name: Sonoma Raceway, state: CA}
+  - {name: WeatherTech Raceway Laguna Seca, state: CA}
+  - {name: Chuckwalla Valley Raceway, state: CA}
+  - {name: Willow Springs International Raceway, state: CA}
+  - {name: GingerMan Raceway, state: MI}
+  - {name: Grattan Raceway, state: MI}
+  - {name: M1 Concourse, state: MI}
+  - {name: Waterford Hills Road Racing, state: MI}
+  - {name: Mid-Ohio Sports Car Course, state: OH}
+  - {name: Nelson Ledges Road Course, state: OH}
+  - {name: Putnam Park Road Course, state: IN}
+  - {name: Indianapolis Motor Speedway, state: IN}
+  - {name: Lucas Oil Indianapolis Raceway Park, state: IN}
+  - {name: Autobahn Country Club, state: IL}
+  - {name: Blackhawk Farms Raceway, state: IL}
+  - {name: World Wide Technology Raceway, state: IL}
+  - {name: Road America, state: WI}
+  - {name: Barber Motorsports Park, state: AL}
+  - {name: NCM Motorsports Park, state: KY}
+  - {name: Summit Point Motorsports Park, state: WV}
+  - {name: New Jersey Motorsports Park, state: NJ}
+  - {name: Pittsburgh International Race Complex, state: PA}
+
+gmaps:
+  image: gosom/google-maps-scraper:v1.12.1
+  platform: linux/amd64
+  driver_path: /opt/ms-playwright-go/1.57.0
+  depth: 1
+  lang: en
+  concurrency: 2
+  exit_on_inactivity: 2m
+  timeout_minutes: 45
+  batch_size: 25
+
+# Public static listings (team/vendor pages). Disabled by default; see discover/directories.py.
+directories: []
+
+enrich:
+  max_pages: 6
+  per_host_delay_s: 1.0
+  timeout_s: 15
+  max_bytes: 2000000
+  concurrency: 8
+
+filters:
+  # More Google reviews than this = chain / national scale.
+  max_review_count: 1500
+  # Copyright older than (current year - stale_years) and no recent dates = stale.
+  stale_years: 2
+  # Case-insensitive substrings matched against business name and domain.
+  blocklist:
+    - porsche experience
+    - bmw performance center
+    - mercedes-amg
+    - ferrari
+    - lamborghini
+    - ford performance racing school
+    - k1 speed
+    - andretti indoor karting
+    - dave & buster
+    - nascar racing experience
+    - richard petty driving
+    - xtreme xperience
+    - exotics racing
+    - autozone
+    - o'reilly auto
+    - advance auto parts
+    - napa auto parts
+    - pep boys
+    - racetrac
+    - raceway stores
+    - racewaystores
+    - carmax
+    - autonation
+    - enterprise rent
+    - hertz
+    - turo
+  # Google Maps categories that are never prospects.
+  excluded_categories:
+    - Gas station
+    - Truck stop
+    - Convenience store
+    - Car wash
+    - Hotel
+    - Restaurant
+    - Bar
+    - Hobby store
+    - Auto body shop
+    - Car dealer
+    - Used car dealer
+
+score:
+  model: claude-sonnet-5-5
+  effort: medium
+  concurrency: 4
+  max_text_chars: 6000
+  max_tokens: 4000
+  use_fallbacks: true
+  # Weighted sum of 0-5 factor ratings, normalised to 0-100.
+  weights:
+    high_ticket_value: 1.5
+    booking_need: 1.5
+    decision_maker_size: 1.0
+    owner_accessible: 1.0
+    recent_activity: 1.0
+    niche_fit: 1.5
+    repeat_potential: 1.0
+    weak_backend: 1.5
+    regional_expansion: 0.5
+    partnership_potential: 0.5
+    contact_findable: 1.0
