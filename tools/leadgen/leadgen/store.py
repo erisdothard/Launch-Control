@@ -109,6 +109,43 @@ class Store:
                                "error": "worker restarted mid-run"}).json()
         return len(rows)
 
+    # --- email (Gmail reply sync) ---
+
+    def gmail_accounts(self) -> list[dict[str, Any]]:
+        return self._req("GET", "email_accounts", params={
+            "provider": "eq.gmail", "status": "eq.active", "select": "id,address,gmail_history_id",
+        }).json()
+
+    def gmail_refresh_token(self, account_id: str) -> str | None:
+        token = self._req("POST", "rpc/gmail_refresh_token", json={"p_account_id": account_id}).json()
+        return token or None
+
+    def set_history_id(self, account_id: str, history_id: str) -> None:
+        self._req("PATCH", "email_accounts", params={"id": f"eq.{account_id}"}, prefer="return=minimal",
+                  json={"gmail_history_id": history_id})
+
+    def set_account_status(self, account_id: str, status: str) -> None:
+        self._req("PATCH", "email_accounts", params={"id": f"eq.{account_id}"}, prefer="return=minimal",
+                  json={"status": status})
+
+    def leads_for_threads(self, thread_ids: list[str]) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for i in range(0, len(thread_ids), _CHUNK):
+            chunk = ",".join(f'"{t}"' for t in thread_ids[i : i + _CHUNK])
+            if not chunk:
+                continue
+            rows = self._req("GET", "email_messages", params={
+                "provider_thread_id": f"in.({chunk})", "select": "lead_id,provider_thread_id",
+            }).json()
+            out.update({r["provider_thread_id"]: r["lead_id"] for r in rows})
+        return out
+
+    def insert_message(self, row: dict[str, Any]) -> int:
+        """Insert unless (provider, provider_message_id) exists. Returns 1 if stored."""
+        resp = self._req("POST", "email_messages", params={"on_conflict": "provider,provider_message_id"},
+                         prefer="resolution=ignore-duplicates,return=representation", json=row)
+        return len(resp.json())
+
     def finish_run(self, run_id: str, status: str, counts: dict[str, int], error: str | None = None) -> None:
         body = {"status": status, "stage": None, "finished_at": datetime.now(UTC).isoformat(), "error": error,
                 **{k: counts.get(k, 0) for k in ("found", "enriched", "kept", "excluded")}}

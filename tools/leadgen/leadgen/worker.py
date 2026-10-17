@@ -14,6 +14,7 @@ from typing import Any
 
 from leadgen.config import Config, supabase_env
 from leadgen.filters import CONTACT_FIELDS
+from leadgen.gmail_sync import start_background_sync
 from leadgen.pipeline import RunCancelled, RunOptions, run
 from leadgen.store import Store
 
@@ -85,6 +86,7 @@ def serve(cfg: Config, poll_seconds: float = 20.0) -> None:
     orphaned = store.fail_orphaned_runs()
     if orphaned:
         log.warning("marked %d run(s) left over from a previous worker as failed", orphaned)
+    start_background_sync(lambda: Store(*env))
     log.info("worker ready, polling every %.0fs", poll_seconds)
     while True:
         try:
