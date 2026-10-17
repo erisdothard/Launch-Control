@@ -63,7 +63,7 @@ def contact_reasons(lead: Lead, require: list[str] | None) -> list[str]:
     e = lead.enrichment
     has = {
         "email": bool((e.email if e else "") or lead.place.emails),
-        "phone": bool(lead.place.phone),
+        "phone": bool(lead.place.phone or (e.phone if e else "")),
     }
     return [f"missing_{field}" for field in require if field in has and not has[field]]
 

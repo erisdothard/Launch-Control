@@ -50,5 +50,7 @@ export function readSignals(signals: Record<string, unknown> | null) {
     reviewCount: typeof s.review_count === "number" ? s.review_count : null,
     rating: typeof s.rating === "number" ? s.rating : null,
     mapsUrl: typeof s.maps_url === "string" ? s.maps_url : null,
+    // Dealbreakers the lead finder capped the score for (tools/leadgen/leadgen/score.py SCORE_CAPS).
+    cappedBy: stringList(s.score_capped_by),
   };
 }

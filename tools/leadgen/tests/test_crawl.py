@@ -16,7 +16,7 @@ def _crawler(max_pages: int = 6) -> Crawler:
 def test_pick_links_filters_offsite_files_and_irrelevant() -> None:
     links = pick_links("https://www.apexendurance.com/", fixture_html("shop_home.html"), "apexendurance.com", 10)
     paths = [link.split(".com")[1] for link in links]
-    assert paths == ["/about-us", "/rentals", "/schedule", "/contact"]
+    assert paths == ["/about-us", "/contact", "/rentals", "/schedule"]  # contact/about first
     assert len(pick_links("https://www.apexendurance.com/", fixture_html("shop_home.html"), "apexendurance.com", 2)) == 2
 
 
@@ -72,3 +72,22 @@ async def test_crawl_errors() -> None:
 def test_pick_links_dedupes_scheme_and_slash_variants() -> None:
     html = '<a href="/contact/">Contact</a><a href="http://www.a.com/contact">Contact</a><a href="/about">About</a>'
     assert len(pick_links("https://a.com/", html, "a.com", 10)) == 2
+
+
+@respx.mock
+async def test_crawl_tries_contact_paths_when_menu_hides_them() -> None:
+    base = "https://jsmenu.com"
+    html = {"content-type": "text/html"}
+    respx.get(f"{base}/robots.txt").mock(return_value=httpx.Response(404))
+    respx.get(f"{base}/").mock(return_value=httpx.Response(
+        200, text='<a href="/events">Events</a><a href="/schedule">Schedule</a><a href="/rates">Rates</a>', headers=html))
+    for path in ("/events", "/schedule", "/rates", "/contact-us", "/about"):
+        respx.get(f"{base}{path}").mock(return_value=httpx.Response(200, text="<p>x</p>", headers=html))
+    respx.get(f"{base}/contact").mock(return_value=httpx.Response(404, headers=html))
+    c = _crawler(max_pages=5)
+    try:
+        res = await c.crawl(f"{base}/")
+    finally:
+        await c.aclose()
+    # 4-page budget after home: one menu link kept, then the three contact guesses (/contact 404s).
+    assert [p.url.removeprefix(base) for p in res.pages] == ["/", "/events", "/contact-us", "/about"]

@@ -51,6 +51,7 @@ class Enrichment(BaseModel):
     page_text: str = ""
     email: str = ""
     email_kind: str = ""  # personal | role | offsite | freemail | gmaps
+    phone: str = ""  # first phone on the site, national format; used when Google has none
     people: tuple[Contact, ...] = ()
 
 
@@ -65,6 +66,7 @@ class ScoreResult(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     score: int
+    capped_by: tuple[str, ...] = ()  # dealbreakers that held the score down (score.SCORE_CAPS)
     breakdown: dict[str, FactorRating]
     segment: str
     decision_maker: Contact | None = None

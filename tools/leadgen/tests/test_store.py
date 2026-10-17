@@ -85,3 +85,26 @@ def test_network_error_wrapped_and_fetch() -> None:
     rows = Store(URL, "k").fetch_leads(50)
     assert rows[0]["score"] == 70
     assert route.calls[-1].request.url.params["score"] == "gte.50"
+
+
+def test_backfill_patches() -> None:
+    from leadgen.backfill import contact_patch, score_patch
+    from leadgen.config import FACTOR_KEYS
+    from leadgen.models import Contact, Enrichment
+
+    weights = {k: 1.0 for k in FACTOR_KEYS}
+    breakdown = {k: {"rating": 5, "evidence": ""} for k in FACTOR_KEYS}
+    breakdown["weak_backend"] = {"rating": 1, "evidence": "runs HubSpot"}
+    row = {"score": 93, "score_breakdown": breakdown, "signals": {"phrases": ["x"]}}
+    patch = score_patch(row, weights)
+    assert patch["score"] == 64
+    assert patch["signals"] == {"phrases": ["x"], "score_capped_by": ["already runs a CRM or booking system"]}
+    assert score_patch({**row, **patch}, weights) == {}  # already current
+    assert score_patch({"score": None, "score_breakdown": None}, weights) == {}
+
+    e = Enrichment(ok=True, email="ross@k.com", phone="(561) 818-8186",
+                   people=(Contact(name="Ross Bentley", title="Owner"),), signals={"emails": ["ross@k.com"]})
+    filled = contact_patch({"email": "", "phone": "(919) 741-7151", "contact_name": None}, e, {"a": 1})
+    assert filled == {"email": "ross@k.com", "contact_name": "Ross Bentley", "contact_title": "Owner",
+                      "signals": {"a": 1, "emails": ["ross@k.com"]}}
+    assert contact_patch({"email": "x@y.com", "phone": "1", "contact_name": "Max"}, e, {}) == {}

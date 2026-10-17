@@ -181,3 +181,9 @@ class Store:
         if min_score is not None:
             params["score"] = f"gte.{min_score}"
         return list(self._req("GET", "leads", params=params).json())
+
+    def lead_gen_rows(self) -> list[dict[str, Any]]:
+        return self.fetch_leads()
+
+    def patch_lead(self, lead_id: str, patch: dict[str, Any]) -> None:
+        self._req("PATCH", "leads", params={"id": f"eq.{lead_id}"}, json=patch)
