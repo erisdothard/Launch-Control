@@ -9,6 +9,7 @@ import { readSignals, scoreBand } from "@/lib/leadgen/factors";
 import { FactorBars, SignalChips } from "@/components/admin/ProspectInsights";
 import type { LeadGenFilters } from "./filters";
 import { setProspectStatusAction } from "./actions";
+import FindLeadsPanel from "./FindLeadsPanel";
 
 const MIN_SCORE_OPTIONS = [
   { value: 0, label: "All" },
@@ -43,19 +44,18 @@ function safeHref(url: string | null): string | null {
   }
 }
 
+const RUN_STATUS_CLASS: Record<LeadGenRun["status"], string> = {
+  completed: "bg-emerald-400/10 text-emerald-300",
+  failed: "bg-red-400/10 text-red-300",
+  cancelled: "bg-white/[0.06] text-[var(--color-text-muted)]",
+  queued: "bg-amber-400/10 text-amber-300",
+  running: "bg-amber-400/10 text-amber-300",
+};
+
+// The last finished search; the one in progress is shown by FindLeadsPanel.
 function RunStrip({ runs }: { runs: LeadGenRun[] }) {
-  const latest = runs[0];
-  if (!latest) {
-    return (
-      <div className="mb-6 rounded-[2px] border border-dashed border-[var(--color-border-bright)] bg-[var(--color-bg-card)] p-6">
-        <p className="text-sm font-medium text-[var(--color-text)]">No lead-gen runs yet</p>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Run the scraper from <code className="rounded-[2px] bg-[var(--color-bg-secondary)] px-1.5 py-0.5 text-xs">tools/leadgen</code> and
-          scored prospects land here.
-        </p>
-      </div>
-    );
-  }
+  const latest = runs.find((r) => r.status !== "queued" && r.status !== "running");
+  if (!latest) return null;
 
   const steps = [
     { label: "Found", value: latest.found },
@@ -66,23 +66,15 @@ function RunStrip({ runs }: { runs: LeadGenRun[] }) {
 
   return (
     <div className="mb-6 flex flex-col gap-4 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="label-mono text-[var(--color-text-dim)]">Latest run</p>
+      <div className="min-w-0 flex-1">
+        <p className="label-mono text-[var(--color-text-dim)]">Last search</p>
         <p className="mt-1 text-sm text-[var(--color-text)]">
           {formatDate(latest.startedAt)}
-          <span
-            className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${
-              latest.status === "completed"
-                ? "bg-emerald-400/10 text-emerald-300"
-                : latest.status === "failed"
-                  ? "bg-red-400/10 text-red-300"
-                  : "bg-amber-400/10 text-amber-300"
-            }`}
-          >
+          <span className={`ml-2 rounded-[2px] px-2 py-0.5 text-xs font-medium ${RUN_STATUS_CLASS[latest.status]}`}>
             {latest.status}
           </span>
         </p>
-        {latest.error && <p className="mt-1 text-xs text-red-400">{latest.error}</p>}
+        {latest.error && <p className="mt-1 line-clamp-2 break-all text-xs text-red-400" title={latest.error}>{latest.error}</p>}
       </div>
       <ol className="flex items-center gap-2 sm:gap-3">
         {steps.map((step, i) => (
@@ -282,6 +274,7 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
 
   return (
     <div>
+      <FindLeadsPanel active={runs.find((r) => r.status === "queued" || r.status === "running") ?? null} />
       <RunStrip runs={runs} />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

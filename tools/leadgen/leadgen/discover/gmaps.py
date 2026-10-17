@@ -1,4 +1,5 @@
-"""Google Maps discovery via the gosom/google-maps-scraper Docker image.
+"""Google Maps discovery via gosom/google-maps-scraper: its Docker image locally, or the binary
+directly when leadgen already runs inside that image (the Railway worker).
 
 One container runs a batch of queries; each query line carries its own id
 ("text #!# qid") so gosom tags every result row with `input_id`. Rows are cached
@@ -110,6 +111,19 @@ def _docker_cmd(cfg: GmapsCfg, name: str, mount_src: str) -> list[str]:
     ]  # fmt: skip
 
 
+def _native_cmd(cfg: GmapsCfg, work: Path) -> list[str]:
+    return [
+        cfg.binary,
+        "-input", str(work / "queries.txt"),
+        "-results", str(work / "results.json"),
+        "-json",
+        "-depth", str(cfg.depth),
+        "-lang", cfg.lang,
+        "-c", str(cfg.concurrency),
+        "-exit-on-inactivity", cfg.exit_on_inactivity,
+    ]  # fmt: skip
+
+
 def _scrape_batch(cfg: GmapsCfg, batch: list[Query], work: Path, out_root: Path) -> dict[str, list[dict]]:
     work.mkdir(parents=True, exist_ok=True)
     (work / "queries.txt").write_text("".join(f"{q.text} #!# {q.qid}\n" for q in batch), encoding="utf-8")
@@ -119,13 +133,15 @@ def _scrape_batch(cfg: GmapsCfg, batch: list[Query], work: Path, out_root: Path)
     name = f"leadgen-gmaps-{work.name}"
     started = time.monotonic()
     try:
-        proc = _run(_docker_cmd(cfg, name, mount_src), timeout=cfg.timeout_minutes * 60)
+        cmd = _native_cmd(cfg, work) if cfg.runner == "native" else _docker_cmd(cfg, name, mount_src)
+        proc = _run(cmd, timeout=cfg.timeout_minutes * 60)
         (work / "gosom.log").write_text(proc.stdout[-200_000:] + proc.stderr[-200_000:], encoding="utf-8")
         if proc.returncode != 0:
             tail = " | ".join(proc.stderr.strip().splitlines()[-3:])
             raise GmapsError(f"gosom exited {proc.returncode}: {tail[:400]}")
     except subprocess.TimeoutExpired:
-        _run(["docker", "rm", "-f", name], timeout=60)
+        if cfg.runner == "docker":
+            _run(["docker", "rm", "-f", name], timeout=60)
         log.warning("gosom batch timed out after %d min; keeping partial results", cfg.timeout_minutes)
     results = work / "results.json"
     raw = results.read_text(encoding="utf-8") if results.is_file() else ""
@@ -149,8 +165,10 @@ def discover(queries: list[Query], cfg: GmapsCfg, out_root: Path) -> list[Place]
             rows_by_q[q.qid] = cached
     log.info("gmaps: %d queries (%d cached, %d to scrape)", len(queries), len(rows_by_q), len(todo))
 
-    if todo:
+    if todo and cfg.runner == "docker":
         ensure_docker(cfg)
+    elif todo and shutil.which(cfg.binary) is None:
+        raise GmapsError(f"{cfg.binary} not found on PATH (gmaps.runner is native)")
     for i in range(0, len(todo), cfg.batch_size):
         batch = todo[i : i + cfg.batch_size]
         work = out_root / "cache" / "gmaps-runs" / datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")

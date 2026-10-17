@@ -159,6 +159,10 @@ export type Database = {
           kept: number
           excluded: number
           error: string | null
+          params: Json
+          requested_by: string | null
+          stage: string | null
+          claimed_at: string | null
         }
         Insert: {
           id?: string
@@ -171,6 +175,10 @@ export type Database = {
           kept?: number
           excluded?: number
           error?: string | null
+          params?: Json
+          requested_by?: string | null
+          stage?: string | null
+          claimed_at?: string | null
         }
         Update: {
           id?: string
@@ -183,6 +191,10 @@ export type Database = {
           kept?: number
           excluded?: number
           error?: string | null
+          params?: Json
+          requested_by?: string | null
+          stage?: string | null
+          claimed_at?: string | null
         }
         Relationships: []
       }

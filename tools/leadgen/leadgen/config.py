@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from dotenv import load_dotenv
@@ -56,6 +57,10 @@ class GmapsCfg(BaseModel):
     timeout_minutes: int = 45
     batch_size: int = 25
     host_out_dir: str | None = None  # set when leadgen itself runs in Docker (see README)
+    # "docker": run the gosom image (local dev). "native": the gosom binary is on PATH, as in the
+    # Railway worker image, which is built on the gosom image itself (LEADGEN_GMAPS_RUNNER=native).
+    runner: Literal["docker", "native"] = "docker"
+    binary: str = "google-maps-scraper"
 
 
 class DirectorySource(BaseModel):
@@ -159,6 +164,13 @@ def load_config(path: str | Path) -> Config:
     host_out = os.environ.get("LEADGEN_HOST_OUT_DIR", "").strip()
     if host_out:
         cfg = cfg.model_copy(update={"gmaps": cfg.gmaps.model_copy(update={"host_out_dir": host_out})})
+    runner = os.environ.get("LEADGEN_GMAPS_RUNNER", "").strip()
+    if runner:
+        gm = GmapsCfg.model_validate({**cfg.gmaps.model_dump(), "runner": runner})
+        cfg = cfg.model_copy(update={"gmaps": gm})
+    contact = os.environ.get("LEADGEN_CONTACT_EMAIL", "").strip()
+    if contact:
+        cfg = cfg.model_copy(update={"contact_email": contact})
     return cfg
 
 

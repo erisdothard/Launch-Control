@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -38,6 +39,17 @@ class RunOptions:
     rescore: bool = False
     refresh_existing: bool = False
     seed: str | None = None
+
+
+class RunCancelled(Exception):
+    """Raised by a progress callback when the CRM cancelled the run."""
+
+
+Progress = Callable[[str], None]
+
+
+def _no_progress(_stage: str) -> None:
+    return None
 
 
 @dataclass
@@ -88,21 +100,28 @@ def _reason_key(reason: str) -> str:
     return reason.split(":", 1)[0]
 
 
-async def run(cfg: Config, opts: RunOptions) -> RunSummary:
+async def run(cfg: Config, opts: RunOptions, run_id: str | None = None,
+              progress: Progress = _no_progress) -> RunSummary:
+    """Run the pipeline. `run_id` is a run the worker already claimed; otherwise one is started.
+    `progress(stage)` is called between stages and may raise RunCancelled."""
     today = datetime.now(UTC).date()
     out_root = cfg.out_path()
     run_dir = out_root / "runs" / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     summary = RunSummary(run_dir=run_dir)
     store: Store | None = None
-    run_id: str | None = None
     if not opts.dry_run:
         env = supabase_env()
         if env is None:
             raise RuntimeError("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set (tools/leadgen/.env). Use --dry-run.")
         store = Store(*env)
-        run_id = store.start_run({"options": opts.__dict__, "max_queries": opts.max_queries or cfg.max_queries})
+        if run_id is None:
+            run_id = store.start_run({"options": opts.__dict__, "max_queries": opts.max_queries or cfg.max_queries})
     try:
-        summary = await _run(cfg, opts, today, out_root, summary, store, run_id)
+        summary = await _run(cfg, opts, today, out_root, summary, store, run_id, progress)
+    except RunCancelled:
+        if store and run_id:
+            store.finish_run(run_id, "cancelled", summary.counts)
+        raise
     except Exception as exc:
         if store and run_id:
             store.finish_run(run_id, "failed", summary.counts, error=f"{type(exc).__name__}: {exc}"[:500])
@@ -113,8 +132,9 @@ async def run(cfg: Config, opts: RunOptions) -> RunSummary:
 
 
 async def _run(cfg: Config, opts: RunOptions, today: date, out_root: Path, summary: RunSummary,
-               store: Store | None, run_id: str | None) -> RunSummary:
+               store: Store | None, run_id: str | None, progress: Progress = _no_progress) -> RunSummary:
     c = summary.counts
+    progress("searching")
     if opts.seed:
         places = load_seeds(opts.seed, cfg)
         c["queries"] = 0
@@ -143,12 +163,14 @@ async def _run(cfg: Config, opts: RunOptions, today: date, out_root: Path, summa
     if opts.limit is not None:
         candidates = candidates[: opts.limit]
     log.info("found %d unique, %d pre-excluded, enriching %d", len(leads), len(excluded), len(candidates))
+    progress("reading websites")
 
     enriched = await enrich_all(cfg, candidates, today)
     c["enriched"] = sum(1 for lead in enriched if lead.enrichment and lead.enrichment.ok)
     enriched = [with_reasons(lead, post_crawl_reasons(lead, cfg.filters, today)) for lead in enriched]
 
     to_score = [lead for lead in enriched if not lead.excluded]
+    progress("scoring")
     if not opts.no_score and to_score:
         scored, stats = await score_all(cfg, to_score, opts.rescore)
         c.update({f"score_{k}": v for k, v in stats.items()})
@@ -174,6 +196,7 @@ async def _run(cfg: Config, opts: RunOptions, today: date, out_root: Path, summa
     write_csv([r for r in rows if r["excluded"]], summary.run_dir / "excluded.csv")
 
     if store:
+        progress("saving")
         kept_rows = [{k: v for k, v in r.items() if k != "excluded"} for r in rows if not r["excluded"]]
         summary.store_counts = store.upsert_leads(kept_rows, run_id)
     return summary
