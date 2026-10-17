@@ -31,9 +31,21 @@ export default function UpdatePasswordPage() {
       setStatus("ready");
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) markReady();
-    });
+    // Invite and recovery links from the admin API use the implicit flow (#access_token=...), but
+    // the @supabase/ssr browser client runs PKCE and ignores fragments, so set the session by hand.
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const accessToken = fragment.get("access_token");
+    const refreshToken = fragment.get("refresh_token");
+    if (accessToken && refreshToken) {
+      window.history.replaceState(null, "", window.location.pathname);
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(({ data }) => {
+        if (data.session) markReady();
+      });
+    } else {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) markReady();
+      });
+    }
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) markReady();

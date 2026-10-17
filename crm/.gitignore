@@ -9,3 +9,4 @@ node_modules
 # each client's own runtime state, not template source.
 public/uploads/*
 !public/uploads/.gitkeep
+.vercel
