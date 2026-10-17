@@ -89,8 +89,28 @@ class Store:
                          json={"status": "running", "config": config_snapshot})
         return str(resp.json()[0]["id"])
 
+    def claim_run(self) -> dict[str, Any] | None:
+        """Atomically move the oldest queued run to running (claim_lead_gen_run RPC)."""
+        rows = self._req("POST", "rpc/claim_lead_gen_run", json={}).json()
+        return rows[0] if rows else None
+
+    def set_stage(self, run_id: str, stage: str) -> None:
+        self._req("PATCH", "lead_gen_runs", params={"id": f"eq.{run_id}"}, prefer="return=minimal",
+                  json={"stage": stage})
+
+    def run_status(self, run_id: str) -> str | None:
+        rows = self._req("GET", "lead_gen_runs", params={"id": f"eq.{run_id}", "select": "status"}).json()
+        return rows[0]["status"] if rows else None
+
+    def fail_orphaned_runs(self) -> int:
+        """A worker restart leaves its run 'running' forever; nothing else can be running then."""
+        rows = self._req("PATCH", "lead_gen_runs", params={"status": "eq.running"}, prefer="return=representation",
+                         json={"status": "failed", "finished_at": datetime.now(UTC).isoformat(),
+                               "error": "worker restarted mid-run"}).json()
+        return len(rows)
+
     def finish_run(self, run_id: str, status: str, counts: dict[str, int], error: str | None = None) -> None:
-        body = {"status": status, "finished_at": datetime.now(UTC).isoformat(), "error": error,
+        body = {"status": status, "stage": None, "finished_at": datetime.now(UTC).isoformat(), "error": error,
                 **{k: counts.get(k, 0) for k in ("found", "enriched", "kept", "excluded")}}
         self._req("PATCH", "lead_gen_runs", params={"id": f"eq.{run_id}"}, prefer="return=minimal", json=body)
 

@@ -107,7 +107,7 @@ export interface ActivityEntry {
   createdAt: string;
 }
 
-export type LeadGenRunStatus = "running" | "completed" | "failed";
+export type LeadGenRunStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 
 export interface LeadGenRun {
   id: string;
@@ -119,4 +119,16 @@ export interface LeadGenRun {
   kept: number;
   excluded: number;
   error: string | null;
+  stage: string | null;
+  params: LeadGenParams;
+  requestedBy: string | null;
+}
+
+// What the CRM asks the worker for (tools/leadgen/leadgen/worker.py validates it again).
+export interface LeadGenParams {
+  states?: string[];
+  segments?: string[];
+  max_queries?: number;
+  limit?: number;
+  size?: string;
 }

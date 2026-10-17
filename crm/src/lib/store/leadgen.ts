@@ -1,7 +1,8 @@
 import { getStoreClient, type StoreClient } from "./db";
-import { AUTOMATED_LEAD_SOURCE, type LeadGenRun } from "./types";
+import type { Json } from "@/lib/supabase/types";
+import { AUTOMATED_LEAD_SOURCE, type LeadGenParams, type LeadGenRun } from "./types";
 
-export type { LeadGenRun, LeadGenRunStatus } from "./types";
+export type { LeadGenParams, LeadGenRun, LeadGenRunStatus } from "./types";
 
 interface RunRow {
   id: string;
@@ -13,6 +14,16 @@ interface RunRow {
   kept: number;
   excluded: number;
   error: string | null;
+  stage: string | null;
+  params: unknown;
+  requested_by: string | null;
+}
+
+const RUN_COLUMNS =
+  "id, status, started_at, finished_at, found, enriched, kept, excluded, error, stage, params, requested_by";
+
+function toParams(value: unknown): LeadGenParams {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as LeadGenParams) : {};
 }
 
 function rowToRun(row: RunRow): LeadGenRun {
@@ -26,15 +37,19 @@ function rowToRun(row: RunRow): LeadGenRun {
     kept: row.kept,
     excluded: row.excluded,
     error: row.error,
+    stage: row.stage,
+    params: toParams(row.params),
+    requestedBy: row.requested_by,
   };
 }
 
-// Runs are written by the Python pipeline (tools/leadgen); the CRM only reads them.
+// Runs are queued here (Find leads) and claimed, advanced and finished by the worker
+// (tools/leadgen `leadgen worker` on Railway).
 export async function getRuns(limit = 10, client?: StoreClient): Promise<LeadGenRun[]> {
   const supabase = await getStoreClient(client);
   const { data, error } = await supabase
     .from("lead_gen_runs")
-    .select("id, status, started_at, finished_at, found, enriched, kept, excluded, error")
+    .select(RUN_COLUMNS)
     .order("started_at", { ascending: false })
     .limit(limit);
 
@@ -58,4 +73,31 @@ export async function getFacets(client?: StoreClient): Promise<LeadGenFacets> {
     [...new Set(values.filter((v): v is string => Boolean(v)))].sort((a, b) => a.localeCompare(b));
 
   return { segments: distinct(rows.map((r) => r.segment)), states: distinct(rows.map((r) => r.state)) };
+}
+
+// The database allows one queued-or-running run at a time (unique partial index); a second
+// request fails with 23505 and is reported as "already running".
+export async function queueRun(params: LeadGenParams, requestedBy: string, client?: StoreClient): Promise<LeadGenRun> {
+  const supabase = await getStoreClient(client);
+  const { data, error } = await supabase
+    .from("lead_gen_runs")
+    .insert({ status: "queued", params: params as Json, requested_by: requestedBy })
+    .select(RUN_COLUMNS)
+    .single();
+
+  if (error?.code === "23505") throw new Error("A lead search is already running. Wait for it or cancel it.");
+  if (error) throw error;
+  return rowToRun(data as RunRow);
+}
+
+// A queued run is cancelled outright; a running one is marked and the worker stops at its next stage.
+export async function cancelRun(id: string, client?: StoreClient): Promise<void> {
+  const supabase = await getStoreClient(client);
+  const { error } = await supabase
+    .from("lead_gen_runs")
+    .update({ status: "cancelled", finished_at: new Date().toISOString(), stage: null })
+    .eq("id", id)
+    .in("status", ["queued", "running"]);
+
+  if (error) throw error;
 }

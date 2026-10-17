@@ -1,0 +1,24 @@
+# Railway worker: the CRM's "Find leads" queue. Built on the gosom image, so the Maps scraper,
+# its Playwright driver and Chromium are already here and run as a plain binary (no Docker-in-Docker).
+FROM gosom/google-maps-scraper:v1.12.1
+
+# The image points PLAYWRIGHT_DRIVER_PATH at /opt, which makes the driver try a download from a dead
+# CDN; the driver it ships lives here.
+ENV PLAYWRIGHT_DRIVER_PATH=/opt/ms-playwright-go/1.57.0 \
+    LEADGEN_GMAPS_RUNNER=native \
+    UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_INSTALL_DIR=/opt/python PYTHONUNBUFFERED=1
+
+COPY --from=ghcr.io/astral-sh/uv:0.8.15 /uv /usr/local/bin/uv
+
+WORKDIR /app
+COPY .python-version pyproject.toml uv.lock README.md ./
+RUN uv python install && uv sync --frozen --no-dev --no-install-project
+COPY leadgen ./leadgen
+COPY config.yaml ./
+COPY seeds ./seeds
+RUN uv sync --frozen --no-dev
+
+RUN useradd --create-home leadgen && mkdir -p /app/out && chown -R leadgen /app/out
+USER leadgen
+ENTRYPOINT ["uv", "run", "--no-sync", "python", "-m", "leadgen"]
+CMD ["worker"]

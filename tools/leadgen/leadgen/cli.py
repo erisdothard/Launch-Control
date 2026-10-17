@@ -13,6 +13,7 @@ from leadgen.config import PACKAGE_ROOT, load_config, load_env, supabase_env
 from leadgen.export import latest_run_file, read_jsonl, write_csv
 from leadgen.pipeline import RunOptions, RunSummary, run
 from leadgen.store import Store
+from leadgen.worker import serve
 
 log = logging.getLogger("leadgen")
 
@@ -38,6 +39,10 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--rescore", action="store_true", help="ignore the per-domain score cache")
     r.add_argument("--refresh-existing", action="store_true",
                    help="re-process domains already in the CRM (updates prospect fields only)")
+
+    w = sub.add_parser("worker", help="run queued jobs from the CRM's Find leads button, forever")
+    w.add_argument("--config", default=str(PACKAGE_ROOT / "config.yaml"))
+    w.add_argument("--poll", type=float, default=20.0, help="seconds between queue checks when idle")
 
     e = sub.add_parser("export", help="write a CSV of scored leads")
     e.add_argument("--config", default=str(PACKAGE_ROOT / "config.yaml"))
@@ -107,6 +112,9 @@ def main(argv: list[str] | None = None) -> int:
         logging.getLogger(noisy).setLevel(logging.WARNING)
     load_env()
     try:
+        if args.command == "worker":
+            serve(load_config(args.config), args.poll)
+            return 0
         return cmd_run(args) if args.command == "run" else cmd_export(args)
     except (RuntimeError, FileNotFoundError, ValueError) as exc:
         log.error("%s", exc)
