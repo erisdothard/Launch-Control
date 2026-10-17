@@ -31,6 +31,14 @@ export const LEADGEN_SIZES = [
 
 export type LeadGenSizeKey = (typeof LEADGEN_SIZES)[number]["key"];
 
+// Contact details a search can insist on; businesses without them are dropped before scoring.
+export const LEADGEN_REQUIRE = [
+  { key: "email", label: "Must have email" },
+  { key: "phone", label: "Must have phone" },
+] as const;
+
+export type LeadGenRequireKey = (typeof LEADGEN_REQUIRE)[number]["key"];
+
 // Plain-English labels for the worker's stage column.
 export const LEADGEN_STAGE_LABELS: Record<string, string> = {
   starting: "Starting up",

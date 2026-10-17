@@ -52,6 +52,22 @@ def post_crawl_reasons(lead: Lead, cfg: FilterCfg, today: date) -> list[str]:
     return reasons
 
 
+CONTACT_FIELDS = ("email", "phone")
+
+
+def contact_reasons(lead: Lead, require: list[str] | None) -> list[str]:
+    """Contact details the run was told to insist on (the CRM's "Must have" choice). Uses the same
+    email/phone that lead_row writes, so a kept lead always shows them in the CRM."""
+    if not require:
+        return []
+    e = lead.enrichment
+    has = {
+        "email": bool((e.email if e else "") or lead.place.emails),
+        "phone": bool(lead.place.phone),
+    }
+    return [f"missing_{field}" for field in require if field in has and not has[field]]
+
+
 def with_reasons(lead: Lead, reasons: list[str]) -> Lead:
     if not reasons:
         return lead

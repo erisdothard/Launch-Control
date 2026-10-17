@@ -53,3 +53,13 @@ def test_with_reasons_merges_uniquely() -> None:
 def test_old_footer_on_live_store_is_not_stale() -> None:
     store = _with(make_lead(), ok=True, signals={"copyright_year": 2019, "ecommerce_tech": ["Shopify"]})
     assert post_crawl_reasons(store, F, TODAY) == []
+
+
+def test_contact_requirements_drop_leads_missing_them() -> None:
+    from leadgen.filters import contact_reasons
+
+    no_contact = make_lead(phone="")
+    assert contact_reasons(no_contact, ["email", "phone"]) == ["missing_email", "missing_phone"]
+    with_email = make_lead().model_copy(update={"enrichment": Enrichment(ok=True, email="max@apex.com")})
+    assert contact_reasons(with_email, ["email", "phone"]) == []
+    assert contact_reasons(no_contact, None) == []

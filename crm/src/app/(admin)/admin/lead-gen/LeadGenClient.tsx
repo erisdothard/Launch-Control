@@ -10,6 +10,7 @@ import { FactorBars, SignalChips } from "@/components/admin/ProspectInsights";
 import type { LeadGenFilters } from "./filters";
 import { setProspectStatusAction } from "./actions";
 import FindLeadsPanel from "./FindLeadsPanel";
+import ContactFilterChips from "@/components/admin/ContactFilterChips";
 
 const MIN_SCORE_OPTIONS = [
   { value: 0, label: "All" },
@@ -346,6 +347,10 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
           </svg>
           Export CSV
         </a>
+      </div>
+
+      <div className="mb-4">
+        <ContactFilterChips />
       </div>
 
       <p className="mb-3 text-sm text-[var(--color-text-muted)]">

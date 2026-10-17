@@ -36,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--segments", type=_csv_list, help="config segment keys, e.g. racing_school,race_prep")
     r.add_argument("--seed", help="CSV of known businesses (name,website,city,state,segment[,phone]); skips Google Maps")
     r.add_argument("--no-score", action="store_true", help="skip the Claude scoring step")
+    r.add_argument("--require", type=_csv_list, help="drop leads without these: email,phone")
     r.add_argument("--rescore", action="store_true", help="ignore the per-domain score cache")
     r.add_argument("--refresh-existing", action="store_true",
                    help="re-process domains already in the CRM (updates prospect fields only)")
@@ -76,7 +77,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     opts = RunOptions(
         limit=args.limit, dry_run=args.dry_run, states=args.states, segments=args.segments,
         no_score=args.no_score, max_queries=args.max_queries, rescore=args.rescore,
-        refresh_existing=args.refresh_existing, seed=args.seed,
+        refresh_existing=args.refresh_existing, seed=args.seed, require=args.require,
     )
     summary = asyncio.run(run(cfg, opts))
     sys.stdout.write(_report(summary))

@@ -19,7 +19,7 @@ from leadgen.discover.seeds import load_seeds
 from leadgen.enrich.crawl import Crawler, CrawlResult
 from leadgen.enrich.extract import build_enrichment
 from leadgen.export import write_csv, write_jsonl
-from leadgen.filters import post_crawl_reasons, pre_crawl_reasons, with_reasons
+from leadgen.filters import contact_reasons, post_crawl_reasons, pre_crawl_reasons, with_reasons
 from leadgen.models import Enrichment, Lead
 from leadgen.record import email_first_name, lead_row
 from leadgen.score import Scorer
@@ -39,6 +39,7 @@ class RunOptions:
     rescore: bool = False
     refresh_existing: bool = False
     seed: str | None = None
+    require: list[str] | None = None  # contact fields a kept lead must have: "email", "phone"
 
 
 class RunCancelled(Exception):
@@ -168,6 +169,7 @@ async def _run(cfg: Config, opts: RunOptions, today: date, out_root: Path, summa
     enriched = await enrich_all(cfg, candidates, today)
     c["enriched"] = sum(1 for lead in enriched if lead.enrichment and lead.enrichment.ok)
     enriched = [with_reasons(lead, post_crawl_reasons(lead, cfg.filters, today)) for lead in enriched]
+    enriched = [with_reasons(lead, contact_reasons(lead, opts.require)) for lead in enriched]
 
     to_score = [lead for lead in enriched if not lead.excluded]
     progress("scoring")

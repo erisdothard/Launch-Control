@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { LeadGenRun } from "@/lib/store/types";
 import {
+  LEADGEN_REQUIRE,
   LEADGEN_SEGMENTS,
   LEADGEN_SIZES,
   LEADGEN_STAGE_LABELS,
@@ -86,13 +87,14 @@ function StartForm() {
   const [states, setStates] = useState<string[]>([]);
   const [segments, setSegments] = useState<string[]>([]);
   const [size, setSize] = useState<LeadGenSizeKey>("quick");
+  const [require, setRequire] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function submit() {
     setError(null);
     startTransition(async () => {
-      const result = await findLeadsAction({ states, segments, size });
+      const result = await findLeadsAction({ states, segments, size, require });
       if (!result.ok) setError(result.error);
     });
   }
@@ -134,6 +136,26 @@ function StartForm() {
               className={`${chipBase} ${segments.includes(seg.key) ? chipOn : chipOff}`}
             >
               {seg.label}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="label-mono mb-2 text-[var(--color-text-dim)]">
+          Contact details <span className="normal-case tracking-normal">{require.length ? "" : "(keep all)"}</span>
+        </legend>
+        <div className="flex flex-wrap gap-1.5">
+          {LEADGEN_REQUIRE.map((r) => (
+            <button
+              key={r.key}
+              type="button"
+              aria-pressed={require.includes(r.key)}
+              disabled={pending}
+              onClick={() => setRequire((list) => toggle(list, r.key))}
+              className={`${chipBase} ${require.includes(r.key) ? chipOn : chipOff}`}
+            >
+              {r.label}
             </button>
           ))}
         </div>

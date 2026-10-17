@@ -131,4 +131,5 @@ export interface LeadGenParams {
   max_queries?: number;
   limit?: number;
   size?: string;
+  require?: ("email" | "phone")[];
 }
