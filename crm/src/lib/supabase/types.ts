@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -68,6 +68,21 @@ export type Database = {
           logo_url?: string | null
           name?: string
           phone?: string
+        }
+        Relationships: []
+      }
+      crm_users: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
         }
         Relationships: []
       }
@@ -147,132 +162,243 @@ export type Database = {
           },
         ]
       }
+      email_accounts: {
+        Row: {
+          address: string
+          connected_by: string
+          created_at: string
+          display_name: string
+          gmail_history_id: string | null
+          id: string
+          provider: string
+          status: string
+          token_secret_id: string | null
+        }
+        Insert: {
+          address: string
+          connected_by: string
+          created_at?: string
+          display_name?: string
+          gmail_history_id?: string | null
+          id?: string
+          provider: string
+          status?: string
+          token_secret_id?: string | null
+        }
+        Update: {
+          address?: string
+          connected_by?: string
+          created_at?: string
+          display_name?: string
+          gmail_history_id?: string | null
+          id?: string
+          provider?: string
+          status?: string
+          token_secret_id?: string | null
+        }
+        Relationships: []
+      }
+      email_messages: {
+        Row: {
+          account_id: string | null
+          body_text: string
+          created_at: string
+          direction: string
+          error: string | null
+          from_address: string
+          id: string
+          lead_id: string
+          message_id_header: string | null
+          provider: string
+          provider_message_id: string | null
+          provider_thread_id: string | null
+          read_at: string | null
+          sent_by: string | null
+          status: string
+          subject: string
+          to_address: string
+        }
+        Insert: {
+          account_id?: string | null
+          body_text?: string
+          created_at?: string
+          direction: string
+          error?: string | null
+          from_address: string
+          id?: string
+          lead_id: string
+          message_id_header?: string | null
+          provider: string
+          provider_message_id?: string | null
+          provider_thread_id?: string | null
+          read_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject?: string
+          to_address: string
+        }
+        Update: {
+          account_id?: string | null
+          body_text?: string
+          created_at?: string
+          direction?: string
+          error?: string | null
+          from_address?: string
+          id?: string
+          lead_id?: string
+          message_id_header?: string | null
+          provider?: string
+          provider_message_id?: string | null
+          provider_thread_id?: string | null
+          read_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject?: string
+          to_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_gen_runs: {
         Row: {
-          id: string
-          started_at: string
-          finished_at: string | null
-          status: string
+          claimed_at: string | null
           config: Json
-          found: number
           enriched: number
-          kept: number
-          excluded: number
           error: string | null
+          excluded: number
+          finished_at: string | null
+          found: number
+          id: string
+          kept: number
           params: Json
           requested_by: string | null
           stage: string | null
-          claimed_at: string | null
+          started_at: string
+          status: string
         }
         Insert: {
-          id?: string
-          started_at?: string
-          finished_at?: string | null
-          status?: string
+          claimed_at?: string | null
           config?: Json
-          found?: number
           enriched?: number
-          kept?: number
-          excluded?: number
           error?: string | null
+          excluded?: number
+          finished_at?: string | null
+          found?: number
+          id?: string
+          kept?: number
           params?: Json
           requested_by?: string | null
           stage?: string | null
-          claimed_at?: string | null
+          started_at?: string
+          status?: string
         }
         Update: {
-          id?: string
-          started_at?: string
-          finished_at?: string | null
-          status?: string
+          claimed_at?: string | null
           config?: Json
-          found?: number
           enriched?: number
-          kept?: number
-          excluded?: number
           error?: string | null
+          excluded?: number
+          finished_at?: string | null
+          found?: number
+          id?: string
+          kept?: number
           params?: Json
           requested_by?: string | null
           stage?: string | null
-          claimed_at?: string | null
+          started_at?: string
+          status?: string
         }
         Relationships: []
       }
       leads: {
         Row: {
           business_name: string
+          city: string | null
+          contact_name: string | null
+          contact_title: string | null
           created_at: string
+          domain: string | null
           email: string
           id: string
           notes: string
+          outreach_hook: string | null
           phone: string
           preferred_service: string
-          source: string
-          status: string
-          segment: string | null
-          city: string | null
-          state: string | null
-          website: string | null
-          domain: string | null
-          contact_name: string | null
-          contact_title: string | null
+          run_id: string | null
           score: number | null
           score_breakdown: Json | null
           score_reason: string | null
-          outreach_hook: string | null
-          signals: Json | null
-          run_id: string | null
           scored_at: string | null
+          segment: string | null
+          signals: Json | null
+          source: string
+          state: string | null
+          status: string
+          website: string | null
         }
         Insert: {
           business_name: string
-          created_at?: string
-          email: string
-          id?: string
-          notes?: string
-          phone?: string
-          preferred_service?: string
-          source?: string
-          status?: string
-          segment?: string | null
           city?: string | null
-          state?: string | null
-          website?: string | null
-          domain?: string | null
           contact_name?: string | null
           contact_title?: string | null
-          score?: number | null
-          score_breakdown?: Json | null
-          score_reason?: string | null
-          outreach_hook?: string | null
-          signals?: Json | null
-          run_id?: string | null
-          scored_at?: string | null
-        }
-        Update: {
-          business_name?: string
           created_at?: string
+          domain?: string | null
           email?: string
           id?: string
           notes?: string
+          outreach_hook?: string | null
           phone?: string
           preferred_service?: string
-          source?: string
-          status?: string
-          segment?: string | null
-          city?: string | null
-          state?: string | null
-          website?: string | null
-          domain?: string | null
-          contact_name?: string | null
-          contact_title?: string | null
+          run_id?: string | null
           score?: number | null
           score_breakdown?: Json | null
           score_reason?: string | null
-          outreach_hook?: string | null
-          signals?: Json | null
-          run_id?: string | null
           scored_at?: string | null
+          segment?: string | null
+          signals?: Json | null
+          source?: string
+          state?: string | null
+          status?: string
+          website?: string | null
+        }
+        Update: {
+          business_name?: string
+          city?: string | null
+          contact_name?: string | null
+          contact_title?: string | null
+          created_at?: string
+          domain?: string | null
+          email?: string
+          id?: string
+          notes?: string
+          outreach_hook?: string | null
+          phone?: string
+          preferred_service?: string
+          run_id?: string | null
+          score?: number | null
+          score_breakdown?: Json | null
+          score_reason?: string | null
+          scored_at?: string | null
+          segment?: string | null
+          signals?: Json | null
+          source?: string
+          state?: string | null
+          status?: string
+          website?: string | null
         }
         Relationships: [
           {
@@ -319,10 +445,65 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      email_inbox: {
+        Row: {
+          business_name: string | null
+          contact_name: string | null
+          last_at: string | null
+          last_direction: string | null
+          last_snippet: string | null
+          last_subject: string | null
+          lead_id: string | null
+          unread: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      claim_lead_gen_run: {
+        Args: never
+        Returns: {
+          claimed_at: string | null
+          config: Json
+          enriched: number
+          error: string | null
+          excluded: number
+          finished_at: string | null
+          found: number
+          id: string
+          kept: number
+          params: Json
+          requested_by: string | null
+          stage: string | null
+          started_at: string
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "lead_gen_runs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      gmail_refresh_token: { Args: { p_account_id: string }; Returns: string }
+      is_crm_user: { Args: never; Returns: boolean }
+      save_gmail_account: {
+        Args: {
+          p_address: string
+          p_connected_by: string
+          p_display_name: string
+          p_refresh_token: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
@@ -341,12 +522,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -370,11 +551,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -395,11 +576,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -420,11 +601,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -437,11 +618,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

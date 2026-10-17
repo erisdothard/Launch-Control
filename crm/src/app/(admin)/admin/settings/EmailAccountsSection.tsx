@@ -1,0 +1,163 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import type { EmailAccount } from "@/lib/store/messages";
+import { addBusinessAddressAction, removeEmailAccountAction, setDisplayNameAction } from "./emailActions";
+
+interface EmailAccountsSectionProps {
+  accounts: EmailAccount[];
+  sendingDomain: string;
+  resendReady: boolean;
+  gmailReady: boolean;
+  gmailResult: string | null;
+}
+
+const GMAIL_RESULT: Record<string, { text: string; good: boolean }> = {
+  connected: { text: "Gmail connected. Replies on CRM threads will sync every couple of minutes.", good: true },
+  cancelled: { text: "Gmail connection cancelled.", good: false },
+  "no-refresh-token": { text: "Google didn't grant offline access. Try connecting again.", good: false },
+  "bad-state": { text: "That sign-in link expired. Try connecting again.", good: false },
+  "not-configured": { text: "Gmail isn't set up on the server yet.", good: false },
+  "save-failed": { text: "Couldn't save the connection. Try again.", good: false },
+  failed: { text: "Gmail connection failed. Try again.", good: false },
+};
+
+const inputClass =
+  "rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50";
+
+function AccountRow({ account }: { account: EmailAccount }) {
+  const [name, setName] = useState(account.displayName);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
+    setError(null);
+    startTransition(async () => {
+      const result = await fn();
+      if (!result.ok) setError(result.error ?? "Failed");
+    });
+  }
+
+  return (
+    <li className="flex flex-col gap-3 border-b border-[var(--color-border)] py-4 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="truncate font-medium text-[var(--color-text)]">{account.address}</p>
+        <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
+          {account.provider === "gmail" ? "Gmail" : "Business address"} · added by {account.connectedBy}
+          {account.status === "needs_reconnect" && <span className="text-[var(--color-livery-red)]"> · needs reconnecting</span>}
+        </p>
+        {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          aria-label={`Sender name for ${account.address}`}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Sender name, e.g. Max Hartmann"
+          className={`${inputClass} w-56`}
+          disabled={pending}
+        />
+        <button
+          type="button"
+          disabled={pending || name === account.displayName}
+          onClick={() => run(() => setDisplayNameAction(account.id, name))}
+          className="rounded-[2px] border border-[var(--color-border-bright)] px-3 py-2 text-xs text-[var(--color-text)] disabled:opacity-40"
+        >
+          Save
+        </button>
+        {account.status === "needs_reconnect" && (
+          <a href="/api/gmail/connect" className="rounded-[2px] border border-[var(--color-accent)] px-3 py-2 text-xs text-[var(--color-accent)]">
+            Reconnect
+          </a>
+        )}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(() => removeEmailAccountAction(account.id))}
+          className="px-2 py-2 text-xs text-[var(--color-text-dim)] hover:text-[var(--color-livery-red)]"
+        >
+          Remove
+        </button>
+      </div>
+    </li>
+  );
+}
+
+export default function EmailAccountsSection({ accounts, sendingDomain, resendReady, gmailReady, gmailResult }: EmailAccountsSectionProps) {
+  const [local, setLocal] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const visible = accounts.filter((a) => a.status !== "disabled");
+  const notice = gmailResult ? GMAIL_RESULT[gmailResult] : null;
+
+  function add() {
+    setError(null);
+    startTransition(async () => {
+      const result = await addBusinessAddressAction(local, displayName);
+      if (!result.ok) setError(result.error);
+      else {
+        setLocal("");
+        setDisplayName("");
+      }
+    });
+  }
+
+  return (
+    <section id="email-accounts" aria-labelledby="email-heading" className="mt-6 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 sm:p-6">
+      <h2 id="email-heading" className="label-mono text-[var(--color-steel)]">
+        Email
+      </h2>
+      <p className="mt-1 text-sm text-[var(--color-text-muted)]">Addresses the team can send from on a lead&apos;s Messages panel.</p>
+
+      {notice && (
+        <p role="status" className={`mt-4 text-sm ${notice.good ? "text-emerald-300" : "text-red-400"}`}>
+          {notice.text}
+        </p>
+      )}
+
+      {visible.length > 0 && <ul className="mt-4">{visible.map((a) => <AccountRow key={a.id} account={a} />)}</ul>}
+
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div>
+          <p className="text-sm font-medium text-[var(--color-text)]">Business address</p>
+          {resendReady ? (
+            <>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="flex items-center">
+                  <input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="max" className={`${inputClass} w-28`} disabled={pending} />
+                  <span className="px-2 text-sm text-[var(--color-text-muted)]">@{sendingDomain}</span>
+                </div>
+                <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Max Hartmann" className={`${inputClass} w-44`} disabled={pending} />
+                <button
+                  type="button"
+                  onClick={add}
+                  disabled={pending || !local.trim()}
+                  className="rounded-[2px] bg-[var(--color-accent)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+              {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-[var(--color-text-dim)]">Waiting on the domain&apos;s email setup.</p>
+          )}
+        </div>
+        <div>
+          <p className="text-sm font-medium text-[var(--color-text)]">Gmail</p>
+          {gmailReady ? (
+            <a
+              href="/api/gmail/connect"
+              className="mt-2 inline-flex items-center rounded-[2px] border border-[var(--color-border-bright)] px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+            >
+              Connect your Gmail
+            </a>
+          ) : (
+            <p className="mt-1 text-sm text-[var(--color-text-dim)]">Waiting on the Google sign-in setup.</p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}

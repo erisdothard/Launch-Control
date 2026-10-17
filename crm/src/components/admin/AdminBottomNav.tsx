@@ -54,6 +54,16 @@ const mainTabs = [
 
 const moreLinks = [
   {
+    label: "Inbox",
+    href: "/admin/inbox",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 5.5h14v9H3z" />
+        <path d="M3 6l7 5 7-5" />
+      </svg>
+    ),
+  },
+  {
     label: "Lead Gen",
     href: "/admin/lead-gen",
     icon: (
