@@ -19,7 +19,7 @@ export function BrandMark({ className = "" }: { className?: string }) {
 export function BrandLockup({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`flex items-center gap-2.5 font-display text-[12px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)] ${className}`}
+      className={`flex items-center gap-2.5 whitespace-nowrap font-display text-[12px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)] ${className}`}
     >
       <BrandMark className="h-6 w-auto shrink-0" />
       Launch Control
