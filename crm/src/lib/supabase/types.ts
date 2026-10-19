@@ -334,6 +334,9 @@ export type Database = {
           domain: string | null
           email: string
           id: string
+          last_contacted_at: string | null
+          next_action: string
+          follow_up_on: string | null
           notes: string
           outreach_hook: string | null
           phone: string
@@ -358,7 +361,10 @@ export type Database = {
           created_at?: string
           domain?: string | null
           email?: string
+          follow_up_on?: string | null
           id?: string
+          last_contacted_at?: string | null
+          next_action?: string
           notes?: string
           outreach_hook?: string | null
           phone?: string
@@ -383,7 +389,10 @@ export type Database = {
           created_at?: string
           domain?: string | null
           email?: string
+          follow_up_on?: string | null
           id?: string
+          last_contacted_at?: string | null
+          next_action?: string
           notes?: string
           outreach_hook?: string | null
           phone?: string

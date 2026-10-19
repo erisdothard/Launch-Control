@@ -7,6 +7,7 @@ import {
   bookingSchema,
   readBookingForm,
   toFieldErrors,
+  type Booking,
   type BookingState,
 } from "@/lib/bookingSchema";
 
@@ -52,7 +53,35 @@ export async function bookLaunch(
     return { ok: false, errors: toFieldErrors(parsed.error) };
   }
 
-  // The structured line is the booking store for now. Nothing else logs it.
   log.info("booking.received", parsed.data);
+  await sendToCrm(parsed.data);
   return { ok: true };
+}
+
+const CRM_TIMEOUT_MS = 8000;
+
+/*
+  Hands the booking to the CRM (crm/src/app/api/inquiry), where it lands as a lead due for follow-up
+  today. The visitor still sees success if this fails: the booking.received line above keeps the
+  details, and booking.crm_failed flags the ones to enter by hand.
+*/
+async function sendToCrm(booking: Booking): Promise<void> {
+  const url = process.env.CRM_INQUIRY_URL;
+  const secret = process.env.INQUIRY_SECRET;
+  if (!url || !secret) {
+    log.warn("booking.crm_not_configured");
+    return;
+  }
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${secret}` },
+      body: JSON.stringify(booking),
+      cache: "no-store",
+      signal: AbortSignal.timeout(CRM_TIMEOUT_MS),
+    });
+    if (!res.ok) log.error("booking.crm_failed", { status: res.status, email: booking.email });
+  } catch (error) {
+    log.error("booking.crm_failed", { status: 0, email: booking.email, reason: error instanceof Error ? error.name : "unknown" });
+  }
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createLeadAction } from "../actions";
+import { createLeadAction, type CreateLeadResult } from "../actions";
 
 const inputClass =
   "w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30";
@@ -17,6 +18,26 @@ export default function NewLeadForm() {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [duplicate, setDuplicate] = useState<{ id: string; businessName: string } | null>(null);
+
+  async function save(allowDuplicate: boolean) {
+    setError(null);
+    setPending(true);
+    let result: CreateLeadResult;
+    try {
+      result = await createLeadAction({ businessName, email, phone, source, notes }, allowDuplicate);
+    } catch {
+      setPending(false);
+      setError("Couldn't add the lead. Try again.");
+      return;
+    }
+    if (result.ok) {
+      router.push(`/admin/leads/${result.id}`);
+      return;
+    }
+    setPending(false);
+    setDuplicate(result.duplicate);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,15 +45,25 @@ export default function NewLeadForm() {
       setError("Business name is required.");
       return;
     }
-    setError(null);
-    setPending(true);
-    const lead = await createLeadAction({ businessName, email, phone, source, notes });
-    router.push(`/admin/leads/${lead.id}`);
+    setDuplicate(null);
+    await save(false);
   }
 
   return (
     <form onSubmit={handleSubmit} className="max-w-xl space-y-5 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6">
       {error && <div className="rounded-[2px] border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+      {duplicate && (
+        <div role="alert" className="rounded-[2px] border border-[var(--color-livery-orange)]/40 bg-[var(--color-livery-orange)]/10 px-4 py-3 text-sm text-[var(--color-text)]">
+          Already in the CRM as{" "}
+          <Link href={`/admin/leads/${duplicate.id}`} className="font-medium text-[var(--color-accent)] hover:underline">
+            {duplicate.businessName}
+          </Link>
+          .{" "}
+          <button type="button" onClick={() => save(true)} disabled={pending} className="text-[var(--color-text-muted)] underline hover:text-[var(--color-text)]">
+            Add it anyway
+          </button>
+        </div>
+      )}
 
       <div>
         <label htmlFor="businessName" className={labelClass}>

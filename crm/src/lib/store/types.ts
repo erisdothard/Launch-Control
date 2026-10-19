@@ -24,6 +24,9 @@ export interface Lead {
   source: string;
   notes: string;
   createdAt: string;
+  nextAction: string;
+  followUpOn: string | null; // YYYY-MM-DD
+  lastContactedAt: string | null; // set by the DB when the team emails the lead from the CRM
   prospect: Prospect | null;
 }
 
@@ -58,6 +61,9 @@ export interface Prospect {
 // the one thing that reliably tells "automated lead-gen" leads apart from everything
 // else in the `source` free-text field. Keep in sync with store.py.
 export const AUTOMATED_LEAD_SOURCE = "lead-gen";
+
+// Source on leads created by the marketing site's booking form (src/app/api/inquiry/route.ts).
+export const WEBSITE_LEAD_SOURCE = "Website";
 
 export interface Customer {
   id: string;
