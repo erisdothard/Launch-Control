@@ -6,9 +6,23 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { LEAD_STATUSES, type Lead, type LeadStatus } from "@/lib/store/types";
 import { updateLeadStatusAction, deleteLeadAction } from "./actions";
 import ContactFilterChips from "@/components/admin/ContactFilterChips";
+import { followUpState } from "@/lib/leads/followUp";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function NextStepCell({ lead }: { lead: Lead }) {
+  const due = followUpState(lead.followUpOn);
+  if (!due && !lead.nextAction) {
+    return <span className="text-xs text-[var(--color-text-dim)]">{lead.lastContactedAt ? "—" : "Not contacted"}</span>;
+  }
+  return (
+    <div className="min-w-0">
+      {due && <span className={`rounded-[2px] px-1.5 py-0.5 text-[11px] font-medium ${due.className}`}>{due.label}</span>}
+      {lead.nextAction && <div className="mt-1 truncate text-xs text-[var(--color-text-muted)]">{lead.nextAction}</div>}
+    </div>
+  );
 }
 
 interface LeadsTableClientProps {
@@ -69,6 +83,13 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
             className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-card)] px-4 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
           />
         </form>
+        <div className="flex shrink-0 gap-2">
+        <Link
+          href="/admin/leads/import"
+          className="inline-flex items-center justify-center rounded-[2px] border border-[var(--color-border-bright)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+        >
+          Import
+        </Link>
         <Link
           href="/admin/leads/new"
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[2px] bg-[var(--color-accent)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)]"
@@ -78,6 +99,7 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
           </svg>
           Add Lead
         </Link>
+        </div>
       </div>
 
       {/* Status filter pills */}
@@ -113,6 +135,7 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
               <th className="px-5 py-3 font-medium">Contact</th>
               <th className="px-5 py-3 font-medium">Source</th>
               <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 font-medium">Next step</th>
               <th className="px-5 py-3 font-medium">Added</th>
               <th className="px-5 py-3 font-medium"></th>
             </tr>
@@ -143,7 +166,10 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
                     ))}
                   </select>
                 </td>
-                <td className="px-5 py-4 text-[var(--color-text-dim)]">{formatDate(lead.createdAt)}</td>
+                <td className="max-w-[16rem] px-5 py-4">
+                  <NextStepCell lead={lead} />
+                </td>
+                <td className="px-5 py-4 whitespace-nowrap text-[var(--color-text-dim)]">{formatDate(lead.createdAt)}</td>
                 <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
@@ -160,7 +186,7 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
             ))}
             {leads.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-12 text-center text-[var(--color-text-dim)]">
+                <td colSpan={7} className="px-5 py-12 text-center text-[var(--color-text-dim)]">
                   No leads found.
                 </td>
               </tr>

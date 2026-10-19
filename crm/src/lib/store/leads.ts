@@ -1,7 +1,9 @@
 import { getStoreClient, type StoreClient } from "./db";
+import type { Database } from "@/lib/supabase/types";
 import type { ContactFilterKey } from "@/lib/leads/contactFilter";
 import { logActivity } from "./activity";
 import { createCustomer, type Customer } from "./customers";
+import { createDeal, type Deal } from "./deals";
 import type { Lead, LeadStatus, Prospect, ScoreFactor } from "./types";
 
 export type { Lead, LeadStatus } from "./types";
@@ -16,6 +18,9 @@ interface LeadRow {
   source: string;
   notes: string;
   created_at: string;
+  next_action: string;
+  follow_up_on: string | null;
+  last_contacted_at: string | null;
   segment: string | null;
   city: string | null;
   state: string | null;
@@ -78,6 +83,9 @@ function rowToLead(row: LeadRow): Lead {
     source: row.source,
     notes: row.notes,
     createdAt: row.created_at,
+    nextAction: row.next_action,
+    followUpOn: row.follow_up_on,
+    lastContactedAt: row.last_contacted_at,
     prospect: rowToProspect(row),
   };
 }
@@ -144,6 +152,59 @@ export interface CreateLeadInput {
   source: string;
   notes: string;
   status?: LeadStatus;
+  website?: string;
+  contactName?: string;
+}
+
+// "acme.com" from "https://www.acme.com/contact"; null when it isn't a usable URL.
+export function domainOf(website: string): string | null {
+  const raw = website.trim();
+  if (!raw) return null;
+  try {
+    const host = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).hostname.toLowerCase();
+    return host.replace(/^www\./, "") || null;
+  } catch {
+    return null;
+  }
+}
+
+function normalName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+export interface DuplicateKeys {
+  email?: string;
+  website?: string;
+  businessName?: string;
+}
+
+// The lead already in the CRM for this email, website domain or exact business name, if any.
+// One query per key; called once per add, and the import batches its own lookup.
+export async function findDuplicateLead(keys: DuplicateKeys, client?: StoreClient): Promise<Lead | null> {
+  const supabase = await getStoreClient(client);
+  const email = keys.email?.trim().toLowerCase();
+  const domain = keys.website ? domainOf(keys.website) : null;
+  const name = keys.businessName ? normalName(keys.businessName) : "";
+
+  if (email) {
+    const { data, error } = await supabase.from("leads").select("*").ilike("email", email).limit(1);
+    if (error) throw error;
+    if (data?.length) return rowToLead(data[0] as LeadRow);
+  }
+  if (domain) {
+    const { data, error } = await supabase.from("leads").select("*").eq("domain", domain).limit(1);
+    if (error) throw error;
+    if (data?.length) return rowToLead(data[0] as LeadRow);
+  }
+  if (name) {
+    // ilike without wildcards is a case-insensitive equals; escape the wildcard characters.
+    const term = keys.businessName!.trim().replace(/[%_\\]/g, (c) => `\\${c}`);
+    const { data, error } = await supabase.from("leads").select("*").ilike("business_name", term);
+    if (error) throw error;
+    const match = (data as LeadRow[]).find((r) => normalName(r.business_name) === name);
+    if (match) return rowToLead(match);
+  }
+  return null;
 }
 
 export async function createLead(input: CreateLeadInput, client?: StoreClient): Promise<Lead> {
@@ -157,6 +218,8 @@ export async function createLead(input: CreateLeadInput, client?: StoreClient): 
       source: input.source || "Manual entry",
       notes: input.notes,
       status: input.status ?? "new",
+      ...(input.website?.trim() && { website: input.website.trim(), domain: domainOf(input.website) }),
+      ...(input.contactName?.trim() && { contact_name: input.contactName.trim() }),
     })
     .select()
     .single();
@@ -174,7 +237,7 @@ export async function createLead(input: CreateLeadInput, client?: StoreClient): 
 
 export async function updateLead(
   id: string,
-  patch: Partial<Omit<Lead, "id" | "createdAt" | "prospect">>,
+  patch: Partial<Omit<Lead, "id" | "createdAt" | "prospect" | "lastContactedAt">>,
   client?: StoreClient
 ): Promise<Lead | null> {
   const supabase = await getStoreClient(client);
@@ -192,6 +255,8 @@ export async function updateLead(
       ...(patch.status !== undefined && { status: patch.status }),
       ...(patch.source !== undefined && { source: patch.source }),
       ...(patch.notes !== undefined && { notes: patch.notes }),
+      ...(patch.nextAction !== undefined && { next_action: patch.nextAction }),
+      ...(patch.followUpOn !== undefined && { follow_up_on: patch.followUpOn }),
     })
     .eq("id", id)
     .select()
@@ -249,4 +314,91 @@ export async function convertLeadToCustomer(id: string, client?: StoreClient): P
   );
 
   return customer;
+}
+
+// Lead -> deal: opens a deal at "proposal" carrying the lead's name and notes, and moves the lead
+// to "proposal" so the two pipelines agree. The lead stays a lead until it becomes a customer.
+export async function convertLeadToDeal(id: string, value: number, client?: StoreClient): Promise<Deal | null> {
+  const supabase = await getStoreClient(client);
+  const lead = await getLeadById(id, supabase);
+  if (!lead) return null;
+
+  const deal = await createDeal(
+    { businessName: lead.businessName, value, notes: lead.notes, fromLeadId: lead.id, stage: "proposal" },
+    supabase
+  );
+  if (lead.status === "new" || lead.status === "contacted" || lead.status === "qualified") {
+    await updateLead(id, { status: "proposal" }, supabase);
+  }
+  await logActivity(
+    { entityType: "lead", entityId: id, entityLabel: lead.businessName, action: "converted", detail: "→ deal" },
+    supabase
+  );
+  return deal;
+}
+
+export interface ImportLeadInput {
+  businessName: string;
+  email: string;
+  phone: string;
+  website: string;
+  contactName: string;
+  notes: string;
+}
+
+export interface ImportResult {
+  added: number;
+  duplicates: { businessName: string; matches: string }[];
+}
+
+// Bulk add from a spreadsheet. Skips any row matching a lead already in the CRM, or an earlier row
+// in the same file, by email, website domain or business name.
+export async function importLeads(rows: ImportLeadInput[], source: string, client?: StoreClient): Promise<ImportResult> {
+  const supabase = await getStoreClient(client);
+  const { data, error } = await supabase.from("leads").select("business_name, email, domain");
+  if (error) throw error;
+
+  const byEmail = new Map<string, string>();
+  const byDomain = new Map<string, string>();
+  const byName = new Map<string, string>();
+  const remember = (name: string, email: string, domain: string | null) => {
+    if (email) byEmail.set(email.toLowerCase(), name);
+    if (domain) byDomain.set(domain, name);
+    byName.set(normalName(name), name);
+  };
+  for (const r of data ?? []) remember(r.business_name, r.email, r.domain);
+
+  const duplicates: ImportResult["duplicates"] = [];
+  const inserts: Database["public"]["Tables"]["leads"]["Insert"][] = [];
+  for (const row of rows) {
+    const email = row.email.trim().toLowerCase();
+    const domain = domainOf(row.website);
+    const match =
+      (email && byEmail.get(email)) || (domain && byDomain.get(domain)) || byName.get(normalName(row.businessName));
+    if (match) {
+      duplicates.push({ businessName: row.businessName, matches: match });
+      continue;
+    }
+    remember(row.businessName, email, domain);
+    inserts.push({
+      business_name: row.businessName.slice(0, 200),
+      email,
+      phone: row.phone.slice(0, 40),
+      notes: row.notes.slice(0, 5000),
+      source,
+      status: "new",
+      ...(row.website.trim() && { website: row.website.trim(), domain }),
+      ...(row.contactName.trim() && { contact_name: row.contactName.trim().slice(0, 120) }),
+    });
+  }
+
+  if (inserts.length) {
+    const { error: insertError } = await supabase.from("leads").insert(inserts);
+    if (insertError) throw insertError;
+    await logActivity(
+      { entityType: "lead", entityId: "import", entityLabel: `${inserts.length} leads`, action: "created", detail: `imported from ${source}` },
+      client
+    );
+  }
+  return { added: inserts.length, duplicates };
 }

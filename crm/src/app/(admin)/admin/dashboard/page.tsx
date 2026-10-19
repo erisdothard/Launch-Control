@@ -5,6 +5,9 @@ import { getCustomers } from "@/lib/store/customers";
 import { getActivityLog } from "@/lib/store/activity";
 import { LEAD_STATUSES, type LeadStatus, type ActivityEntry } from "@/lib/store/types";
 import { getLeadsGeneratedThisMonth } from "@/lib/leadgen/stats";
+import { getTasks } from "@/lib/store/tasks";
+import { getInbox } from "@/lib/store/messages";
+import NeedsAttention from "@/components/admin/NeedsAttention";
 
 // Solid versions of StatusBadge's hue families — badges use light tints,
 // this needs to read at a glance in a thin bar.
@@ -59,7 +62,13 @@ function startOfLastWeek(): number {
 }
 
 export default async function DashboardPage() {
-  const [leads, customers, activity] = await Promise.all([getLeads(), getCustomers(), getActivityLog(8)]);
+  const [leads, customers, activity, tasks, inbox] = await Promise.all([
+    getLeads(),
+    getCustomers(),
+    getActivityLog(8),
+    getTasks(),
+    getInbox(50),
+  ]);
 
   const weekAgoMs = startOfLastWeek();
   const newThisWeek = leads.filter((l) => new Date(l.createdAt).getTime() >= weekAgoMs).length;
@@ -78,6 +87,8 @@ export default async function DashboardPage() {
   return (
     <>
       <AdminHeader title="Dashboard" subtitle="Pipeline overview and lead activity at a glance." />
+
+      <NeedsAttention leads={leads} tasks={tasks} inbox={inbox} />
 
       <div className="mb-4 flex flex-col gap-4 rounded-[2px] border border-[var(--color-accent)]/30 bg-[var(--color-bg-card)] p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>

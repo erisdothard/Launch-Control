@@ -11,7 +11,9 @@ import {
   updateLeadAction,
   deleteLeadAction,
   convertLeadAction,
+  convertLeadToDealAction,
 } from "../actions";
+import NextStepCard from "./NextStepCard";
 
 const inputClass =
   "w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30";
@@ -25,7 +27,7 @@ const ACTION_LABEL: Record<ActivityEntry["action"], string> = {
   created: "Created",
   updated: "Updated",
   status_changed: "Status changed",
-  converted: "Converted to customer",
+  converted: "Converted",
   deleted: "Deleted",
 };
 
@@ -46,6 +48,7 @@ export default function LeadDetailClient({ lead, activity }: LeadDetailClientPro
     notes: lead.notes,
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [dealValue, setDealValue] = useState<string | null>(null);
 
   function handleStatusChange(status: string) {
     startTransition(async () => {
@@ -73,6 +76,13 @@ export default function LeadDetailClient({ lead, activity }: LeadDetailClientPro
     startTransition(async () => {
       const customer = await convertLeadAction(lead.id);
       if (customer) router.push(`/admin/customers`);
+    });
+  }
+
+  function handleCreateDeal() {
+    startTransition(async () => {
+      const result = await convertLeadToDealAction(lead.id, Number(dealValue) || 0);
+      if (result.ok) router.push("/admin/deals");
     });
   }
 
@@ -266,6 +276,48 @@ export default function LeadDetailClient({ lead, activity }: LeadDetailClientPro
       </div>
 
       <div className="space-y-3">
+        <NextStepCard lead={lead} />
+
+        {dealValue === null ? (
+          <button
+            type="button"
+            onClick={() => setDealValue("")}
+            disabled={isPending || lead.status === "converted" || lead.status === "lost"}
+            className="w-full rounded-[2px] border border-[var(--color-accent)] px-4 py-2.5 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Create Deal
+          </button>
+        ) : (
+          <div className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4">
+            <label className="block">
+              <span className="mb-1 block text-xs text-[var(--color-text-muted)]">Deal value ($, optional)</span>
+              <input
+                type="number"
+                min="0"
+                step="100"
+                value={dealValue}
+                onChange={(e) => setDealValue(e.target.value)}
+                placeholder="0"
+                className={inputClass}
+                disabled={isPending}
+              />
+            </label>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={handleCreateDeal}
+                disabled={isPending}
+                className="rounded-[2px] bg-[var(--color-accent)] px-3 py-1.5 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
+              >
+                {isPending ? "Creating..." : "Create"}
+              </button>
+              <button type="button" onClick={() => setDealValue(null)} className="px-3 py-1.5 text-sm text-[var(--color-text-muted)] hover:bg-white/[0.05]">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={handleConvert}
