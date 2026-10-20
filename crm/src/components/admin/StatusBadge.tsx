@@ -14,7 +14,8 @@ interface StatusBadgeProps {
 const leadColors: Record<string, string> = {
   new: "bg-[var(--color-steel)]/10 text-[var(--color-steel)]",
   contacted: "bg-amber-400/10 text-amber-300",
-  qualified: "bg-green-400/10 text-green-300",
+  replied: "bg-teal-400/10 text-teal-300",
+  meeting: "bg-sky-400/10 text-sky-300",
   proposal: "bg-purple-400/10 text-purple-300",
   negotiation: "bg-[var(--color-livery-orange)]/15 text-[var(--color-livery-orange)]",
   converted: "bg-emerald-400/10 text-emerald-300",

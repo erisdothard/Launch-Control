@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { LEAD_STATUSES, type Lead, type LeadStatus } from "@/lib/store/types";
-import { updateLeadStatusAction, deleteLeadAction } from "./actions";
+import { LEAD_VIEWS, type Lead, type LeadView } from "@/lib/store/types";
+import { deleteLeadAction } from "./actions";
+import StatusBadge from "@/components/admin/StatusBadge";
 import ContactFilterChips from "@/components/admin/ContactFilterChips";
 import { followUpState } from "@/lib/leads/followUp";
 
@@ -12,8 +13,8 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function NextStepCell({ lead }: { lead: Lead }) {
-  const due = followUpState(lead.followUpOn);
+function NextStepCell({ lead, today }: { lead: Lead; today: string }) {
+  const due = followUpState(lead.followUpOn, today);
   if (!due && !lead.nextAction) {
     return <span className="text-xs text-[var(--color-text-dim)]">{lead.lastContactedAt ? "—" : "Not contacted"}</span>;
   }
@@ -25,20 +26,32 @@ function NextStepCell({ lead }: { lead: Lead }) {
   );
 }
 
-interface LeadsTableClientProps {
-  leads: Lead[];
-  statusFilter?: LeadStatus;
-  searchQuery: string;
+// Status is read-only: the database sets it from what happened, and says why underneath.
+function StatusCell({ lead }: { lead: Lead }) {
+  return (
+    <div className="min-w-0">
+      <StatusBadge status={lead.status} variant="lead" />
+      {lead.statusReason && <div className="mt-1 truncate text-xs text-[var(--color-text-dim)]">{lead.statusReason}</div>}
+    </div>
+  );
 }
 
-export default function LeadsTableClient({ leads, statusFilter, searchQuery }: LeadsTableClientProps) {
+interface LeadsTableClientProps {
+  leads: Lead[];
+  view: LeadView;
+  counts: Record<LeadView, number>;
+  searchQuery: string;
+  today: string;
+}
+
+export default function LeadsTableClient({ leads, view, counts, searchQuery, today }: LeadsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
   const [search, setSearch] = useState(searchQuery);
 
-  function pushParams(next: { status?: string; search?: string }) {
+  function pushParams(next: { view?: string; search?: string }) {
     const sp = new URLSearchParams(searchParams.toString());
     for (const [key, value] of Object.entries(next)) {
       if (value) sp.set(key, value);
@@ -52,16 +65,6 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
     pushParams({ search });
   }
 
-  function handleStatusFilter(status: LeadStatus | "all") {
-    pushParams({ status: status === "all" ? undefined : status });
-  }
-
-  function handleStatusChange(id: string, status: LeadStatus) {
-    startTransition(async () => {
-      await updateLeadStatusAction(id, status);
-      router.refresh();
-    });
-  }
 
   function handleDelete(id: string, name: string) {
     if (!confirm(`Delete "${name}"? This can't be undone.`)) return;
@@ -102,26 +105,37 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
         </div>
       </div>
 
-      {/* Status filter pills */}
-      <div className="mb-4 flex flex-wrap gap-1.5">
-        {(["all", ...LEAD_STATUSES] as const).map((s) => {
-          const active = s === "all" ? !statusFilter : statusFilter === s;
+      {/* Views: kept current by the database, so a lead shows up here the moment something happens */}
+      <nav aria-label="Lead views" className="mb-2 flex gap-1 overflow-x-auto border-b border-[var(--color-border)]">
+        {LEAD_VIEWS.map((v) => {
+          const active = v.key === view;
+          const n = counts[v.key];
+          const urgent = (v.key === "needs-reply" || v.key === "follow-up") && n > 0;
           return (
             <button
-              key={s}
+              key={v.key}
               type="button"
-              onClick={() => handleStatusFilter(s)}
-              className={`rounded-[2px] px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+              aria-current={active ? "page" : undefined}
+              onClick={() => pushParams({ view: v.key })}
+              className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-                  : "bg-[var(--color-bg-card)] text-[var(--color-text-muted)] hover:bg-white/[0.05]"
+                  ? "border-[var(--color-accent)] text-[var(--color-text)]"
+                  : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
               }`}
             >
-              {s}
+              {v.label}
+              <span
+                className={`rounded-[2px] px-1.5 py-0.5 text-[11px] tabular-nums ${
+                  urgent ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]" : "bg-white/[0.06] text-[var(--color-text-dim)]"
+                }`}
+              >
+                {n}
+              </span>
             </button>
           );
         })}
-      </div>
+      </nav>
+      <p className="mb-4 text-xs text-[var(--color-text-dim)]">{LEAD_VIEWS.find((v) => v.key === view)?.hint}</p>
 
       <div className="mb-4">
         <ContactFilterChips />
@@ -153,21 +167,11 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
                   {lead.email && <div className="text-xs text-[var(--color-text-dim)]">{lead.email}</div>}
                 </td>
                 <td className="px-5 py-4 whitespace-nowrap text-[var(--color-text-muted)]">{lead.source}</td>
-                <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-                  <select
-                    value={lead.status}
-                    onChange={(e) => handleStatusChange(lead.id, e.target.value as LeadStatus)}
-                    className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] px-2 py-1 text-xs font-medium text-[var(--color-text)] capitalize outline-none focus:border-[var(--color-accent)]/50"
-                  >
-                    {LEAD_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                <td className="max-w-[12rem] px-5 py-4">
+                  <StatusCell lead={lead} />
                 </td>
                 <td className="max-w-[16rem] px-5 py-4">
-                  <NextStepCell lead={lead} />
+                  <NextStepCell lead={lead} today={today} />
                 </td>
                 <td className="px-5 py-4 whitespace-nowrap text-[var(--color-text-dim)]">{formatDate(lead.createdAt)}</td>
                 <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
@@ -187,7 +191,7 @@ export default function LeadsTableClient({ leads, statusFilter, searchQuery }: L
             {leads.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-5 py-12 text-center text-[var(--color-text-dim)]">
-                  No leads found.
+                  {view === "needs-reply" ? "Nobody is waiting on a reply." : view === "follow-up" ? "No follow-ups due." : "No leads here."}
                 </td>
               </tr>
             )}

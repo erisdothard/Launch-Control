@@ -14,7 +14,8 @@ import NeedsAttention from "@/components/admin/NeedsAttention";
 const STATUS_BAR_COLORS: Record<LeadStatus, string> = {
   new: "bg-[var(--color-steel)]",
   contacted: "bg-amber-400",
-  qualified: "bg-teal-400",
+  replied: "bg-teal-400",
+  meeting: "bg-sky-400",
   proposal: "bg-purple-400",
   negotiation: "bg-[var(--color-livery-orange)]",
   converted: "bg-[var(--color-accent)]",

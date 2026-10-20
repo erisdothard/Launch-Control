@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import {
   createLead,
   updateLead,
+  markLeadNotAFit,
   deleteLead,
   convertLeadToCustomer,
   convertLeadToDeal,
@@ -11,7 +12,6 @@ import {
   importLeads,
   type ImportLeadInput,
   type ImportResult,
-  type LeadStatus,
   type CreateLeadInput,
 } from "@/lib/store/leads";
 
@@ -38,8 +38,8 @@ export async function createLeadAction(input: CreateLeadInput, allowDuplicate = 
   return { ok: true, id: lead.id };
 }
 
-export async function updateLeadStatusAction(id: string, status: LeadStatus) {
-  await updateLead(id, { status });
+export async function markLeadNotAFitAction(id: string) {
+  await markLeadNotAFit(id);
   revalidateLeads(id);
 }
 

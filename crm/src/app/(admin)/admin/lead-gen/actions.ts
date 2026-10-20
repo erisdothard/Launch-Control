@@ -1,15 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { updateLead } from "@/lib/store/leads";
+import { markLeadNotAFit } from "@/lib/store/leads";
 import { cancelRun, queueRun } from "@/lib/store/leadgen";
-import { LEAD_STATUSES, type LeadStatus } from "@/lib/store/types";
 import { LEADGEN_REQUIRE, LEADGEN_SEGMENTS, LEADGEN_SIZES, LEADGEN_STATES, type LeadGenRequireKey } from "@/lib/leadgen/catalog";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-export async function setProspectStatusAction(id: string, status: LeadStatus) {
-  if (!LEAD_STATUSES.includes(status)) throw new Error(`Unknown status: ${status}`);
-  await updateLead(id, { status });
+export async function markProspectNotAFitAction(id: string) {
+  await markLeadNotAFit(id);
   revalidatePath("/admin/lead-gen");
   revalidatePath("/admin/leads");
   revalidatePath(`/admin/leads/${id}`);

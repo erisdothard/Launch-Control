@@ -41,6 +41,16 @@ const crmItems = [
     ),
   },
   {
+    label: "Drafts",
+    href: "/admin/drafts",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3L8.5 11.5" />
+        <path d="M17 3l-5 14-3.5-5.5L3 8z" />
+      </svg>
+    ),
+  },
+  {
     label: "Lead Gen",
     href: "/admin/lead-gen",
     icon: (
@@ -118,9 +128,10 @@ interface AdminSidebarProps {
   companyName: string;
   logoUrl: string | null;
   unread: number;
+  drafts: number;
 }
 
-export default function AdminSidebar({ userEmail, companyName, logoUrl, unread }: AdminSidebarProps) {
+export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, drafts }: AdminSidebarProps) {
   const pathname = usePathname();
 
   function isActive(href: string) {
@@ -163,6 +174,11 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread }
                 >
                   <span className="shrink-0">{item.icon}</span>
                   {item.label}
+                  {item.href === "/admin/drafts" && drafts > 0 && (
+                    <span className="ml-auto rounded-[2px] bg-[var(--color-accent)] px-1.5 py-0.5 font-mono text-[11px] leading-none text-[var(--color-on-accent)]">
+                      {drafts}
+                    </span>
+                  )}
                   {item.href === "/admin/inbox" && unread > 0 && (
                     <span className="ml-auto rounded-[2px] bg-[var(--color-accent)] px-1.5 py-0.5 font-mono text-[11px] leading-none text-[var(--color-on-accent)]">
                       {unread}

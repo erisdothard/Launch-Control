@@ -7,6 +7,11 @@ export function todayISO(now: Date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
+// The team's calendar day wherever the code runs (Vercel is UTC): the database's team_today().
+export function teamTodayISO(now: Date = new Date(), timeZone = "America/Chicago"): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+}
+
 export interface FollowUpState {
   label: string;
   className: string;

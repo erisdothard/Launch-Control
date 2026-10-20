@@ -64,6 +64,16 @@ const moreLinks = [
     ),
   },
   {
+    label: "Drafts",
+    href: "/admin/drafts",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3L8.5 11.5" />
+        <path d="M17 3l-5 14-3.5-5.5L3 8z" />
+      </svg>
+    ),
+  },
+  {
     label: "Lead Gen",
     href: "/admin/lead-gen",
     icon: (

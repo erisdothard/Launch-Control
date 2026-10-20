@@ -4,11 +4,11 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import StatusBadge from "@/components/admin/StatusBadge";
-import { LEAD_STATUSES, type Lead, type LeadGenRun, type LeadStatus } from "@/lib/store/types";
+import { LEAD_STATUSES, type Lead, type LeadGenRun } from "@/lib/store/types";
 import { readSignals, scoreBand } from "@/lib/leadgen/factors";
 import { FactorBars, SignalChips } from "@/components/admin/ProspectInsights";
 import type { LeadGenFilters } from "./filters";
-import { setProspectStatusAction } from "./actions";
+import { markProspectNotAFitAction } from "./actions";
 import FindLeadsPanel from "./FindLeadsPanel";
 import ContactFilterChips from "@/components/admin/ContactFilterChips";
 
@@ -105,7 +105,7 @@ function ScoreChip({ score }: { score: number | null }) {
   );
 }
 
-function ProspectRow({ lead, onStatus, pending }: { lead: Lead; onStatus: (status: LeadStatus) => void; pending: boolean }) {
+function ProspectRow({ lead, onNotAFit, pending }: { lead: Lead; onNotAFit: () => void; pending: boolean }) {
   const [open, setOpen] = useState(false);
   const p = lead.prospect;
   const location = [p?.city, p?.state].filter(Boolean).join(", ");
@@ -205,16 +205,8 @@ function ProspectRow({ lead, onStatus, pending }: { lead: Lead; onStatus: (statu
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              disabled={pending || lead.status === "contacted"}
-              onClick={() => onStatus("contacted")}
-              className="rounded-[2px] bg-[var(--color-accent)] px-3.5 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
-            >
-              Mark contacted
-            </button>
-            <button
-              type="button"
               disabled={pending || lead.status === "lost"}
-              onClick={() => onStatus("lost")}
+              onClick={onNotAFit}
               className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3.5 py-2 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:bg-white/[0.05] disabled:opacity-50"
             >
               Not a fit
@@ -254,12 +246,12 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
     router.push(`${pathname}?${sp.toString()}`);
   }
 
-  function handleStatus(id: string, status: LeadStatus) {
+  function handleNotAFit(id: string) {
     setPendingId(id);
     setError(null);
     startTransition(async () => {
       try {
-        await setProspectStatusAction(id, status);
+        await markProspectNotAFitAction(id);
         router.refresh();
       } catch {
         setError("Couldn't update that lead. Try again.");
@@ -366,7 +358,7 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
             key={lead.id}
             lead={lead}
             pending={pendingId === lead.id}
-            onStatus={(status) => handleStatus(lead.id, status)}
+            onNotAFit={() => handleNotAFit(lead.id)}
           />
         ))}
         {prospects.length === 0 && (

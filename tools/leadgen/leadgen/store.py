@@ -191,6 +191,12 @@ class Store:
             out.update(r["message_id_header"] for r in rows)
         return out
 
+    def attach_provider_ids(self, message_id_header: str, provider_message_id: str, provider_thread_id: str | None) -> None:
+        """A CRM send that went out over SMTP has only its Message-ID; add the ids Outlook gave it."""
+        self._req("PATCH", "email_messages", params={
+            "message_id_header": f"eq.{message_id_header}", "provider_message_id": "is.null",
+        }, prefer="return=minimal", json={"provider_message_id": provider_message_id, "provider_thread_id": provider_thread_id})
+
     def insert_message(self, row: dict[str, Any]) -> int:
         """Insert unless (provider, provider_message_id) exists. Returns 1 if stored."""
         resp = self._req("POST", "email_messages", params={"on_conflict": "provider,provider_message_id"},

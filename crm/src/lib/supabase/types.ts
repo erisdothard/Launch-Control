@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activity_log: {
@@ -41,6 +66,36 @@ export type Database = {
           entity_label?: string
           entity_type?: string
           id?: string
+        }
+        Relationships: []
+      }
+      automation_settings: {
+        Row: {
+          auto_send_follow_ups: boolean
+          cold_after_days: number
+          daily_send_cap: number
+          draft_replies: boolean
+          follow_up_days: number[]
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          auto_send_follow_ups?: boolean
+          cold_after_days?: number
+          daily_send_cap?: number
+          draft_replies?: boolean
+          follow_up_days?: number[]
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          auto_send_follow_ups?: boolean
+          cold_after_days?: number
+          daily_send_cap?: number
+          draft_replies?: boolean
+          follow_up_days?: number[]
+          id?: boolean
+          updated_at?: string
         }
         Relationships: []
       }
@@ -87,7 +142,15 @@ export type Database = {
           starts_at?: string
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_info: {
         Row: {
@@ -213,11 +276,11 @@ export type Database = {
           connected_by: string
           created_at: string
           display_name: string
-          signature_title: string
           gmail_history_id: string | null
           id: string
           mailbox: string | null
           provider: string
+          signature_title: string
           status: string
           sync_cursor: string | null
           token_secret_id: string | null
@@ -227,11 +290,11 @@ export type Database = {
           connected_by: string
           created_at?: string
           display_name?: string
-          signature_title?: string
           gmail_history_id?: string | null
           id?: string
           mailbox?: string | null
           provider: string
+          signature_title?: string
           status?: string
           sync_cursor?: string | null
           token_secret_id?: string | null
@@ -241,16 +304,82 @@ export type Database = {
           connected_by?: string
           created_at?: string
           display_name?: string
-          signature_title?: string
           gmail_history_id?: string | null
           id?: string
           mailbox?: string | null
           provider?: string
+          signature_title?: string
           status?: string
           sync_cursor?: string | null
           token_secret_id?: string | null
         }
         Relationships: []
+      }
+      email_drafts: {
+        Row: {
+          body_text: string
+          created_at: string
+          error: string | null
+          follow_up_number: number | null
+          id: string
+          kind: string
+          lead_id: string
+          reply_to_message_id: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          subject: string
+          to_address: string
+          updated_at: string
+        }
+        Insert: {
+          body_text: string
+          created_at?: string
+          error?: string | null
+          follow_up_number?: number | null
+          id?: string
+          kind: string
+          lead_id: string
+          reply_to_message_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject: string
+          to_address: string
+          updated_at?: string
+        }
+        Update: {
+          body_text?: string
+          created_at?: string
+          error?: string | null
+          follow_up_number?: number | null
+          id?: string
+          kind?: string
+          lead_id?: string
+          reply_to_message_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject?: string
+          to_address?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_drafts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_messages: {
         Row: {
@@ -380,17 +509,21 @@ export type Database = {
       }
       leads: {
         Row: {
+          awaiting: string | null
           business_name: string
           city: string | null
           contact_name: string | null
           contact_title: string | null
           created_at: string
+          do_not_contact: boolean
           domain: string | null
           email: string
+          follow_up_count: number
+          follow_up_on: string | null
           id: string
           last_contacted_at: string | null
+          last_reply_at: string | null
           next_action: string
-          follow_up_on: string | null
           notes: string
           outreach_hook: string | null
           phone: string
@@ -405,19 +538,25 @@ export type Database = {
           source: string
           state: string | null
           status: string
+          status_changed_at: string | null
+          status_reason: string
           website: string | null
         }
         Insert: {
+          awaiting?: string | null
           business_name: string
           city?: string | null
           contact_name?: string | null
           contact_title?: string | null
           created_at?: string
+          do_not_contact?: boolean
           domain?: string | null
           email?: string
+          follow_up_count?: number
           follow_up_on?: string | null
           id?: string
           last_contacted_at?: string | null
+          last_reply_at?: string | null
           next_action?: string
           notes?: string
           outreach_hook?: string | null
@@ -433,19 +572,25 @@ export type Database = {
           source?: string
           state?: string | null
           status?: string
+          status_changed_at?: string | null
+          status_reason?: string
           website?: string | null
         }
         Update: {
+          awaiting?: string | null
           business_name?: string
           city?: string | null
           contact_name?: string | null
           contact_title?: string | null
           created_at?: string
+          do_not_contact?: boolean
           domain?: string | null
           email?: string
+          follow_up_count?: number
           follow_up_on?: string | null
           id?: string
           last_contacted_at?: string | null
+          last_reply_at?: string | null
           next_action?: string
           notes?: string
           outreach_hook?: string | null
@@ -461,6 +606,8 @@ export type Database = {
           source?: string
           state?: string | null
           status?: string
+          status_changed_at?: string | null
+          status_reason?: string
           website?: string | null
         }
         Relationships: [
@@ -531,6 +678,7 @@ export type Database = {
       }
     }
     Functions: {
+      add_business_days: { Args: { d: string; n: number }; Returns: string }
       claim_lead_gen_run: {
         Args: never
         Returns: {
@@ -558,8 +706,21 @@ export type Database = {
       }
       gmail_refresh_token: { Args: { p_account_id: string }; Returns: string }
       is_crm_user: { Args: never; Returns: boolean }
+      is_opt_out: { Args: { body: string }; Returns: boolean }
       mail_refresh_token: { Args: { p_account_id: string }; Returns: string }
-      save_mail_refresh_token: { Args: { p_account_id: string; p_refresh_token: string }; Returns: undefined }
+      save_gmail_account: {
+        Args: {
+          p_address: string
+          p_connected_by: string
+          p_display_name: string
+          p_refresh_token: string
+        }
+        Returns: string
+      }
+      save_mail_refresh_token: {
+        Args: { p_account_id: string; p_refresh_token: string }
+        Returns: undefined
+      }
       save_outlook_account: {
         Args: {
           p_aliases: string[]
@@ -570,15 +731,7 @@ export type Database = {
         }
         Returns: string
       }
-      save_gmail_account: {
-        Args: {
-          p_address: string
-          p_connected_by: string
-          p_display_name: string
-          p_refresh_token: string
-        }
-        Returns: string
-      }
+      team_today: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
@@ -707,6 +860,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
