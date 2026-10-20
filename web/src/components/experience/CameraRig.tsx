@@ -17,12 +17,11 @@ import { ignitionRattle, shakeForRpm, clamp01 } from "@/lib/scrollMap";
 
 /** [p, position, target] keyframes. p is the stage progress. */
 const KEYS: Array<[number, THREE.Vector3, THREE.Vector3]> = [
-  // idle: wide 3/4, the whole engine with air around it
-  [0.0, new THREE.Vector3(1.438, 0.525, 1.688), new THREE.Vector3(0.0, 0.02, 0.0)],
-  [0.1, new THREE.Vector3(1.250, 0.625, 1.500), new THREE.Vector3(0.0, 0.04, 0.0)],
-  // dive: the stack opens; the camera comes down and in so the layers read, never inside them
-  [0.25, new THREE.Vector3(1.425, 1.000, 1.650), new THREE.Vector3(0.0, 0.1, 0.0)],
-  [0.4, new THREE.Vector3(1.350, 0.900, 1.500), new THREE.Vector3(0.0, 0.1, 0.0)],
+  // opening: the stack fully apart fills the right of the hero, seen from above so the layers read
+  [0.0, new THREE.Vector3(1.350, 0.900, 1.500), new THREE.Vector3(0.0, -0.03, 0.0)],
+  [0.1, new THREE.Vector3(1.360, 0.900, 1.510), new THREE.Vector3(0.0, -0.02, 0.0)],
+  // reassembly: pulls back a touch and comes down as the parts go home
+  [0.35, new THREE.Vector3(1.370, 0.820, 1.520), new THREE.Vector3(0.0, 0.04, 0.0)],
   // combustion: stays as wide as the dive while the parts are still apart (the reviewer's 2026-10-09
   // note: the old 1.075/0.475/1.2 key was 1.4x closer than the dive and cropped the stack), then
   // settles lower as they come home

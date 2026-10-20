@@ -4,14 +4,9 @@ import {
   REV_HOLD_RPM,
   STAGE_LIMITER_RPM,
   EXPLODE_END,
-  EXPLODE_PEAK,
-  EXPLODE_START,
+  EXPLODE_HOLD,
   beatForProgress,
   explodeForProgress,
-  contentExplodeForProgress,
-  explodeForState,
-  CONTENT_EXPLODE_START,
-  CONTENT_EXPLODE_END,
   fogForRpm,
   ignitionRpm,
   launchForProgress,
@@ -60,32 +55,14 @@ describe("scrollMap", () => {
     expect(launchForProgress(0.97)).toBeGreaterThan(0);
   });
 
-  it("the content era takes the engine apart again, slowly, and holds it apart", () => {
-    expect(contentExplodeForProgress(0)).toBe(0);
-    expect(contentExplodeForProgress(CONTENT_EXPLODE_START)).toBe(0);
-    expect(contentExplodeForProgress((CONTENT_EXPLODE_START + CONTENT_EXPLODE_END) / 2)).toBeCloseTo(0.5, 5);
-    expect(contentExplodeForProgress(CONTENT_EXPLODE_END)).toBe(1);
-    expect(contentExplodeForProgress(1)).toBe(1);
-    // the stage's own explode wins while the stage runs; the content's once it is over
-    expect(explodeForState(EXPLODE_PEAK, 0)).toBe(1);
-    expect(explodeForState(1, 0)).toBe(0);
-    expect(explodeForState(1, 1)).toBe(1);
-  });
-
-  it("explode is 0 at idle, 1 at the peak, 0 again from the end, and eased in between", () => {
-    expect(explodeForProgress(0)).toBe(0);
-    expect(explodeForProgress(EXPLODE_START)).toBe(0);
-    expect(explodeForProgress(EXPLODE_PEAK)).toBe(1);
+  it("explode opens fully apart, holds, eases back together by the end, and stays assembled", () => {
+    expect(explodeForProgress(0)).toBe(1);
+    expect(explodeForProgress(EXPLODE_HOLD)).toBe(1);
+    expect(explodeForProgress((EXPLODE_HOLD + EXPLODE_END) / 2)).toBeCloseTo(0.5, 5);
     expect(explodeForProgress(EXPLODE_END)).toBe(0);
     expect(explodeForProgress(1)).toBe(0);
-    let prev = 0;
-    const at = (x: number) => Math.round(x * 1000);
-    for (let i = at(EXPLODE_START); i <= at(EXPLODE_PEAK); i++) {
-      const k = explodeForProgress(i / 1000);
-      expect(k).toBeGreaterThanOrEqual(prev - 1e-9);
-      prev = k;
-    }
-    for (let i = at(EXPLODE_PEAK); i <= at(EXPLODE_END); i++) {
+    let prev = 1;
+    for (let i = 0; i <= 1000; i++) {
       const k = explodeForProgress(i / 1000);
       expect(k).toBeLessThanOrEqual(prev + 1e-9);
       prev = k;

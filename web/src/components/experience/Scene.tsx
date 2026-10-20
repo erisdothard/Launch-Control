@@ -5,8 +5,8 @@
   Lighting: a machine-shop HDRI for the steel, one cold key, one ember rim that grows with the
   revs, background #05080b. The firing cylinder flashes ember → ember-hot → white-hot by
   combustion intensity, attenuated while the engine is apart.
-  The engine sits on a turntable group that turns slowly with time plus whatever the visitor drags
-  (lib/spin.ts); scroll only moves the camera.
+  The engine sits on a turntable group that turns slowly with time, plus whatever the
+  visitor drags (lib/spin.ts); scroll moves the camera and the explode.
 
   Track C slot: `effects` renders inside the Canvas after the engine (postprocessing, fog, rays).
   Track C reads scrollState.{p,rpm,combustion,fog,launch,time}.
@@ -123,10 +123,10 @@ function Backdrop() {
 }
 /** Turntable: a slow constant turn with time. The camera path owns every scroll-driven move. */
 const TURN_TIME = 0.025;
-/* Base yaw of the turntable: the pose Eris picked on 2026-10-09 from a drag ("I like this angle
-   better as a starting point"): front of the block to the viewer, crank running out to the right,
-   heads angled. Matched against a rendered ring of yaws; the slow turn and the drag add to it. */
-const BASE_YAW = (330 * Math.PI) / 180;
+/* Base yaw of the turntable: the pose Eris picked on 2026-10-19 from a screenshot of the exploded
+   stack: heads opened up toward the viewer, intake flange top right, camshaft running down to the
+   bottom right corner. Matched against a rendered ring of yaws; the turn and the drag add to it. */
+const BASE_YAW = (261 * Math.PI) / 180;
 /** The engine sits right of centre, behind the hero type. */
 const ENGINE_OFFSET_X = 0.36;
 /** The engine is background: its combustion glow runs at a fraction of the old stage strength. */

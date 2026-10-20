@@ -10,6 +10,8 @@ const { hero } = site;
   where it overlaps steel (90% at the left edge, 50% at the column's end, the engine still bright
   on the right); on a phone, where the type spans the full width, it is an even veil.
   No backdrop-filter.
+  The rotate hint (bottom right, over the engine) only shows while the 3D runs and fades out after
+  the first drag (globals.css, keyed off Experience's data attributes).
   The section behind this (Experience) is STAGE_SCREENS tall; this one-screen frame sticks to the
   top of the window while the engine runs its stage, then scrolls away with the page.
 */
@@ -39,6 +41,15 @@ export function Hero() {
             {hero.secondaryCta.label}
           </ButtonLink>
         </div>
+      </div>
+      <div aria-hidden="true" className="rotate-hint pointer-events-none absolute inset-x-0 bottom-8 mx-auto flex max-w-content-max justify-end px-6 lg:px-12">
+        <span className="label-mono flex items-center gap-2 text-subtle">
+          <svg className="rotate-hint-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M13.5 8a5.5 5.5 0 1 1-1.61-3.89" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            <path d="M12.2 1.6v2.9H9.3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {hero.rotateHint}
+        </span>
       </div>
     </div>
   );

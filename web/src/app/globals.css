@@ -79,6 +79,30 @@ html.lenis body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Hero rotate hint: only while the 3D runs, gone after the first drag, a slow sway on the arrow. */
+.rotate-hint {
+  opacity: 0;
+  transition: opacity 0.6s var(--ease-ui);
+}
+[data-engine="full"] .rotate-hint {
+  opacity: 1;
+}
+[data-engine="full"][data-spun] .rotate-hint {
+  opacity: 0;
+}
+.rotate-hint-icon {
+  animation: rotate-hint-sway 2.8s ease-in-out infinite;
+}
+@keyframes rotate-hint-sway {
+  0%,
+  100% {
+    transform: rotate(-35deg);
+  }
+  50% {
+    transform: rotate(35deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
