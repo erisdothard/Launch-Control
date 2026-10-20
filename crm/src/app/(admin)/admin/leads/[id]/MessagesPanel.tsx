@@ -59,7 +59,8 @@ export default function MessagesPanel({ leadId, leadEmail, contactName, suggeste
   const lastInbound = [...messages].reverse().find((m) => m.direction === "in");
 
   const [accountId, setAccountId] = useState(active[0]?.id ?? "");
-  const [to, setTo] = useState(lastInbound?.fromAddress ?? leadEmail);
+  // The lead's own address first; a reply's sender only when the lead has none (bounces come from system addresses).
+  const [to, setTo] = useState(leadEmail || lastInbound?.fromAddress || "");
   const [subject, setSubject] = useState(lastSubject ? (/^re:/i.test(lastSubject) ? lastSubject : `Re: ${lastSubject}`) : "");
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
