@@ -1,5 +1,6 @@
 "use client";
 
+import LocalDate from "@/components/admin/LocalDate";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Lead } from "@/lib/store/types";
@@ -9,9 +10,13 @@ import { updateNextStepAction } from "../actions";
 const inputClass =
   "w-full rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50";
 
-function lastContacted(iso: string | null): string {
+function lastContacted(iso: string | null) {
   if (!iso) return "Not contacted yet";
-  return `Last emailed ${new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+  return (
+    <>
+      Last emailed <LocalDate iso={iso} options={{ month: "short", day: "numeric" }} />
+    </>
+  );
 }
 
 // What happens next on this lead, and when. Shows on the dashboard's "Needs attention" list once due.

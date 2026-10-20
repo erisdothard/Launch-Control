@@ -1,5 +1,6 @@
 "use client";
 
+import LocalDate from "@/components/admin/LocalDate";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -22,8 +23,8 @@ const MIN_SCORE_OPTIONS = [
 const selectClass =
   "rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30";
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+function formatDate(iso: string) {
+  return <LocalDate iso={iso} options={{ month: "short", day: "numeric", year: "numeric" }} />;
 }
 
 function hostname(url: string): string {

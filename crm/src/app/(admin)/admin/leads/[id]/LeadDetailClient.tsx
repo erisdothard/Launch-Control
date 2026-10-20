@@ -1,5 +1,6 @@
 "use client";
 
+import LocalDate from "@/components/admin/LocalDate";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "@/components/admin/StatusBadge";
@@ -20,8 +21,8 @@ const inputClass =
   "w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30";
 const labelClass = "mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]";
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+function formatDateTime(iso: string) {
+  return <LocalDate iso={iso} options={{ month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }} />;
 }
 
 const ACTION_LABEL: Record<ActivityEntry["action"], string> = {
@@ -313,7 +314,10 @@ export default function LeadDetailClient({ lead, activity, meetings, today }: Le
                     >
                       <p className="text-sm text-[var(--color-text)]">{m.title}</p>
                       <p className="text-xs text-[var(--color-text-muted)]">
-                        {day.toLocaleString("en-US", m.allDay ? { weekday: "short", month: "short", day: "numeric" } : { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        <LocalDate
+                          iso={m.startsAt}
+                          options={m.allDay ? { weekday: "short", month: "short", day: "numeric" } : { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }}
+                        />
                       </p>
                     </Link>
                   </li>
