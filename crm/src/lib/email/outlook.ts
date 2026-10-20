@@ -127,13 +127,13 @@ export async function sendViaOutlook(accessToken: string, msg: OutlookSend): Pro
     toRecipients: [{ emailAddress: { address: msg.to } }],
     ...(from && { from }),
   };
-  let draft: GraphMessage;
+  let draft: GraphMessage | null = null;
   if (msg.replyToMessageId) {
-    draft = await graph<GraphMessage>(accessToken, `/me/messages/${encodeURIComponent(msg.replyToMessageId)}/createReply`, { method: "POST", body: "{}" });
-    await graph(accessToken, `/me/messages/${encodeURIComponent(draft.id)}`, { method: "PATCH", body: JSON.stringify(fields) });
-  } else {
-    draft = await graph<GraphMessage>(accessToken, "/me/messages", { method: "POST", body: JSON.stringify(fields) });
+    // The original may have been deleted in Outlook; then send it as a new message instead.
+    draft = await graph<GraphMessage>(accessToken, `/me/messages/${encodeURIComponent(msg.replyToMessageId)}/createReply`, { method: "POST", body: "{}" }).catch(() => null);
+    if (draft) await graph(accessToken, `/me/messages/${encodeURIComponent(draft.id)}`, { method: "PATCH", body: JSON.stringify(fields) });
   }
+  draft ??= await graph<GraphMessage>(accessToken, "/me/messages", { method: "POST", body: JSON.stringify(fields) });
   await graph(accessToken, `/me/messages/${encodeURIComponent(draft.id)}/send`, { method: "POST", body: "{}" });
   return draft;
 }

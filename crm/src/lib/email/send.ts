@@ -73,7 +73,8 @@ export async function sendLeadEmail(input: SendInput): Promise<SendResult> {
       const sent = await sendViaResend({ from, to, subject, ...signed, replyTo: replyAddressFor(lead.id), inReplyTo });
       providerMessageId = sent.id;
     } else if (account.provider === "outlook") {
-      const lastOutlookIn = [...thread].reverse().find((m) => m.direction === "in" && m.provider === "outlook");
+      // Reply onto the recipient's own last message; bounce notices and other system mail can't be replied to.
+      const lastOutlookIn = [...thread].reverse().find((m) => m.direction === "in" && m.provider === "outlook" && m.fromAddress.toLowerCase() === to.toLowerCase());
       const replyTo = lastOutlookIn ? await providerIdFor(lastOutlookIn.id) : null;
       const sent = await sendViaOutlook(await outlookAccessToken(account.id), {
         fromName: account.display_name,
