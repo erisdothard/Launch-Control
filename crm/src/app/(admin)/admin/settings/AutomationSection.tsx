@@ -58,7 +58,7 @@ export default function AutomationSection({ settings }: { settings: AutomationSe
     });
   }
 
-  const schedule = settings.followUpDays.join(", ");
+  const maxFollowUps = settings.followUpDays.length;
 
   return (
     <section id="automation" className="mt-8 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6">
@@ -81,7 +81,7 @@ export default function AutomationSection({ settings }: { settings: AutomationSe
           checked={settings.autoSendFollowUps}
           onChange={(v) => save({ autoSendFollowUps: v })}
           label="Send follow-ups automatically"
-          hint={`Leads who haven't answered get a short follow-up ${schedule} business days apart, from the address the thread is on, stopping the moment they reply. Off: the follow-ups wait in Drafts for you instead. After the last one, a lead with no answer in ${settings.coldAfterDays} days is closed as gone cold.`}
+          hint={`Leads who haven't answered get a short follow-up 3 business days after each email, up to ${maxFollowUps}, from the address the thread is on, stopping the moment they reply. Off: the follow-ups wait in Drafts for you to send. A lead with no answer ${settings.coldAfterDays} days after the last one is closed as gone cold.`}
           disabled={pending}
         />
         <div className="flex items-center justify-between gap-6 py-4">

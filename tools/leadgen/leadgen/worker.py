@@ -12,7 +12,7 @@ import logging
 import time
 from typing import Any
 
-from leadgen import outlook_sync
+from leadgen import automation, outlook_sync
 from leadgen.config import Config, supabase_env
 from leadgen.filters import CONTACT_FIELDS
 from leadgen.gmail_sync import start_background_sync
@@ -89,6 +89,7 @@ def serve(cfg: Config, poll_seconds: float = 20.0) -> None:
         log.warning("marked %d run(s) left over from a previous worker as failed", orphaned)
     start_background_sync(lambda: Store(*env))
     outlook_sync.start_background_sync(lambda: Store(*env))
+    automation.start_background(lambda: Store(*env))
     log.info("worker ready, polling every %.0fs", poll_seconds)
     while True:
         try:
