@@ -41,7 +41,9 @@ const inputClass =
 
 function AccountRow({ account }: { account: EmailAccount }) {
   const [name, setName] = useState(account.displayName);
+  const [signer, setSigner] = useState(account.signatureName);
   const [title, setTitle] = useState(account.signatureTitle);
+  const dirty = name !== account.displayName || signer !== account.signatureName || title !== account.signatureTitle;
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -66,11 +68,19 @@ function AccountRow({ account }: { account: EmailAccount }) {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <input
-          aria-label={`Sender name for ${account.address}`}
+          aria-label={`From name for ${account.address}`}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Sender name, e.g. Max Hartmann"
-          className={`${inputClass} w-56`}
+          placeholder="From name, e.g. Launch Control"
+          className={`${inputClass} w-44`}
+          disabled={pending}
+        />
+        <input
+          aria-label={`Signature name for ${account.address}`}
+          value={signer}
+          onChange={(e) => setSigner(e.target.value)}
+          placeholder="Signed by, e.g. Maxwell Hartmann"
+          className={`${inputClass} w-52`}
           disabled={pending}
         />
         <input
@@ -83,8 +93,8 @@ function AccountRow({ account }: { account: EmailAccount }) {
         />
         <button
           type="button"
-          disabled={pending || (name === account.displayName && title === account.signatureTitle)}
-          onClick={() => run(() => setDisplayNameAction(account.id, name, title))}
+          disabled={pending || !dirty}
+          onClick={() => run(() => setDisplayNameAction(account.id, name, title, signer))}
           className="rounded-[2px] border border-[var(--color-border-bright)] px-3 py-2 text-xs text-[var(--color-text)] disabled:opacity-40"
         >
           Save
