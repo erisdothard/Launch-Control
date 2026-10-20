@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "@/components/admin/StatusBadge";
-import { LEAD_STATUSES, type Lead, type ActivityEntry } from "@/lib/store/types";
+import Link from "next/link";
+import { LEAD_STATUSES, type Lead, type ActivityEntry, type CalendarEvent } from "@/lib/store/types";
 import { FactorBars, SignalChips } from "@/components/admin/ProspectInsights";
 import { scoreBand } from "@/lib/leadgen/factors";
 import {
@@ -34,10 +35,11 @@ const ACTION_LABEL: Record<ActivityEntry["action"], string> = {
 interface LeadDetailClientProps {
   lead: Lead;
   activity: ActivityEntry[];
+  meetings: CalendarEvent[];
 }
 
 
-export default function LeadDetailClient({ lead, activity }: LeadDetailClientProps) {
+export default function LeadDetailClient({ lead, activity, meetings }: LeadDetailClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -277,6 +279,40 @@ export default function LeadDetailClient({ lead, activity }: LeadDetailClientPro
 
       <div className="space-y-3">
         <NextStepCard lead={lead} />
+
+        <section aria-labelledby="meetings-heading" className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 id="meetings-heading" className="label-mono text-[var(--color-steel)]">
+              Meetings
+            </h2>
+            <Link href={`/admin/calendar?lead=${lead.id}`} className="text-xs text-[var(--color-accent)] hover:underline">
+              + Schedule
+            </Link>
+          </div>
+          {meetings.length === 0 ? (
+            <p className="text-xs text-[var(--color-text-dim)]">Nothing scheduled.</p>
+          ) : (
+            <ul className="space-y-2">
+              {meetings.map((m) => {
+                const day = new Date(m.startsAt);
+                const dayParam = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+                return (
+                  <li key={m.id}>
+                    <Link
+                      href={`/admin/calendar?m=${dayParam.slice(0, 7)}&day=${dayParam}`}
+                      className="block border-l-2 border-l-[var(--color-accent)] bg-[var(--color-accent)]/10 px-3 py-2 hover:brightness-125"
+                    >
+                      <p className="text-sm text-[var(--color-text)]">{m.title}</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">
+                        {day.toLocaleString("en-US", m.allDay ? { weekday: "short", month: "short", day: "numeric" } : { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                      </p>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
         {dealValue === null ? (
           <button

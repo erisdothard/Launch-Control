@@ -44,6 +44,48 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          all_day: boolean
+          created_at: string
+          created_by: string
+          ends_at: string
+          id: string
+          lead_id: string | null
+          location: string
+          notes: string
+          outlook_event_id: string | null
+          starts_at: string
+          title: string
+        }
+        Insert: {
+          all_day?: boolean
+          created_at?: string
+          created_by: string
+          ends_at: string
+          id?: string
+          lead_id?: string | null
+          location?: string
+          notes?: string
+          outlook_event_id?: string | null
+          starts_at: string
+          title: string
+        }
+        Update: {
+          all_day?: boolean
+          created_at?: string
+          created_by?: string
+          ends_at?: string
+          id?: string
+          lead_id?: string | null
+          location?: string
+          notes?: string
+          outlook_event_id?: string | null
+          starts_at?: string
+          title?: string
+        }
+        Relationships: []
+      }
       company_info: {
         Row: {
           address: string

@@ -139,3 +139,16 @@ export interface LeadGenParams {
   size?: string;
   require?: ("email" | "phone")[];
 }
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  startsAt: string; // ISO timestamp
+  endsAt: string;
+  allDay: boolean;
+  location: string;
+  notes: string;
+  leadId: string | null;
+  createdBy: string;
+  createdAt: string;
+}
