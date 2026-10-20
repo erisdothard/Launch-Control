@@ -280,6 +280,7 @@ export type Database = {
           id: string
           mailbox: string | null
           provider: string
+          signature_name: string
           signature_title: string
           status: string
           sync_cursor: string | null
@@ -294,6 +295,7 @@ export type Database = {
           id?: string
           mailbox?: string | null
           provider: string
+          signature_name?: string
           signature_title?: string
           status?: string
           sync_cursor?: string | null
@@ -308,6 +310,7 @@ export type Database = {
           id?: string
           mailbox?: string | null
           provider?: string
+          signature_name?: string
           signature_title?: string
           status?: string
           sync_cursor?: string | null

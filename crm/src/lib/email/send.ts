@@ -62,7 +62,7 @@ export async function sendAsAccount(input: SendAsAccountInput): Promise<SendResu
   const [lead, thread, accountRes] = await Promise.all([
     getLeadById(input.leadId, supabase),
     getThread(input.leadId, supabase),
-    supabase.from("email_accounts").select("id, provider, address, display_name, signature_title, status, mailbox").eq("id", input.accountId).maybeSingle(),
+    supabase.from("email_accounts").select("id, provider, address, display_name, signature_name, signature_title, status, mailbox").eq("id", input.accountId).maybeSingle(),
   ]);
   const account = accountRes.data;
   if (!lead) return { ok: false, error: "That lead no longer exists." };
@@ -71,9 +71,9 @@ export async function sendAsAccount(input: SendAsAccountInput): Promise<SendResu
   // Thread the reply onto the last message the other side sent, when there is one.
   const lastInbound = [...thread].reverse().find((m) => m.direction === "in");
   const from = formatFrom(account.display_name, account.address);
-  // The house signature goes under every email from an address with a sender name.
-  const signature = { name: account.display_name, title: account.signature_title, address: account.address };
-  const signed = account.display_name.trim()
+  // The From line is the company; the signature names the person. No person set means no signature.
+  const signature = { name: account.signature_name, title: account.signature_title, address: account.address };
+  const signed = account.signature_name.trim()
     ? { text: `${body}\n\n${signatureText(signature)}`, html: emailHtml(body, signature) }
     : { text: body, html: null };
 

@@ -26,8 +26,13 @@ export async function addBusinessAddressAction(localPart: string, displayName: s
   return { ok: true };
 }
 
-/** Sender name and the title shown under it in the signature. */
-export async function setDisplayNameAction(accountId: string, displayName: string, signatureTitle: string): Promise<EmailSettingsResult> {
+/** From name on outgoing mail, plus the person and title that sign it. */
+export async function setDisplayNameAction(
+  accountId: string,
+  displayName: string,
+  signatureTitle: string,
+  signatureName = ""
+): Promise<EmailSettingsResult> {
   if (!(await currentCrmUserEmail())) return { ok: false, error: "Sign in again." };
   const admin = createServiceRoleClient();
   if (!admin) return { ok: false, error: "Server is missing its Supabase key." };
@@ -35,6 +40,7 @@ export async function setDisplayNameAction(accountId: string, displayName: strin
     .from("email_accounts")
     .update({
       display_name: displayName.replace(/["<>\r\n]/g, "").trim().slice(0, 80),
+      signature_name: signatureName.replace(/[<>\r\n]/g, "").trim().slice(0, 80),
       signature_title: signatureTitle.replace(/[<>\r\n]/g, "").trim().slice(0, 120),
     })
     .eq("id", accountId);
