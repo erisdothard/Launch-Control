@@ -15,14 +15,14 @@ function lastContacted(iso: string | null): string {
 }
 
 // What happens next on this lead, and when. Shows on the dashboard's "Needs attention" list once due.
-export default function NextStepCard({ lead }: { lead: Lead }) {
+export default function NextStepCard({ lead, today }: { lead: Lead; today: string }) {
   const router = useRouter();
   const [nextAction, setNextAction] = useState(lead.nextAction);
   const [followUpOn, setFollowUpOn] = useState(lead.followUpOn ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const dirty = nextAction !== lead.nextAction || followUpOn !== (lead.followUpOn ?? "");
-  const due = followUpState(lead.followUpOn);
+  const due = followUpState(lead.followUpOn, today);
 
   function save(action: string, date: string) {
     setError(null);

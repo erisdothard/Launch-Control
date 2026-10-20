@@ -1,5 +1,6 @@
 import { getStoreClient, type StoreClient } from "./db";
 import { logActivity } from "./activity";
+import { createCustomer } from "./customers";
 import type { Deal, DealStage } from "./types";
 
 export type { Deal, DealStage } from "./types";
@@ -77,8 +78,25 @@ export async function updateDealStage(id: string, stage: DealStage, client?: Sto
     { entityType: "deal", entityId: id, entityLabel: deal.businessName, action: "status_changed", detail: `→ ${stage}` },
     client
   );
+  // Winning the deal is the conversion: the lead becomes a customer (the DB trigger marks the lead converted).
+  if (stage === "won" && deal.fromLeadId) await ensureCustomerForLead(deal.fromLeadId, supabase);
 
   return deal;
+}
+
+async function ensureCustomerForLead(leadId: string, supabase: StoreClient): Promise<void> {
+  const { data: existing } = await supabase.from("customers").select("id").eq("from_lead_id", leadId).limit(1).maybeSingle();
+  if (existing) return;
+  const { data: lead } = await supabase.from("leads").select("business_name, email, phone, notes").eq("id", leadId).maybeSingle();
+  if (!lead) return;
+  const customer = await createCustomer(
+    { businessName: lead.business_name, email: lead.email, phone: lead.phone, notes: lead.notes, fromLeadId: leadId },
+    supabase
+  );
+  await logActivity(
+    { entityType: "lead", entityId: leadId, entityLabel: lead.business_name, action: "converted", detail: `→ customer ${customer.id} (deal won)` },
+    supabase
+  );
 }
 
 export async function deleteDeal(id: string, client?: StoreClient): Promise<boolean> {
