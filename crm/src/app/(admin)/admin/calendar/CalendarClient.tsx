@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CalendarEvent } from "@/lib/store/types";
 
+import { useMounted } from "@/components/admin/LocalDate";
 import { deleteEventAction, saveEventAction } from "./actions";
 
 export interface CalendarLead {
@@ -242,6 +243,8 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
     return map;
   }, [events, dated]);
 
+  // Days and times are the viewer's own; the grid only renders once the browser's zone is known.
+  const mounted = useMounted();
   const prev = month === 1 ? monthParam(year - 1, 12) : monthParam(year, month - 1);
   const next = month === 12 ? monthParam(year + 1, 1) : monthParam(year, month + 1);
   const title = new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -250,6 +253,8 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
     const [y, m, d] = selected.split("-").map(Number);
     return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   })();
+
+  if (!mounted) return <div aria-busy="true" className="min-h-[36rem] rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)]" />;
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_22rem]">

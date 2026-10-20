@@ -1,12 +1,13 @@
 "use client";
 
+import LocalDate from "@/components/admin/LocalDate";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Customer } from "@/lib/store/types";
 import { deleteCustomerAction } from "./actions";
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+function formatDate(iso: string) {
+  return <LocalDate iso={iso} options={{ month: "short", day: "numeric", year: "numeric" }} />;
 }
 
 interface CustomersTableClientProps {

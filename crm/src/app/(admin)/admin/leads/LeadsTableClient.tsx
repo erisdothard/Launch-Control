@@ -9,8 +9,10 @@ import StatusBadge from "@/components/admin/StatusBadge";
 import ContactFilterChips from "@/components/admin/ContactFilterChips";
 import { followUpState } from "@/lib/leads/followUp";
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+import LocalDate from "@/components/admin/LocalDate";
+
+function formatDate(iso: string) {
+  return <LocalDate iso={iso} options={{ month: "short", day: "numeric", year: "numeric" }} />;
 }
 
 function NextStepCell({ lead, today }: { lead: Lead; today: string }) {

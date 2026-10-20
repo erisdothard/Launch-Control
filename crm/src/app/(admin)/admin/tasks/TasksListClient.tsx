@@ -1,5 +1,6 @@
 "use client";
 
+import LocalDate from "@/components/admin/LocalDate";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Task, TaskRelatedType } from "@/lib/store/types";
@@ -19,8 +20,8 @@ interface TasksListClientProps {
   relatedOptions: RelatedOption[];
 }
 
-function formatDueDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+function formatDueDate(iso: string) {
+  return <LocalDate iso={iso} options={{ month: "short", day: "numeric" }} />;
 }
 
 function isOverdue(dueDate: string | null, done: boolean): boolean {

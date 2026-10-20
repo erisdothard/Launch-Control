@@ -1,5 +1,6 @@
 "use client";
 
+import LocalDate from "@/components/admin/LocalDate";
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,12 +19,8 @@ interface MessagesPanelProps {
   accounts: EmailAccount[];
 }
 
-function when(iso: string): string {
-  const d = new Date(iso);
-  const sameDay = d.toDateString() === new Date().toDateString();
-  return sameDay
-    ? d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    : d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+function when(iso: string) {
+  return <LocalDate iso={iso} options={{ month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }} />;
 }
 
 function Bubble({ message }: { message: EmailMessage }) {
