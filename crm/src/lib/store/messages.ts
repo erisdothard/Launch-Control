@@ -24,6 +24,7 @@ export interface EmailAccount {
   provider: "resend" | "gmail";
   address: string;
   displayName: string;
+  signatureTitle: string;
   connectedBy: string;
   status: "active" | "needs_reconnect" | "disabled";
 }
@@ -104,7 +105,7 @@ export async function getEmailAccounts(client?: StoreClient): Promise<EmailAccou
   const supabase = await getStoreClient(client);
   const { data, error } = await supabase
     .from("email_accounts")
-    .select("id, provider, address, display_name, connected_by, status")
+    .select("id, provider, address, display_name, signature_title, connected_by, status")
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data.map((a) => ({
@@ -112,6 +113,7 @@ export async function getEmailAccounts(client?: StoreClient): Promise<EmailAccou
     provider: a.provider as EmailAccount["provider"],
     address: a.address,
     displayName: a.display_name,
+    signatureTitle: a.signature_title,
     connectedBy: a.connected_by,
     status: a.status as EmailAccount["status"],
   }));

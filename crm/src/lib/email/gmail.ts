@@ -79,6 +79,7 @@ export interface GmailSend {
   to: string;
   subject: string;
   text: string;
+  html?: string | null;
   threadId?: string | null;
   inReplyTo?: string | null;
 }
@@ -93,12 +94,21 @@ export async function sendViaGmail(accessToken: string, msg: GmailSend) {
     `Subject: ${encodeHeader(msg.subject)}`,
     `Message-ID: ${messageId}`,
     "MIME-Version: 1.0",
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
   ];
   if (msg.inReplyTo) headers.push(`In-Reply-To: ${msg.inReplyTo}`, `References: ${msg.inReplyTo}`);
-  const body = Buffer.from(msg.text, "utf8").toString("base64").replace(/(.{76})/g, "$1\r\n");
-  const raw = Buffer.from(`${headers.join("\r\n")}\r\n\r\n${body}`).toString("base64url");
+  const encode = (value: string) => Buffer.from(value, "utf8").toString("base64").replace(/(.{76})/g, "$1\r\n");
+  const part = (type: string, value: string) =>
+    `Content-Type: ${type}; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${encode(value)}`;
+  let mime: string;
+  if (msg.html) {
+    // Plain text first, HTML last: clients show the last part they can render.
+    const boundary = `lc-${randomUUID()}`;
+    headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+    mime = `--${boundary}\r\n${part("text/plain", msg.text)}\r\n--${boundary}\r\n${part("text/html", msg.html)}\r\n--${boundary}--`;
+  } else {
+    mime = part("text/plain", msg.text);
+  }
+  const raw = Buffer.from(msg.html ? `${headers.join("\r\n")}\r\n\r\n${mime}` : `${headers.join("\r\n")}\r\n${mime}`).toString("base64url");
   const sent = await gmailFetch<{ id: string; threadId: string }>(accessToken, "/messages/send", {
     method: "POST",
     body: JSON.stringify(msg.threadId ? { raw, threadId: msg.threadId } : { raw }),

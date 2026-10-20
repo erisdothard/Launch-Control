@@ -27,6 +27,7 @@ const inputClass =
 
 function AccountRow({ account }: { account: EmailAccount }) {
   const [name, setName] = useState(account.displayName);
+  const [title, setTitle] = useState(account.signatureTitle);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +49,7 @@ function AccountRow({ account }: { account: EmailAccount }) {
         </p>
         {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <input
           aria-label={`Sender name for ${account.address}`}
           value={name}
@@ -57,10 +58,18 @@ function AccountRow({ account }: { account: EmailAccount }) {
           className={`${inputClass} w-56`}
           disabled={pending}
         />
+        <input
+          aria-label={`Signature title for ${account.address}`}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Title in signature"
+          className={`${inputClass} w-56`}
+          disabled={pending}
+        />
         <button
           type="button"
-          disabled={pending || name === account.displayName}
-          onClick={() => run(() => setDisplayNameAction(account.id, name))}
+          disabled={pending || (name === account.displayName && title === account.signatureTitle)}
+          onClick={() => run(() => setDisplayNameAction(account.id, name, title))}
           className="rounded-[2px] border border-[var(--color-border-bright)] px-3 py-2 text-xs text-[var(--color-text)] disabled:opacity-40"
         >
           Save

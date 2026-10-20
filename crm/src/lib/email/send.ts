@@ -5,6 +5,7 @@ import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supab
 import { replyAddressFor } from "./config";
 import { accessTokenFor, sendViaGmail } from "./gmail";
 import { sendViaResend } from "./resend";
+import { emailHtml, signatureText } from "./signature";
 import { isEmail } from "./text";
 
 export interface SendInput {
@@ -44,7 +45,7 @@ export async function sendLeadEmail(input: SendInput): Promise<SendResult> {
   const [lead, thread, accountRes] = await Promise.all([
     getLeadById(input.leadId),
     getThread(input.leadId),
-    supabase.from("email_accounts").select("id, provider, address, display_name, status").eq("id", input.accountId).maybeSingle(),
+    supabase.from("email_accounts").select("id, provider, address, display_name, signature_title, status").eq("id", input.accountId).maybeSingle(),
   ]);
   const account = accountRes.data;
   if (!lead) return { ok: false, error: "That lead no longer exists." };
@@ -53,6 +54,11 @@ export async function sendLeadEmail(input: SendInput): Promise<SendResult> {
   // Thread the reply onto the last message the other side sent, when there is one.
   const lastInbound = [...thread].reverse().find((m) => m.direction === "in");
   const from = formatFrom(account.display_name, account.address);
+  // The house signature goes under every email from an address with a sender name.
+  const signature = { name: account.display_name, title: account.signature_title, address: account.address };
+  const signed = account.display_name.trim()
+    ? { text: `${body}\n\n${signatureText(signature)}`, html: emailHtml(body, signature) }
+    : { text: body, html: null };
 
   let providerMessageId: string | null = null;
   let providerThreadId: string | null = null;
@@ -62,7 +68,7 @@ export async function sendLeadEmail(input: SendInput): Promise<SendResult> {
   try {
     if (account.provider === "resend") {
       const inReplyTo = lastInbound ? await headerFor(lastInbound.id) : null;
-      const sent = await sendViaResend({ from, to, subject, text: body, replyTo: replyAddressFor(lead.id), inReplyTo });
+      const sent = await sendViaResend({ from, to, subject, ...signed, replyTo: replyAddressFor(lead.id), inReplyTo });
       providerMessageId = sent.id;
     } else {
       const admin = createServiceRoleClient();
@@ -72,7 +78,7 @@ export async function sendLeadEmail(input: SendInput): Promise<SendResult> {
       const lastGmail = [...thread].reverse().find((m) => m.provider === "gmail" && m.accountId === account.id);
       const threadId = lastGmail ? await threadFor(lastGmail.id) : null;
       const inReplyTo = lastInbound ? await headerFor(lastInbound.id) : null;
-      const sent = await sendViaGmail(await accessTokenFor(refreshToken), { from, to, subject, text: body, threadId, inReplyTo });
+      const sent = await sendViaGmail(await accessTokenFor(refreshToken), { from, to, subject, ...signed, threadId, inReplyTo });
       providerMessageId = sent.id;
       providerThreadId = sent.threadId;
       messageIdHeader = sent.messageId;

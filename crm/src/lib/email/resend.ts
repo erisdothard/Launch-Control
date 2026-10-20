@@ -20,6 +20,7 @@ export interface ResendSend {
   to: string;
   subject: string;
   text: string;
+  html?: string | null;
   replyTo: string;
   inReplyTo?: string | null;
 }
@@ -32,7 +33,7 @@ export async function sendViaResend(msg: ResendSend): Promise<{ id: string }> {
   }
   return resendFetch<{ id: string }>("/emails", {
     method: "POST",
-    body: JSON.stringify({ from: msg.from, to: [msg.to], subject: msg.subject, text: msg.text, reply_to: msg.replyTo, headers }),
+    body: JSON.stringify({ from: msg.from, to: [msg.to], subject: msg.subject, text: msg.text, ...(msg.html ? { html: msg.html } : {}), reply_to: msg.replyTo, headers }),
   });
 }
 
