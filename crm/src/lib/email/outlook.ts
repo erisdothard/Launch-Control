@@ -1,4 +1,6 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
+import nodemailer from "nodemailer";
 import { emailConfig } from "./config";
 
 // Microsoft 365 through Microsoft Graph. The app registration ("Launch Control CRM") lives in the
@@ -15,6 +17,11 @@ export const OUTLOOK_SCOPES = [
   "https://graph.microsoft.com/Calendars.ReadWrite",
   "https://graph.microsoft.com/MailboxSettings.Read",
 ];
+
+// Mail goes out over SMTP AUTH (XOAUTH2), not Graph: Exchange rejects Graph-submitted mail from a
+// new tenant with 550 5.7.708, while client submission delivers. Graph still reads mail and calendar.
+export const SMTP_SCOPES = ["offline_access", "https://outlook.office365.com/SMTP.Send"];
+export type TokenResource = "graph" | "smtp";
 
 const GRAPH = "https://graph.microsoft.com/v1.0";
 const authority = () => `https://login.microsoftonline.com/${emailConfig.msTenantId}/oauth2/v2.0`;
@@ -43,14 +50,14 @@ export class OutlookReconnectNeeded extends Error {
   }
 }
 
-async function tokenRequest(params: Record<string, string>): Promise<OutlookTokens> {
+async function tokenRequest(params: Record<string, string>, resource: TokenResource = "graph"): Promise<OutlookTokens> {
   const res = await fetch(`${authority()}/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: emailConfig.msClientId,
       client_secret: emailConfig.msClientSecret,
-      scope: OUTLOOK_SCOPES.join(" "),
+      scope: (resource === "smtp" ? SMTP_SCOPES : OUTLOOK_SCOPES).join(" "),
       ...params,
     }),
     cache: "no-store",
@@ -66,8 +73,49 @@ export function exchangeOutlookCode(code: string, redirectUri: string) {
 }
 
 /** New access token; the returned refresh token replaces the stored one (Microsoft rotates them). */
-export function refreshOutlook(refreshToken: string) {
-  return tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken });
+export function refreshOutlook(refreshToken: string, resource: TokenResource = "graph") {
+  return tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken }, resource);
+}
+
+export interface SmtpSend {
+  fromName: string;
+  fromAddress: string;
+  mailbox: string;
+  to: string;
+  subject: string;
+  text: string;
+  html: string | null;
+  /** RFC 5322 Message-ID of the lead's last message, so the send threads under it. */
+  inReplyTo?: string | null;
+}
+
+/** Sends through smtp.office365.com as the mailbox; Exchange files a copy in Sent Items. */
+export async function sendViaOutlookSmtp(accessToken: string, msg: SmtpSend): Promise<{ messageId: string }> {
+  const transport = nodemailer.createTransport({
+    host: "smtp.office365.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    auth: { type: "OAuth2", user: msg.mailbox, accessToken },
+    connectionTimeout: 15_000,
+    socketTimeout: 30_000,
+  });
+  const messageId = `<${randomUUID()}@${msg.mailbox.split("@")[1]}>`;
+  try {
+    await transport.sendMail({
+      from: { name: msg.fromName, address: msg.fromAddress },
+      to: msg.to,
+      subject: msg.subject,
+      text: msg.text,
+      html: msg.html ?? undefined,
+      messageId,
+      inReplyTo: msg.inReplyTo ?? undefined,
+      references: msg.inReplyTo ?? undefined,
+    });
+  } finally {
+    transport.close();
+  }
+  return { messageId };
 }
 
 export async function graph<T>(accessToken: string, path: string, init?: RequestInit): Promise<T> {

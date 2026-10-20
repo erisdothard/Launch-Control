@@ -1,7 +1,7 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { outlookEnabled } from "./config";
-import { OutlookReconnectNeeded, refreshOutlook } from "./outlook";
+import { OutlookReconnectNeeded, refreshOutlook, type TokenResource } from "./outlook";
 
 export interface OutlookAccountRef {
   id: string;
@@ -29,13 +29,13 @@ export async function primaryOutlookAccount(): Promise<OutlookAccountRef | null>
  * A fresh Graph access token for an Outlook account (mailbox or alias row). Saves the rotated
  * refresh token, and flags every row on the mailbox for reconnecting if Microsoft revoked it.
  */
-export async function outlookAccessToken(accountId: string): Promise<string> {
+export async function outlookAccessToken(accountId: string, resource: TokenResource = "graph"): Promise<string> {
   const admin = createServiceRoleClient();
   if (!admin) throw new Error("Server is missing SUPABASE_SERVICE_ROLE_KEY");
   const { data: refreshToken } = await admin.rpc("mail_refresh_token", { p_account_id: accountId });
   if (!refreshToken) throw new OutlookReconnectNeeded();
   try {
-    const tokens = await refreshOutlook(refreshToken);
+    const tokens = await refreshOutlook(refreshToken, resource);
     if (tokens.refresh_token && tokens.refresh_token !== refreshToken) {
       await admin.rpc("save_mail_refresh_token", { p_account_id: accountId, p_refresh_token: tokens.refresh_token });
     }

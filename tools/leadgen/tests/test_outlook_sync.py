@@ -75,6 +75,9 @@ class FakeStore:
     def known_message_ids(self, headers: list[str]) -> set[str]:
         return {"<crm@lc>"}
 
+    def attach_provider_ids(self, header: str, message_id: str, thread_id: str | None) -> None:
+        self.attached = (header, message_id, thread_id)
+
     def insert_message(self, row: dict[str, Any]) -> int:
         self.rows.append(row)
         return 1
@@ -93,6 +96,7 @@ def test_sync_stores_only_lead_mail_and_skips_crm_sends() -> None:
 
     by_id = {r["provider_message_id"]: r for r in store.rows}
     assert n == 3 and set(by_id) == {"in-1", "in-3", "sent-2"}
+    assert store.attached == ("<crm@lc>", "sent-1", "c-crm")
     assert by_id["in-1"]["lead_id"] == "lead-paul" and by_id["in-1"]["body_text"] == "Yes!"
     assert by_id["in-3"]["direction"] == "in" and by_id["in-3"]["lead_id"] == "lead-doug"
     assert by_id["sent-2"]["direction"] == "out" and by_id["sent-2"]["lead_id"] == "lead-doug"

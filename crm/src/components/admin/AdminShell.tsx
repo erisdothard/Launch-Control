@@ -13,9 +13,10 @@ interface AdminShellProps {
   companyName: string;
   logoUrl: string | null;
   unread: number;
+  drafts: number;
 }
 
-export default function AdminShell({ children, role, userEmail, companyName, logoUrl, unread }: AdminShellProps) {
+export default function AdminShell({ children, role, userEmail, companyName, logoUrl, unread, drafts }: AdminShellProps) {
   const pathname = usePathname();
   // Password screen renders centered, with no sidebar or bottom nav.
   const isAuthPage = pathname === "/admin/update-password";
@@ -30,7 +31,7 @@ export default function AdminShell({ children, role, userEmail, companyName, log
 
   return (
     <>
-      <AdminSidebar role={role} userEmail={userEmail} companyName={companyName} logoUrl={logoUrl} unread={unread} />
+      <AdminSidebar role={role} userEmail={userEmail} companyName={companyName} logoUrl={logoUrl} unread={unread} drafts={drafts} />
       <div className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-[var(--color-bg-primary)] lg:ml-64">
         {/* Phones have no sidebar, so the brand rides at the top of the page */}
         <div className="relative z-10 border-b border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3.5 lg:hidden">

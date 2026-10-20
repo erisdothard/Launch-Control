@@ -1,6 +1,8 @@
 import AdminHeader from "@/components/admin/AdminHeader";
 import CompanyInfoForm from "./CompanyInfoForm";
 import EmailAccountsSection from "./EmailAccountsSection";
+import AutomationSection from "./AutomationSection";
+import { getAutomationSettings } from "@/lib/store/drafts";
 import { getCompanyInfo } from "@/lib/store/company";
 import { getEmailAccounts } from "@/lib/store/messages";
 import { emailConfig, gmailEnabled, outlookEnabled, resendEnabled } from "@/lib/email/config";
@@ -10,11 +12,16 @@ interface SettingsPageProps {
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
-  const [company, accounts, params] = await Promise.all([getCompanyInfo(), getEmailAccounts(), searchParams]);
+  const [company, accounts, automation, params] = await Promise.all([
+    getCompanyInfo(),
+    getEmailAccounts(),
+    getAutomationSettings(),
+    searchParams,
+  ]);
 
   return (
     <>
-      <AdminHeader title="Settings" subtitle="Company info, and the email addresses the team sends from." />
+      <AdminHeader title="Settings" subtitle="Company info, the email addresses the team sends from, and what the CRM does on its own." />
       <CompanyInfoForm company={company} />
       <EmailAccountsSection
         accounts={accounts}
@@ -25,6 +32,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         outlookReady={outlookEnabled()}
         outlookResult={params.outlook ?? null}
       />
+      <AutomationSection settings={automation} />
     </>
   );
 }

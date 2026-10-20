@@ -4,7 +4,7 @@ import type { ContactFilterKey } from "@/lib/leads/contactFilter";
 import { logActivity } from "./activity";
 import { createCustomer, type Customer } from "./customers";
 import { createDeal, type Deal } from "./deals";
-import type { Lead, LeadStatus, Prospect, ScoreFactor } from "./types";
+import { LEAD_VIEWS, matchesView, type Awaiting, type Lead, type LeadStatus, type LeadView, type Prospect, type ScoreFactor } from "./types";
 
 export type { Lead, LeadStatus } from "./types";
 export { LEAD_STATUSES } from "./types";
@@ -21,6 +21,12 @@ interface LeadRow {
   next_action: string;
   follow_up_on: string | null;
   last_contacted_at: string | null;
+  last_reply_at: string | null;
+  status_reason: string;
+  status_changed_at: string | null;
+  awaiting: string | null;
+  do_not_contact: boolean;
+  follow_up_count: number;
   segment: string | null;
   city: string | null;
   state: string | null;
@@ -86,12 +92,21 @@ function rowToLead(row: LeadRow): Lead {
     nextAction: row.next_action,
     followUpOn: row.follow_up_on,
     lastContactedAt: row.last_contacted_at,
+    lastReplyAt: row.last_reply_at,
+    statusReason: row.status_reason ?? "",
+    statusChangedAt: row.status_changed_at,
+    awaiting: row.awaiting === "us" || row.awaiting === "them" ? (row.awaiting as Awaiting) : null,
+    doNotContact: row.do_not_contact ?? false,
+    followUpCount: row.follow_up_count ?? 0,
     prospect: rowToProspect(row),
   };
 }
 
 export interface GetLeadsParams {
   status?: LeadStatus;
+  view?: LeadView;
+  /** Team-local YYYY-MM-DD, for the "Follow-up due" view. */
+  today?: string;
   search?: string;
   source?: string;
   segment?: string;
@@ -134,7 +149,19 @@ export async function getLeads(params?: GetLeadsParams, client?: StoreClient): P
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data as LeadRow[]).map(rowToLead);
+  const leads = (data as LeadRow[]).map(rowToLead);
+  const view = params?.view;
+  if (!view || view === "all") return leads;
+  const today = params?.today ?? new Date().toISOString().slice(0, 10);
+  return leads.filter((lead) => matchesView(lead, view, today));
+}
+
+/** How many leads each view holds, for the tab counts. One read of the whole table. */
+export async function getLeadViewCounts(today: string, client?: StoreClient): Promise<Record<LeadView, number>> {
+  const leads = await getLeads(undefined, client);
+  const counts = Object.fromEntries(LEAD_VIEWS.map((v) => [v.key, 0])) as Record<LeadView, number>;
+  for (const lead of leads) for (const v of LEAD_VIEWS) if (matchesView(lead, v.key, today)) counts[v.key] += 1;
+  return counts;
 }
 
 export async function getLeadById(id: string, client?: StoreClient): Promise<Lead | null> {
@@ -257,6 +284,8 @@ export async function updateLead(
       ...(patch.notes !== undefined && { notes: patch.notes }),
       ...(patch.nextAction !== undefined && { next_action: patch.nextAction }),
       ...(patch.followUpOn !== undefined && { follow_up_on: patch.followUpOn }),
+      ...(patch.statusReason !== undefined && { status_reason: patch.statusReason }),
+      ...(patch.awaiting !== undefined && { awaiting: patch.awaiting }),
     })
     .eq("id", id)
     .select()
@@ -277,6 +306,11 @@ export async function updateLead(
   );
 
   return lead;
+}
+
+// The one status a person sets: a judgment call no event can make. Stops follow-ups too.
+export async function markLeadNotAFit(id: string, client?: StoreClient): Promise<Lead | null> {
+  return updateLead(id, { status: "lost", statusReason: "Not a fit", awaiting: null, followUpOn: null, nextAction: "" }, client);
 }
 
 export async function deleteLead(id: string, client?: StoreClient): Promise<boolean> {
@@ -327,9 +361,7 @@ export async function convertLeadToDeal(id: string, value: number, client?: Stor
     { businessName: lead.businessName, value, notes: lead.notes, fromLeadId: lead.id, stage: "proposal" },
     supabase
   );
-  if (lead.status === "new" || lead.status === "contacted" || lead.status === "qualified") {
-    await updateLead(id, { status: "proposal" }, supabase);
-  }
+  // The deals trigger moves the lead to "proposal" (supabase/migrations/20261019000005).
   await logActivity(
     { entityType: "lead", entityId: id, entityLabel: lead.businessName, action: "converted", detail: "→ deal" },
     supabase

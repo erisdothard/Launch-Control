@@ -3,17 +3,64 @@
 // import from here, never from leads.ts/customers.ts/activity.ts directly —
 // those pull fs into the browser bundle and break the build.
 
-export type LeadStatus = "new" | "contacted" | "qualified" | "proposal" | "negotiation" | "converted" | "lost";
+// Statuses are set by the database from what happened (supabase/migrations/20261019000005):
+// an email out, a reply in, a meeting booked, a deal's stage. Nobody picks them from a list.
+export type LeadStatus = "new" | "contacted" | "replied" | "meeting" | "proposal" | "negotiation" | "converted" | "lost";
 
 export const LEAD_STATUSES: LeadStatus[] = [
   "new",
   "contacted",
-  "qualified",
+  "replied",
+  "meeting",
   "proposal",
   "negotiation",
   "converted",
   "lost",
 ];
+
+// Whose move it is: "us" after they write, "them" after we do. Null before any email.
+export type Awaiting = "us" | "them";
+
+// The leads page's views. Each one is a question the team asks, answered by columns the
+// database keeps current, so nothing in them goes stale waiting for a click.
+export const LEAD_VIEWS = [
+  { key: "needs-reply", label: "Needs reply", hint: "They wrote back. Your move." },
+  { key: "follow-up", label: "Follow-up due", hint: "No answer yet and the next nudge is due." },
+  { key: "waiting", label: "Waiting on them", hint: "You wrote last. Nothing to do yet." },
+  { key: "in-play", label: "Meetings & deals", hint: "Meeting booked, proposal out, or negotiating." },
+  { key: "not-contacted", label: "Not contacted", hint: "Nobody has emailed them yet." },
+  { key: "closed", label: "Closed", hint: "Won, lost, or asked not to be contacted." },
+  { key: "all", label: "All", hint: "Every lead." },
+] as const;
+
+export type LeadView = (typeof LEAD_VIEWS)[number]["key"];
+
+const CLOSED: readonly LeadStatus[] = ["converted", "lost"];
+
+/** Whether a lead belongs in a view. The one definition the list and the tab counts share. */
+export function matchesView(lead: Lead, view: LeadView, today: string): boolean {
+  const open = !CLOSED.includes(lead.status) && !lead.doNotContact;
+  switch (view) {
+    case "needs-reply":
+      return open && lead.awaiting === "us";
+    case "follow-up":
+      return open && lead.awaiting === "them" && lead.followUpOn !== null && lead.followUpOn <= today;
+    case "waiting":
+      return open && lead.awaiting === "them" && (lead.followUpOn === null || lead.followUpOn > today);
+    case "in-play":
+      return open && (lead.status === "meeting" || lead.status === "proposal" || lead.status === "negotiation");
+    case "not-contacted":
+      return open && lead.status === "new" && lead.lastContactedAt === null;
+    case "closed":
+      return !open;
+    case "all":
+      return true;
+  }
+}
+
+export function parseLeadView(value: string | undefined): LeadView {
+  return LEAD_VIEWS.find((v) => v.key === value)?.key ?? "needs-reply";
+}
 
 export interface Lead {
   id: string;
@@ -27,6 +74,12 @@ export interface Lead {
   nextAction: string;
   followUpOn: string | null; // YYYY-MM-DD
   lastContactedAt: string | null; // set by the DB when the team emails the lead from the CRM
+  lastReplyAt: string | null; // set by the DB when a reply from them is recorded
+  statusReason: string; // why the status is what it is ("They replied", "Meeting Oct 21")
+  statusChangedAt: string | null;
+  awaiting: Awaiting | null;
+  doNotContact: boolean;
+  followUpCount: number;
   prospect: Prospect | null;
 }
 

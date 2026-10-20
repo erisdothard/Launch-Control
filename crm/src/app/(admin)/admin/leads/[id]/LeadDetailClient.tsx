@@ -4,11 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "@/components/admin/StatusBadge";
 import Link from "next/link";
-import { LEAD_STATUSES, type Lead, type ActivityEntry, type CalendarEvent } from "@/lib/store/types";
+import { type Lead, type ActivityEntry, type CalendarEvent } from "@/lib/store/types";
 import { FactorBars, SignalChips } from "@/components/admin/ProspectInsights";
 import { scoreBand } from "@/lib/leadgen/factors";
 import {
-  updateLeadStatusAction,
+  markLeadNotAFitAction,
   updateLeadAction,
   deleteLeadAction,
   convertLeadAction,
@@ -52,9 +52,9 @@ export default function LeadDetailClient({ lead, activity, meetings }: LeadDetai
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [dealValue, setDealValue] = useState<string | null>(null);
 
-  function handleStatusChange(status: string) {
+  function handleNotAFit() {
     startTransition(async () => {
-      await updateLeadStatusAction(lead.id, status as Lead["status"]);
+      await markLeadNotAFitAction(lead.id);
       router.refresh();
     });
   }
@@ -94,19 +94,27 @@ export default function LeadDetailClient({ lead, activity, meetings }: LeadDetai
         <div className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6">
           <div className="mb-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
+              {/* Read-only: the database moves the status when something happens, and says why. */}
               <StatusBadge status={lead.status} variant="lead" />
-              <select
-                value={lead.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                disabled={isPending}
-                className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-1.5 text-xs font-medium text-[var(--color-text)] capitalize outline-none focus:border-[var(--color-accent)]/50"
-              >
-                {LEAD_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
+              {lead.statusReason && (
+                <span className="text-xs text-[var(--color-text-dim)]">
+                  {lead.statusReason}
+                  {lead.statusChangedAt && ` · ${formatDateTime(lead.statusChangedAt)}`}
+                </span>
+              )}
+              {lead.doNotContact && (
+                <span className="rounded-[2px] bg-red-400/10 px-2 py-0.5 text-xs font-medium text-red-300">Do not contact</span>
+              )}
+              {lead.status !== "lost" && lead.status !== "converted" && (
+                <button
+                  type="button"
+                  onClick={handleNotAFit}
+                  disabled={isPending}
+                  className="text-xs font-medium text-[var(--color-text-dim)] hover:text-red-300 disabled:opacity-50"
+                >
+                  Not a fit
+                </button>
+              )}
             </div>
             {!editing && (
               <button

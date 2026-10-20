@@ -59,10 +59,11 @@ class GraphClient:
         self.client_id, self.client_secret, self.tenant = client_id, client_secret, tenant
         self.http = http or httpx.Client(timeout=30)
 
-    def refresh(self, refresh_token: str) -> dict[str, Any]:
+    def refresh(self, refresh_token: str, scope: str = "Mail.ReadWrite") -> dict[str, Any]:
+        """Access token for one consented Graph scope (the calendar reader asks for Calendars.ReadWrite)."""
         resp = self.http.post(f"https://login.microsoftonline.com/{self.tenant}/oauth2/v2.0/token", data={
             "client_id": self.client_id, "client_secret": self.client_secret, "grant_type": "refresh_token",
-            "refresh_token": refresh_token, "scope": "offline_access https://graph.microsoft.com/Mail.ReadWrite",
+            "refresh_token": refresh_token, "scope": f"offline_access https://graph.microsoft.com/{scope}",
         })
         if resp.status_code == 400 and "invalid_grant" in resp.text:
             raise ReconnectNeeded
@@ -159,7 +160,12 @@ def sync_account(store: Store, graph: GraphClient, account: dict[str, Any], now:
     by_email = store.leads_by_emails(sorted(e for e in emails if e and e not in own))
     rows = to_rows(account, found, own, store.leads_for_threads(threads), by_email)
     known = store.known_message_ids([r["message_id_header"] for r in rows if r["message_id_header"]])
-    stored = sum(store.insert_message(r) for r in rows if r["message_id_header"] not in known)
+    stored = 0
+    for r in rows:
+        if r["message_id_header"] in known:
+            store.attach_provider_ids(r["message_id_header"], r["provider_message_id"], r["provider_thread_id"])
+        else:
+            stored += store.insert_message(r)
     store.set_sync_cursor(account["id"], json.dumps(cursors))
     return stored
 
