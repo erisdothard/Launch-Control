@@ -5,13 +5,19 @@ import { getActivityLog } from "@/lib/store/activity";
 import LeadDetailClient from "./LeadDetailClient";
 import MessagesPanel from "./MessagesPanel";
 import { getEmailAccounts, getThread } from "@/lib/store/messages";
+import { getUpcomingEventsForLead } from "@/lib/store/calendar";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const lead = await getLeadById(id);
   if (!lead) notFound();
 
-  const [allActivity, messages, accounts] = await Promise.all([getActivityLog(200), getThread(id), getEmailAccounts()]);
+  const [allActivity, messages, accounts, meetings] = await Promise.all([
+    getActivityLog(200),
+    getThread(id),
+    getEmailAccounts(),
+    getUpcomingEventsForLead(id),
+  ]);
   const leadActivity = allActivity.filter((a) => a.entityType === "lead" && a.entityId === id);
 
   return (
@@ -27,7 +33,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           accounts={accounts}
         />
       </div>
-      <LeadDetailClient lead={lead} activity={leadActivity} />
+      <LeadDetailClient lead={lead} activity={leadActivity} meetings={meetings} />
     </>
   );
 }
