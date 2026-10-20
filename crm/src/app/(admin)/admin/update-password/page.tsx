@@ -14,6 +14,9 @@ const SESSION_GRACE_MS = 2500;
 
 type Status = "checking" | "ready" | "no-session";
 
+const labelClass = "mb-2 block text-base font-medium text-[var(--color-text)]";
+const alertClass = "rounded-[2px] border border-[var(--color-danger)] bg-[var(--color-danger-bg)] px-4 py-3 text-base text-[var(--color-danger)]";
+
 export default function UpdatePasswordPage() {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("checking");
@@ -84,35 +87,29 @@ export default function UpdatePasswordPage() {
       return;
     }
 
-    router.push("/admin/dashboard");
+    router.push("/admin/today");
     router.refresh();
   }
 
   return (
-    <div className="w-full max-w-md px-6">
-      <div className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-8 relative">
-          <LiveryStripe className="absolute top-[-2px] left-8" />
+    <div className="w-full max-w-md px-4 py-10">
+      <div className="card relative p-6 sm:p-8">
+        <LiveryStripe className="absolute top-[-2px] left-6 sm:left-8" />
         <div className="mb-8 text-center">
           <BrandLockup className="mb-6 justify-center" />
-          <h1 className="text-xl font-semibold text-[var(--color-steel)]">Set Your Password</h1>
-          <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">Choose a new password for your admin account</p>
+          <h1 className="text-2xl font-semibold text-[var(--color-steel)]">Set your password</h1>
+          <p className="mt-2 text-base text-[var(--color-text-muted)]">Choose a new password for your account.</p>
         </div>
 
-        {status === "checking" && (
-          <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">Verifying your link...</p>
-        )}
+        {status === "checking" && <p className="py-6 text-center text-base text-[var(--color-text-muted)]">Checking your link...</p>}
 
         {status === "no-session" && (
           <div className="space-y-5">
-            <div className="rounded-[2px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-              This link is invalid or has expired. Password links can only be used once, and they
-              time out after a short window.
+            <div role="alert" className={alertClass}>
+              This link is invalid or has expired. Password links can only be used once, and they time out after a short window.
             </div>
-            <a
-              href="/admin/dashboard"
-              className="block w-full rounded-[2px] bg-[var(--color-accent)] px-4 py-3 text-center font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-all hover:bg-[var(--color-accent-hover)]"
-            >
-              Back to Dashboard
+            <a href="/admin/today" className="btn btn-primary w-full">
+              Back to Today
             </a>
           </div>
         )}
@@ -120,14 +117,14 @@ export default function UpdatePasswordPage() {
         {status === "ready" && (
           <>
             {error && (
-              <div className="mb-6 rounded-[2px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              <div role="alert" className={`mb-6 ${alertClass}`}>
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]">
+                <label htmlFor="password" className={labelClass}>
                   New password
                 </label>
                 <input
@@ -138,13 +135,13 @@ export default function UpdatePasswordPage() {
                   required
                   minLength={MIN_LENGTH}
                   autoComplete="new-password"
-                  className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] transition-colors outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
+                  className="input"
                   placeholder={`At least ${MIN_LENGTH} characters`}
                 />
               </div>
 
               <div>
-                <label htmlFor="confirm" className="mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]">
+                <label htmlFor="confirm" className={labelClass}>
                   Confirm password
                 </label>
                 <input
@@ -155,17 +152,13 @@ export default function UpdatePasswordPage() {
                   required
                   minLength={MIN_LENGTH}
                   autoComplete="new-password"
-                  className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] transition-colors outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
-                  placeholder="Re-enter your password"
+                  className="input"
+                  placeholder="Type it again"
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-[2px] bg-[var(--color-accent)] px-4 py-3 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-all hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "Saving..." : "Save Password"}
+              <button type="submit" disabled={loading} className="btn btn-primary w-full">
+                {loading ? "Saving..." : "Save password"}
               </button>
             </form>
           </>

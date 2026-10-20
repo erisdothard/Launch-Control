@@ -17,8 +17,8 @@ export const SCORE_FACTORS = [
 export const SCORE_BANDS = [
   { min: 80, label: "Hot", className: "bg-[var(--color-accent)] text-[var(--color-on-accent)]" },
   { min: 65, label: "Strong", className: "bg-[var(--color-livery-orange)]/15 text-[var(--color-livery-orange)]" },
-  { min: 50, label: "Possible", className: "bg-white/[0.06] text-[var(--color-steel)]" },
-  { min: 0, label: "Weak", className: "bg-white/[0.03] text-[var(--color-text-dim)]" },
+  { min: 50, label: "Possible", className: "bg-[var(--color-neutral-bg)] text-[var(--color-text)]" },
+  { min: 0, label: "Weak", className: "bg-[var(--color-neutral-bg)] text-[var(--color-text-dim)]" },
 ] as const;
 
 export function scoreBand(score: number | null) {

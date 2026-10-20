@@ -37,14 +37,13 @@ interface CalendarClientProps {
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const KIND_STYLE = {
-  event: "border-l-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-text)]",
-  followup: "border-l-[var(--color-livery-orange)] bg-[var(--color-livery-orange)]/10 text-[var(--color-text)]",
-  task: "border-l-[var(--color-steel)] bg-white/[0.05] text-[var(--color-text-muted)]",
+  event: "border-l-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-text)]",
+  followup: "border-l-[var(--color-livery-orange)] bg-[var(--color-warn-bg)] text-[var(--color-text)]",
+  task: "border-l-[var(--color-steel)] bg-[var(--color-neutral-bg)] text-[var(--color-text-muted)]",
 } as const;
 const KIND_LABEL = { followup: "Follow-up", task: "Task" } as const;
 
-const inputClass =
-  "w-full rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50";
+const navLink = "inline-flex min-h-11 min-w-11 items-center justify-center rounded-[2px] px-3 text-[var(--color-text-muted)] hover:bg-[var(--color-tint-hover)] hover:text-[var(--color-text)]";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const isoDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -114,10 +113,20 @@ function draftTimes(d: Draft): { startsAt: string; endsAt: string } {
   return { startsAt: at(d.date, d.start), endsAt: at(d.date, d.end) };
 }
 
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block t-small text-[var(--color-text-muted)]">{label}</span>
+      {children}
+    </label>
+  );
+}
+
 function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead[]; onDone: (warning?: string | null) => void }) {
   const router = useRouter();
   const [form, setForm] = useState(draft);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -150,37 +159,34 @@ function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead
 
   return (
     <div className="space-y-3">
-      <input autoFocus value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Call with Fever Racing" maxLength={200} className={inputClass} aria-label="Title" />
+      <input autoFocus value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Call with Fever Racing" maxLength={200} className="input" aria-label="Title" />
+      <label className="flex min-h-11 items-center gap-3 text-[var(--color-text-muted)]">
+        <input type="checkbox" checked={form.allDay} onChange={(e) => set("allDay", e.target.checked)} className="h-5 w-5 accent-[var(--color-accent)]" />
+        All day
+      </label>
       <div className="grid grid-cols-2 gap-2">
-        <label className="col-span-2 flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-          <input type="checkbox" checked={form.allDay} onChange={(e) => set("allDay", e.target.checked)} className="accent-[var(--color-accent)]" />
-          All day
-        </label>
-        <label className={form.allDay ? "" : "col-span-2"}>
-          <span className="mb-1 block text-xs text-[var(--color-text-muted)]">{form.allDay ? "From" : "Date"}</span>
-          <input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} className={inputClass} />
-        </label>
+        <div className={form.allDay ? "" : "col-span-2"}>
+          <Field label={form.allDay ? "From" : "Date"}>
+            <input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} className="input" />
+          </Field>
+        </div>
         {form.allDay ? (
-          <label>
-            <span className="mb-1 block text-xs text-[var(--color-text-muted)]">To</span>
-            <input type="date" value={form.endDate} min={form.date} onChange={(e) => set("endDate", e.target.value)} className={inputClass} />
-          </label>
+          <Field label="To">
+            <input type="date" value={form.endDate} min={form.date} onChange={(e) => set("endDate", e.target.value)} className="input" />
+          </Field>
         ) : (
           <>
-            <label>
-              <span className="mb-1 block text-xs text-[var(--color-text-muted)]">Start</span>
-              <input type="time" value={form.start} onChange={(e) => set("start", e.target.value)} className={inputClass} />
-            </label>
-            <label>
-              <span className="mb-1 block text-xs text-[var(--color-text-muted)]">End</span>
-              <input type="time" value={form.end} onChange={(e) => set("end", e.target.value)} className={inputClass} />
-            </label>
+            <Field label="Start">
+              <input type="time" value={form.start} onChange={(e) => set("start", e.target.value)} className="input" />
+            </Field>
+            <Field label="End">
+              <input type="time" value={form.end} onChange={(e) => set("end", e.target.value)} className="input" />
+            </Field>
           </>
         )}
       </div>
-      <label className="block">
-        <span className="mb-1 block text-xs text-[var(--color-text-muted)]">Lead (optional)</span>
-        <select value={form.leadId} onChange={(e) => set("leadId", e.target.value)} className={inputClass}>
+      <Field label="Lead (optional)">
+        <select value={form.leadId} onChange={(e) => set("leadId", e.target.value)} className="input">
           <option value="">None</option>
           {leads.map((l) => (
             <option key={l.id} value={l.id}>
@@ -188,32 +194,38 @@ function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead
             </option>
           ))}
         </select>
-      </label>
-      <input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Location or call link" maxLength={300} className={inputClass} aria-label="Location" />
-      <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Notes" rows={3} className={inputClass} aria-label="Notes" />
+      </Field>
+      <input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Location or call link" maxLength={300} className="input" aria-label="Location" />
+      <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Notes" rows={3} className="input" aria-label="Notes" />
       {error && (
-        <p role="alert" className="text-xs text-red-400">
+        <p role="alert" className="t-small text-[var(--color-danger)]">
           {error}
         </p>
       )}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={save}
-          disabled={pending || !form.title.trim()}
-          className="rounded-[2px] bg-[var(--color-accent)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-40"
-        >
-          {pending ? "Saving..." : "Save"}
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={save} disabled={pending || !form.title.trim()} className="btn btn-primary">
+          {pending ? "Saving…" : "Save"}
         </button>
-        <button type="button" onClick={() => onDone()} className="px-3 py-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+        <button type="button" onClick={() => onDone()} className="btn-quiet">
           Cancel
         </button>
-        {form.id && (
-          <button type="button" onClick={remove} disabled={pending} className="ml-auto px-2 py-2 text-xs text-[var(--color-text-dim)] hover:text-[var(--color-livery-red)]">
+        {form.id && !confirmDelete && (
+          <button type="button" onClick={() => setConfirmDelete(true)} className="btn-quiet sm:ml-auto">
             Delete
           </button>
         )}
       </div>
+      {form.id && confirmDelete && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-[var(--color-border)] pt-3">
+          <span className="t-small text-[var(--color-text-muted)]">Delete this event?</span>
+          <button type="button" onClick={remove} disabled={pending} className="btn btn-danger">
+            {pending ? "Deleting…" : "Yes, delete"}
+          </button>
+          <button type="button" onClick={() => setConfirmDelete(false)} className="btn-quiet">
+            Keep it
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -254,21 +266,21 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
     return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   })();
 
-  if (!mounted) return <div aria-busy="true" className="min-h-[36rem] rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)]" />;
+  if (!mounted) return <div aria-busy="true" className="card min-h-[36rem]" />;
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_22rem]">
-      <section aria-label={title} className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)]">
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3 sm:px-5">
-          <h2 className="font-display text-sm uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)]">{title}</h2>
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_24rem]">
+      <section aria-label={title} className="card">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)] px-4 py-2 sm:px-5">
+          <h2 className="font-display text-base uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)]">{title}</h2>
           <div className="flex items-center gap-1">
-            <Link href={`/admin/calendar?m=${prev}`} aria-label="Previous month" className="rounded-[2px] px-2.5 py-1.5 text-[var(--color-text-muted)] hover:bg-white/[0.05] hover:text-[var(--color-text)]">
+            <Link href={`/admin/calendar?m=${prev}`} aria-label="Previous month" className={navLink}>
               ←
             </Link>
-            <Link href="/admin/calendar" className="rounded-[2px] px-2.5 py-1.5 text-xs text-[var(--color-text-muted)] hover:bg-white/[0.05] hover:text-[var(--color-text)]">
-              Today
+            <Link href="/admin/calendar" className={`${navLink} t-small`}>
+              This month
             </Link>
-            <Link href={`/admin/calendar?m=${next}`} aria-label="Next month" className="rounded-[2px] px-2.5 py-1.5 text-[var(--color-text-muted)] hover:bg-white/[0.05] hover:text-[var(--color-text)]">
+            <Link href={`/admin/calendar?m=${next}`} aria-label="Next month" className={navLink}>
               →
             </Link>
           </div>
@@ -295,12 +307,12 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
                 }}
                 aria-pressed={isSelected}
                 aria-label={`${cell}${count ? `, ${count} items` : ""}`}
-                className={`relative flex min-h-16 flex-col items-stretch gap-1 border-r border-b border-[var(--color-border)] p-1.5 text-left transition-colors [&:nth-child(7n)]:border-r-0 sm:min-h-28 ${
-                  isSelected ? "bg-[var(--color-accent)]/[0.07]" : "hover:bg-white/[0.03]"
-                } ${inMonth(cell) ? "" : "opacity-40"}`}
+                className={`relative flex min-h-16 flex-col items-stretch gap-1 border-r border-b border-[var(--color-border)] p-1.5 text-left transition-colors [&:nth-child(7n)]:border-r-0 sm:min-h-32 ${
+                  isSelected ? "bg-[var(--color-accent-soft)]" : "hover:bg-[var(--color-tint-hover)]"
+                } ${inMonth(cell) ? "" : "opacity-50"}`}
               >
                 <span
-                  className={`self-start rounded-[2px] px-1.5 font-mono text-xs tabular-nums ${
+                  className={`self-start rounded-[2px] px-1.5 font-mono t-small tabular-nums ${
                     cell === today ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]" : "text-[var(--color-text-muted)]"
                   }`}
                 >
@@ -308,17 +320,17 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
                 </span>
                 <span className="hidden flex-col gap-0.5 sm:flex">
                   {items?.events.slice(0, 3).map((e) => (
-                    <span key={e.id} className={`truncate border-l-2 px-1 text-[11px] ${KIND_STYLE.event}`}>
+                    <span key={e.id} className={`truncate border-l-2 px-1 t-small ${KIND_STYLE.event}`}>
                       {!e.allDay && <span className="text-[var(--color-text-dim)]">{timeLabel(e.startsAt)} </span>}
                       {e.title}
                     </span>
                   ))}
                   {items?.dated.slice(0, Math.max(0, 3 - items.events.length)).map((d) => (
-                    <span key={d.key} className={`truncate border-l-2 px-1 text-[11px] ${KIND_STYLE[d.kind]}`}>
+                    <span key={d.key} className={`truncate border-l-2 px-1 t-small ${KIND_STYLE[d.kind]}`}>
                       {d.title}
                     </span>
                   ))}
-                  {count > 3 && <span className="px-1 text-[10px] text-[var(--color-text-dim)]">+{count - 3} more</span>}
+                  {count > 3 && <span className="px-1 t-small text-[var(--color-text-dim)]">+{count - 3} more</span>}
                 </span>
                 {count > 0 && (
                   <span className="flex gap-0.5 sm:hidden" aria-hidden="true">
@@ -333,24 +345,20 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
         </div>
       </section>
 
-      <aside aria-labelledby="day-heading" className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 id="day-heading" className="text-sm font-semibold text-[var(--color-text)]">
+      <aside aria-labelledby="day-heading" className="card p-4 sm:p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 id="day-heading" className="text-lg font-semibold text-[var(--color-text)]">
             {selectedLabel}
           </h2>
           {!draft && (
-            <button
-              type="button"
-              onClick={() => setDraft(newDraft(selected, null))}
-              className="rounded-[2px] bg-[var(--color-accent)] px-3 py-1.5 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
-            >
-              + Event
+            <button type="button" onClick={() => setDraft(newDraft(selected, null))} className="btn btn-primary">
+              Add event
             </button>
           )}
         </div>
 
         {notice && (
-          <p role="status" className="mb-4 rounded-[2px] border border-[var(--color-livery-orange)]/40 bg-[var(--color-livery-orange)]/10 px-3 py-2 text-xs text-[var(--color-text)]">
+          <p role="status" className="mb-4 rounded-[2px] bg-[var(--color-warn-bg)] px-3 py-2 t-small text-[var(--color-warn)]">
             {notice}
           </p>
         )}
@@ -365,36 +373,36 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
             }}
           />
         ) : day.events.length + day.dated.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-dim)]">Nothing on this day.</p>
+          <p className="text-[var(--color-text-dim)]">Nothing on this day.</p>
         ) : (
           <ul className="space-y-2">
             {day.events.map((e) => (
               <li key={e.id}>
                 {e.outlookLink ? (
-                  <a href={e.outlookLink} target="_blank" rel="noopener noreferrer" className={`block border-l-2 px-3 py-2 hover:brightness-125 ${KIND_STYLE.event}`}>
-                    <p className="text-sm font-medium">{e.title}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">{e.allDay ? "All day" : `${timeLabel(e.startsAt)} – ${timeLabel(e.endsAt)}`}</p>
-                    {e.location && <p className="truncate text-xs text-[var(--color-text-dim)]">{e.location}</p>}
-                    <p className="text-[11px] text-[var(--color-text-dim)]">From Outlook · open to edit</p>
+                  <a href={e.outlookLink} target="_blank" rel="noopener noreferrer" className={`block min-h-14 border-l-2 px-3 py-2 transition-opacity hover:opacity-80 ${KIND_STYLE.event}`}>
+                    <p className="font-medium">{e.title}</p>
+                    <p className="t-small text-[var(--color-text-muted)]">{e.allDay ? "All day" : `${timeLabel(e.startsAt)} – ${timeLabel(e.endsAt)}`}</p>
+                    {e.location && <p className="truncate t-small text-[var(--color-text-dim)]">{e.location}</p>}
+                    <p className="t-small text-[var(--color-text-dim)]">From Outlook · opens there to edit</p>
                   </a>
                 ) : (
-                <button type="button" onClick={() => setDraft(draftFromEvent(e))} className={`w-full border-l-2 px-3 py-2 text-left hover:brightness-125 ${KIND_STYLE.event}`}>
-                  <p className="text-sm font-medium">{e.title}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    {e.allDay ? "All day" : `${timeLabel(e.startsAt)} – ${timeLabel(e.endsAt)}`}
-                    {e.leadId && leadName.get(e.leadId) ? ` · ${leadName.get(e.leadId)}` : ""}
-                  </p>
-                  {e.location && <p className="truncate text-xs text-[var(--color-text-dim)]">{e.location}</p>}
-                  <p className="text-[11px] text-[var(--color-text-dim)]">Added by {e.createdBy}</p>
-                </button>
+                  <button type="button" onClick={() => setDraft(draftFromEvent(e))} className={`w-full min-h-14 border-l-2 px-3 py-2 text-left transition-opacity hover:opacity-80 ${KIND_STYLE.event}`}>
+                    <p className="font-medium">{e.title}</p>
+                    <p className="t-small text-[var(--color-text-muted)]">
+                      {e.allDay ? "All day" : `${timeLabel(e.startsAt)} – ${timeLabel(e.endsAt)}`}
+                      {e.leadId && leadName.get(e.leadId) ? ` · ${leadName.get(e.leadId)}` : ""}
+                    </p>
+                    {e.location && <p className="truncate t-small text-[var(--color-text-dim)]">{e.location}</p>}
+                    <p className="t-small text-[var(--color-text-dim)]">Added by {e.createdBy}</p>
+                  </button>
                 )}
               </li>
             ))}
             {day.dated.map((d) => (
               <li key={d.key}>
-                <Link href={d.href} className={`block border-l-2 px-3 py-2 hover:brightness-125 ${KIND_STYLE[d.kind]}`}>
-                  <p className="text-sm font-medium">{d.title}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
+                <Link href={d.href} className={`block min-h-14 border-l-2 px-3 py-2 transition-opacity hover:opacity-80 ${KIND_STYLE[d.kind]}`}>
+                  <p className="font-medium">{d.title}</p>
+                  <p className="t-small text-[var(--color-text-muted)]">
                     {KIND_LABEL[d.kind]} · {d.detail}
                   </p>
                 </Link>
@@ -403,15 +411,15 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
           </ul>
         )}
 
-        <div className="mt-6 flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--color-border)] pt-4 text-[11px] text-[var(--color-text-dim)]">
+        <div className="mt-6 flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--color-border)] pt-4 t-small text-[var(--color-text-dim)]">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 bg-[var(--color-accent)]" /> Meeting
+            <span className="h-2.5 w-2.5 bg-[var(--color-accent)]" /> Meeting
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 bg-[var(--color-livery-orange)]" /> Follow-up
+            <span className="h-2.5 w-2.5 bg-[var(--color-livery-orange)]" /> Follow-up
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 bg-[var(--color-steel)]" /> Task
+            <span className="h-2.5 w-2.5 bg-[var(--color-steel)]" /> Task
           </span>
         </div>
       </aside>

@@ -10,16 +10,13 @@ export default async function DealsPage() {
     <>
       <AdminHeader
         title="Deals"
-        subtitle="Pipeline from first contact to signed."
+        subtitle="Pipeline from first contact to signed. Drag a deal between columns, or use its Move to list."
         actions={
-          <Link
-            href="/admin/deals/new"
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[2px] bg-[var(--color-accent)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)]"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <Link href="/admin/deals/new" className="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
               <path d="M8 3v10M3 8h10" />
             </svg>
-            Add Deal
+            Add deal
           </Link>
         }
       />

@@ -27,7 +27,7 @@ export const LEAD_VIEWS = [
   { key: "needs-reply", label: "Needs reply", hint: "They wrote back. Your move." },
   { key: "follow-up", label: "Follow-up due", hint: "No answer yet and the next nudge is due." },
   { key: "waiting", label: "Waiting on them", hint: "You wrote last. Nothing to do yet." },
-  { key: "in-play", label: "Meetings & deals", hint: "Meeting booked, proposal out, or negotiating." },
+  { key: "in-play", label: "In progress", hint: "Meeting booked, proposal out, or negotiating." },
   { key: "not-contacted", label: "Not contacted", hint: "Nobody has emailed them yet." },
   { key: "closed", label: "Closed", hint: "Won, lost, or asked not to be contacted." },
   { key: "all", label: "All", hint: "Every lead." },

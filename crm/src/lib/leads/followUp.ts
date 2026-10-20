@@ -20,9 +20,9 @@ export interface FollowUpState {
 
 export function followUpState(date: string | null, today: string = todayISO()): FollowUpState | null {
   if (!date) return null;
-  if (date < today) return { label: "Overdue", className: "bg-red-400/15 text-red-300", dueNow: true };
-  if (date === today) return { label: "Due today", className: "bg-[var(--color-accent)]/15 text-[var(--color-accent)]", dueNow: true };
+  if (date < today) return { label: "Overdue", className: "pill pill-danger", dueNow: true };
+  if (date === today) return { label: "Due today", className: "pill pill-accent", dueNow: true };
   const [y, m, d] = date.split("-").map(Number);
   const label = new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return { label, className: "bg-white/[0.06] text-[var(--color-text-muted)]", dueNow: false };
+  return { label, className: "pill pill-neutral", dueNow: false };
 }

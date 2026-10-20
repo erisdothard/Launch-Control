@@ -89,12 +89,12 @@ async function ensureCustomerForLead(leadId: string, supabase: StoreClient): Pro
   if (existing) return;
   const { data: lead } = await supabase.from("leads").select("business_name, email, phone, notes").eq("id", leadId).maybeSingle();
   if (!lead) return;
-  const customer = await createCustomer(
+  await createCustomer(
     { businessName: lead.business_name, email: lead.email, phone: lead.phone, notes: lead.notes, fromLeadId: leadId },
     supabase
   );
   await logActivity(
-    { entityType: "lead", entityId: leadId, entityLabel: lead.business_name, action: "converted", detail: `→ customer ${customer.id} (deal won)` },
+    { entityType: "lead", entityId: leadId, entityLabel: lead.business_name, action: "converted", detail: "became a customer (deal won)" },
     supabase
   );
 }

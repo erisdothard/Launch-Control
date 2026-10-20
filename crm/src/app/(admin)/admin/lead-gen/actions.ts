@@ -13,6 +13,7 @@ export async function markProspectNotAFitAction(id: string) {
   revalidatePath(`/admin/leads/${id}`);
   revalidatePath("/admin/activity");
   revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/today");
 }
 
 export interface FindLeadsInput {

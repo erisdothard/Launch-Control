@@ -4,7 +4,7 @@ import NewLeadForm from "./NewLeadForm";
 export default function NewLeadPage() {
   return (
     <>
-      <AdminHeader title="Add Lead" subtitle="Manually add a lead that didn't come through the scraper." />
+      <AdminHeader title="Add Lead" subtitle="Add a lead by hand. Anyone already in the CRM is flagged before saving." />
       <NewLeadForm />
     </>
   );

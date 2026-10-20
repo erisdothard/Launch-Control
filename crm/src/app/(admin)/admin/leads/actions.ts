@@ -20,6 +20,7 @@ function revalidateLeads(id?: string) {
   if (id) revalidatePath(`/admin/leads/${id}`);
   revalidatePath("/admin/activity");
   revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/today");
 }
 
 export type CreateLeadResult =
