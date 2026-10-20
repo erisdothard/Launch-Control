@@ -101,7 +101,7 @@ export default function LeadDetailClient({ lead, activity, meetings, today }: Le
               {lead.statusReason && (
                 <span className="text-xs text-[var(--color-text-dim)]">
                   {lead.statusReason}
-                  {lead.statusChangedAt && ` · ${formatDateTime(lead.statusChangedAt)}`}
+                  {lead.statusChangedAt && <> · {formatDateTime(lead.statusChangedAt)}</>}
                 </span>
               )}
               {lead.doNotContact && (
