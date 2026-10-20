@@ -10,7 +10,7 @@ const chivoMono = Chivo_Mono({ variable: "--font-chivo-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "Launch Control CRM",
-  description: "Launch Control CRM: today's work, leads, deals.",
+  description: "Launch Control pipeline: leads, deals, tasks and scored lead-gen prospects.",
   robots: { index: false, follow: false },
 };
 

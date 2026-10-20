@@ -1,14 +1,9 @@
 /*
- * Launch Control CRM tokens. Same brand as the marketing site (web/src/styles/tokens.css): Jordan
- * yellow as the one accent, the livery's orange and red only as small marks, square corners,
- * Michroma + Sora + Chivo Mono.
- *
- * The CRM runs LIGHT by default (2026-10-20, Eris): its user is a 50+ business owner reading it
- * all day, so the ground is white and the ink is dark. The site stays black. The dark values are
- * kept under [data-theme="dark"] so a toggle can come back without touching components.
- *
- * Components never use raw Tailwind colours (red-400, white/[0.05], ...). Every tint, text colour
- * and surface is a token here, so the two themes stay readable.
+ * Launch Control CRM tokens. Same brand as the marketing site (web/src/styles/tokens.css):
+ * near-black ground, silver display type, Jordan yellow as the one accent, the livery's orange and
+ * red only as small marks (stripe, numbers, score bands), square corners, Michroma + Sora + Chivo
+ * Mono. The variable names are the CRM's own so every component keeps working; the values are the
+ * site's. Change a value here and in web/ together.
  */
 @theme {
   --font-display: var(--font-michroma), "Eurostile", "Bank Gothic", Arial, sans-serif;
@@ -17,91 +12,33 @@
 }
 
 :root {
-  /* Surfaces */
-  --color-bg-primary: #f3f4f6; /* page */
-  --color-bg-card: #ffffff; /* cards, table, nav */
-  --color-bg-secondary: #eceef1; /* inputs, wells, kanban columns */
-  --color-tint-hover: rgba(17, 20, 23, 0.04); /* row / button hover */
-  --color-tint-active: rgba(17, 20, 23, 0.08);
+  /* Colors (site name in brackets) */
+  --color-bg-primary: #050607; /* background */
+  --color-bg-secondary: #15181c; /* elevated: inputs, tracks, hover wells */
+  --color-bg-card: #0b0d10; /* surface */
+  --color-accent: #f0c419; /* ember: Jordan yellow */
+  --color-accent-hover: #f4f6f8; /* the site's primary button goes white on hover */
+  --color-on-accent: #050607; /* ink on yellow */
+  --color-livery-orange: #f07d1a; /* ember-hot. Never a surface */
+  --color-livery-red: #e3261d; /* ember-red. Never a surface */
+  --color-steel: #c6ccd3; /* display type, headings */
+  --color-text: #f4f6f8;
+  --color-text-muted: #a7adb4;
+  --color-text-dim: #7a8189; /* 4.9:1 on surface (AA) */
+  --color-border: #262b31;
+  --color-border-bright: #3a4048;
+  --color-accent-border: rgba(240, 196, 25, 0.35);
+  --color-success: #8fd49a;
+  --color-danger: #e3261d;
 
-  /* Ink. Nothing lighter than text-dim goes on text. */
-  --color-text: #111417; /* 17.4:1 on white */
-  --color-text-muted: #454c54; /* 8.6:1 */
-  --color-text-dim: #5e666e; /* 5.9:1 */
-  --color-steel: #1b1f24; /* headings */
-
-  /* Accent: Jordan yellow for buttons and marks; never as text on the light ground. */
-  --color-accent: #f0c419;
-  --color-accent-hover: #d9ac00;
-  --color-on-accent: #111417;
-  --color-accent-text: #1b1f24; /* links and counts are ink; .link carries a yellow underline for the brand */
-  --color-accent-soft: rgba(240, 196, 25, 0.16); /* selected row, due-today badge */
-  --color-accent-border: rgba(240, 196, 25, 0.6);
-
-  /* Livery marks (stripe, numbers, score bands). Darkened so they also read as text on white. */
-  --color-livery-orange: #d9640f;
-  --color-livery-red: #c91f17;
-
-  /* Lines */
-  --color-border: #dcdfe4;
-  --color-border-bright: #b8bec6;
-
-  /* Meaning. Each has a text colour and a soft background; use them as a pair. */
-  --color-ok: #1d6f36;
-  --color-ok-bg: #e3f3e7;
-  --color-warn: #7a5600;
-  --color-warn-bg: #fff2c7;
-  --color-danger: #b4231a;
-  --color-danger-bg: #fde7e5;
-  --color-info: #1f4f8f;
-  --color-info-bg: #e5eefb;
-  --color-neutral-bg: #eef0f3;
-  --color-success: var(--color-ok);
-
-  /* Typography. Nothing under 14px is rendered anywhere in the CRM. */
-  --text-page-title: clamp(1.75rem, 1.25rem + 1.5vw, 2.25rem);
-  --text-body: 1rem; /* 16px */
-  --text-small: 0.875rem; /* 14px: meta, labels, table heads */
-  --text-button: 0.8125rem; /* Michroma reads a size larger than Sora at the same px */
-  --tracking-signage: 0.1em;
-
-  /* Hit targets */
-  --control-height: 2.75rem; /* 44px */
-  --row-min-height: 3.5rem; /* 56px */
+  /* Typography scale */
+  --text-heading: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+  --text-body: clamp(1rem, 0.92rem + 0.4vw, 1.125rem);
+  --text-label: 0.875rem;
+  --tracking-signage: 0.14em;
 
   /* Motion */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 120ms;
   --duration-normal: 300ms;
-}
-
-:root[data-theme="dark"] {
-  --color-bg-primary: #050607;
-  --color-bg-card: #0b0d10;
-  --color-bg-secondary: #15181c;
-  --color-tint-hover: rgba(255, 255, 255, 0.05);
-  --color-tint-active: rgba(255, 255, 255, 0.09);
-  --color-text: #f4f6f8;
-  --color-text-muted: #a7adb4;
-  --color-text-dim: #8b929a;
-  --color-steel: #c6ccd3;
-  --color-accent: #f0c419;
-  --color-accent-hover: #f4f6f8;
-  --color-on-accent: #050607;
-  --color-accent-text: #f0c419;
-  --color-accent-soft: rgba(240, 196, 25, 0.15);
-  --color-accent-border: rgba(240, 196, 25, 0.35);
-  --color-livery-orange: #f07d1a;
-  --color-livery-red: #e3261d;
-  --color-border: #262b31;
-  --color-border-bright: #3a4048;
-  --color-ok: #8fd49a;
-  --color-ok-bg: rgba(52, 211, 153, 0.12);
-  --color-warn: #fcd34d;
-  --color-warn-bg: rgba(251, 191, 36, 0.12);
-  --color-danger: #fca5a5;
-  --color-danger-bg: rgba(248, 113, 113, 0.12);
-  --color-info: #7dd3fc;
-  --color-info-bg: rgba(56, 189, 248, 0.12);
-  --color-neutral-bg: rgba(255, 255, 255, 0.06);
 }
