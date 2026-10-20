@@ -1,4 +1,3 @@
-import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { getEvents } from "@/lib/store/calendar";
 import { getLeads } from "@/lib/store/leads";
@@ -51,21 +50,13 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         date: t.dueDate!,
         title: t.title,
         detail: t.relatedLabel ?? "Task",
-        href: t.relatedType === "lead" && t.relatedId ? `/admin/leads/${t.relatedId}` : "/admin/today",
+        href: t.relatedType === "lead" && t.relatedId ? `/admin/leads/${t.relatedId}` : "/admin/tasks",
       })),
   ];
 
   return (
     <>
-      <AdminHeader
-        title="Calendar"
-        subtitle="Meetings, follow-ups and tasks for the whole team."
-        actions={
-          <Link href="/admin/today" className="btn btn-secondary">
-            Back to Today
-          </Link>
-        }
-      />
+      <AdminHeader title="Calendar" subtitle="Meetings, follow-ups and tasks for the whole team." />
       <CalendarClient
         year={year}
         month={month}

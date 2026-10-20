@@ -2,9 +2,6 @@
   The Grid Box mark, copied from web/src/components/ui/BrandMark.tsx (same geometry as
   public/brand/*-v1.svg). The C is a starting-grid slot, the L sits in it, and the L's foot is the
   livery stripe leaving the box. Decorative beside the wordmark, so aria-hidden.
-
-  Fills come from tokens, so the mark is dark on the CRM's light ground and silver under
-  [data-theme="dark"] without a prop.
 */
 export function BrandMark({ className = "" }: { className?: string }) {
   return (
@@ -18,11 +15,11 @@ export function BrandMark({ className = "" }: { className?: string }) {
   );
 }
 
-/* Mark + wordmark, the site's nav lockup. Michroma at 14px reads a size larger than Sora. */
+/* Mark + wordmark, the site's nav lockup. */
 export function BrandLockup({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`flex items-center gap-2.5 whitespace-nowrap font-display text-sm uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)] ${className}`}
+      className={`flex items-center gap-2.5 whitespace-nowrap font-display text-[12px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)] ${className}`}
     >
       <BrandMark className="h-6 w-auto shrink-0" />
       Launch Control

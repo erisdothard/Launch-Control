@@ -12,11 +12,11 @@ interface AdminShellProps {
   userEmail: string;
   companyName: string;
   logoUrl: string | null;
-  /** Items on the Today queue; shown as the badge on the Today nav item. */
-  attention: number;
+  unread: number;
+  drafts: number;
 }
 
-export default function AdminShell({ children, role, userEmail, companyName, logoUrl, attention }: AdminShellProps) {
+export default function AdminShell({ children, role, userEmail, companyName, logoUrl, unread, drafts }: AdminShellProps) {
   const pathname = usePathname();
   // Password screen renders centered, with no sidebar or bottom nav.
   const isAuthPage = pathname === "/admin/update-password";
@@ -31,15 +31,17 @@ export default function AdminShell({ children, role, userEmail, companyName, log
 
   return (
     <>
-      <AdminSidebar role={role} userEmail={userEmail} companyName={companyName} logoUrl={logoUrl} attention={attention} />
-      <div className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-[var(--color-bg-primary)] lg:ml-72">
+      <AdminSidebar role={role} userEmail={userEmail} companyName={companyName} logoUrl={logoUrl} unread={unread} drafts={drafts} />
+      <div className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-[var(--color-bg-primary)] lg:ml-64">
         {/* Phones have no sidebar, so the brand rides at the top of the page */}
-        <div className="relative z-10 flex min-h-[56px] items-center border-b border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 lg:hidden">
+        <div className="relative z-10 border-b border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3.5 lg:hidden">
           <BrandLockup />
         </div>
-        <div className="relative z-10 flex-1 p-4 pb-28 sm:p-6 sm:pb-28 lg:p-8 lg:pb-8">{children}</div>
+        <div className="relative z-10 flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
+          {children}
+        </div>
       </div>
-      <AdminBottomNav role={role} userEmail={userEmail} attention={attention} />
+      <AdminBottomNav role={role} userEmail={userEmail} />
     </>
   );
 }

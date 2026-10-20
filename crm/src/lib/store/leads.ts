@@ -4,8 +4,7 @@ import type { ContactFilterKey } from "@/lib/leads/contactFilter";
 import { logActivity } from "./activity";
 import { createCustomer, type Customer } from "./customers";
 import { createDeal, type Deal } from "./deals";
-import { AUTOMATED_LEAD_SOURCE, LEAD_VIEWS, matchesView, type Awaiting, type Lead, type LeadStatus, type LeadView, type Prospect, type ScoreFactor } from "./types";
-import { isUntouchedProspect } from "@/lib/leads/prospects";
+import { LEAD_VIEWS, matchesView, type Awaiting, type Lead, type LeadStatus, type LeadView, type Prospect, type ScoreFactor } from "./types";
 
 export type { Lead, LeadStatus } from "./types";
 export { LEAD_STATUSES } from "./types";
@@ -115,8 +114,6 @@ export interface GetLeadsParams {
   minScore?: number;
   sortByScore?: boolean;
   has?: ContactFilterKey[];
-  /** Leave out leads Lead Gen found that nobody has opened or emailed yet; they live on the Lead Gen page. */
-  excludeUntouchedProspects?: boolean;
 }
 
 export async function getLeads(params?: GetLeadsParams, client?: StoreClient): Promise<Lead[]> {
@@ -152,42 +149,19 @@ export async function getLeads(params?: GetLeadsParams, client?: StoreClient): P
 
   const { data, error } = await query;
   if (error) throw error;
-  const all = (data as LeadRow[]).map(rowToLead);
-  const leads = params?.excludeUntouchedProspects ? all.filter((lead) => !isUntouchedProspect(lead)) : all;
+  const leads = (data as LeadRow[]).map(rowToLead);
   const view = params?.view;
   if (!view || view === "all") return leads;
   const today = params?.today ?? new Date().toISOString().slice(0, 10);
   return leads.filter((lead) => matchesView(lead, view, today));
 }
 
-export interface LeadViewCountOptions {
-  /** Same exclusion as GetLeadsParams, so the tab counts match the list. */
-  excludeUntouchedProspects?: boolean;
-}
-
 /** How many leads each view holds, for the tab counts. One read of the whole table. */
-export async function getLeadViewCounts(
-  today: string,
-  client?: StoreClient,
-  options?: LeadViewCountOptions
-): Promise<Record<LeadView, number>> {
-  const leads = await getLeads({ excludeUntouchedProspects: options?.excludeUntouchedProspects }, client);
+export async function getLeadViewCounts(today: string, client?: StoreClient): Promise<Record<LeadView, number>> {
+  const leads = await getLeads(undefined, client);
   const counts = Object.fromEntries(LEAD_VIEWS.map((v) => [v.key, 0])) as Record<LeadView, number>;
   for (const lead of leads) for (const v of LEAD_VIEWS) if (matchesView(lead, v.key, today)) counts[v.key] += 1;
   return counts;
-}
-
-/** Prospects Lead Gen found that nobody has touched yet: the ones the Leads page hides by default. */
-export async function getUntouchedProspectCount(client?: StoreClient): Promise<number> {
-  const supabase = await getStoreClient(client);
-  const { count, error } = await supabase
-    .from("leads")
-    .select("id", { count: "exact", head: true })
-    .eq("source", AUTOMATED_LEAD_SOURCE)
-    .eq("status", "new")
-    .is("last_contacted_at", null);
-  if (error) throw error;
-  return count ?? 0;
 }
 
 export async function getLeadById(id: string, client?: StoreClient): Promise<Lead | null> {
@@ -365,11 +339,11 @@ export async function convertLeadToCustomer(id: string, client?: StoreClient): P
   await updateLead(id, { status: "converted" }, supabase);
 
   await logActivity(
-    { entityType: "lead", entityId: id, entityLabel: lead.businessName, action: "converted", detail: "became a customer" },
+    { entityType: "lead", entityId: id, entityLabel: lead.businessName, action: "converted", detail: `→ customer ${customer.id}` },
     supabase
   );
   await logActivity(
-    { entityType: "customer", entityId: customer.id, entityLabel: customer.businessName, action: "created", detail: "from a lead" },
+    { entityType: "customer", entityId: customer.id, entityLabel: customer.businessName, action: "created", detail: `from lead ${id}` },
     supabase
   );
 

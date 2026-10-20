@@ -1,7 +1,9 @@
 "use client";
 
-// A lead's or deal's status as a plain-word pill. Thin wrapper over the .pill classes in globals.css
-// so Leads, Lead Gen and Deals all say the same thing the same way.
+// "deal" stages genericized to a universal sales pipeline (Hyper Racer's had
+// car-build-specific stages: deposit/build-order/in-production/shipping).
+// The "event" variant was dropped — events aren't part of this shell.
+// Translucent tints with light text, for the dark Launch Control ground.
 type BadgeVariant = "lead" | "deal";
 
 interface StatusBadgeProps {
@@ -9,33 +11,37 @@ interface StatusBadgeProps {
   variant?: BadgeVariant;
 }
 
-interface PillSpec {
-  label: string;
-  className: string;
-}
-
-const LEAD: Record<string, PillSpec> = {
-  new: { label: "Not contacted", className: "pill pill-neutral" },
-  contacted: { label: "Contacted", className: "pill pill-info" },
-  replied: { label: "Replied", className: "pill pill-danger" },
-  meeting: { label: "Meeting", className: "pill pill-info" },
-  proposal: { label: "Proposal", className: "pill pill-info" },
-  negotiation: { label: "Negotiating", className: "pill pill-warn" },
-  converted: { label: "Customer", className: "pill pill-ok" },
-  lost: { label: "Closed", className: "pill pill-neutral" },
+const leadColors: Record<string, string> = {
+  new: "bg-[var(--color-steel)]/10 text-[var(--color-steel)]",
+  contacted: "bg-amber-400/10 text-amber-300",
+  replied: "bg-teal-400/10 text-teal-300",
+  meeting: "bg-sky-400/10 text-sky-300",
+  proposal: "bg-purple-400/10 text-purple-300",
+  negotiation: "bg-[var(--color-livery-orange)]/15 text-[var(--color-livery-orange)]",
+  converted: "bg-emerald-400/10 text-emerald-300",
+  lost: "bg-red-400/10 text-red-300",
 };
 
-const DEAL: Record<string, PillSpec> = {
-  inquiry: { label: "Inquiry", className: "pill pill-neutral" },
-  proposal: { label: "Proposal", className: "pill pill-info" },
-  negotiation: { label: "Negotiating", className: "pill pill-warn" },
-  won: { label: "Won", className: "pill pill-ok" },
-  lost: { label: "Lost", className: "pill pill-neutral" },
+const dealColors: Record<string, string> = {
+  inquiry: "bg-[var(--color-steel)]/10 text-[var(--color-steel)]",
+  proposal: "bg-purple-400/10 text-purple-300",
+  negotiation: "bg-amber-400/10 text-amber-300",
+  won: "bg-emerald-400/10 text-emerald-300",
+  lost: "bg-red-400/10 text-red-300",
 };
 
-const SPECS: Record<BadgeVariant, Record<string, PillSpec>> = { lead: LEAD, deal: DEAL };
+const colorMaps: Record<BadgeVariant, Record<string, string>> = {
+  lead: leadColors,
+  deal: dealColors,
+};
 
 export default function StatusBadge({ status, variant = "lead" }: StatusBadgeProps) {
-  const spec = SPECS[variant][status] ?? { label: status.replace(/[-_]/g, " "), className: "pill pill-neutral" };
-  return <span className={spec.className}>{spec.label}</span>;
+  const colors = colorMaps[variant][status] ?? "bg-white/[0.06] text-[var(--color-text-muted)]";
+  const displayLabel = status.replace(/-/g, " ");
+
+  return (
+    <span className={`inline-flex items-center rounded-[2px] px-2 py-0.5 text-xs font-medium capitalize ${colors}`}>
+      {displayLabel}
+    </span>
+  );
 }
