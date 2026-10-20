@@ -2,56 +2,59 @@ import { notFound } from "next/navigation";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { getLeadById } from "@/lib/store/leads";
 import { getActivityLog } from "@/lib/store/activity";
+import { getCompanyInfo } from "@/lib/store/company";
 import LeadDetailClient from "./LeadDetailClient";
 import MessagesPanel from "./MessagesPanel";
 import { getEmailAccounts, getThread } from "@/lib/store/messages";
 import { getUpcomingEventsForLead } from "@/lib/store/calendar";
 import { teamTodayISO } from "@/lib/leads/followUp";
 import { getPendingDrafts } from "@/lib/store/drafts";
-import Link from "next/link";
+import { leadState, shortDate, toneClass, toneLabel } from "@/lib/leads/state";
+import { AUTOMATED_LEAD_SOURCE } from "@/lib/store/types";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const lead = await getLeadById(id);
   if (!lead) notFound();
 
-  const [allActivity, messages, accounts, meetings, drafts] = await Promise.all([
+  const [allActivity, messages, accounts, meetings, drafts, company] = await Promise.all([
     getActivityLog(200),
     getThread(id),
     getEmailAccounts(),
     getUpcomingEventsForLead(id),
     getPendingDrafts(),
+    getCompanyInfo(),
   ]);
-  const draft = drafts.find((d) => d.leadId === id);
+  const draft = drafts.find((d) => d.leadId === id) ?? null;
   const leadActivity = allActivity.filter((a) => a.entityType === "lead" && a.entityId === id);
+  const today = teamTodayISO();
+  const state = leadState(lead, today);
+  const sourceWords = lead.source === AUTOMATED_LEAD_SOURCE ? "Found by Lead Gen" : lead.source || "Added by hand";
 
   return (
     <>
-      <AdminHeader title={lead.businessName} subtitle={`Added ${new Date(lead.createdAt).toLocaleDateString()}`} />
-      {draft && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[2px] border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/[0.06] px-5 py-3">
-          <p className="text-sm text-[var(--color-text)]">
-            {draft.kind === "reply" ? "A reply to their last message is drafted and waiting." : `Follow-up ${draft.followUpNumber ?? ""} is drafted and waiting.`}
-          </p>
-          <Link
-            href="/admin/drafts"
-            className="rounded-[2px] bg-[var(--color-accent)] px-3.5 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
-          >
-            Review in Drafts
-          </Link>
-        </div>
-      )}
+      <AdminHeader title={lead.businessName} subtitle={`${sourceWords} · added ${shortDate(lead.createdAt)}`} />
+
+      {/* What is going on with this lead, before anything else. */}
+      <p className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-base text-[var(--color-text)]">
+        <span className={toneClass(state.tone)}>{toneLabel(lead, state)}</span>
+        <span>{state.line}</span>
+      </p>
+
       <div className="mb-6">
         <MessagesPanel
           leadId={lead.id}
           leadEmail={lead.email}
+          businessName={lead.businessName}
+          companyName={company.name}
           contactName={lead.prospect?.contactName ?? null}
           suggestedOpener={lead.prospect?.outreachHook ?? null}
           messages={messages}
           accounts={accounts}
+          draft={draft}
         />
       </div>
-      <LeadDetailClient lead={lead} activity={leadActivity} meetings={meetings} today={teamTodayISO()} />
+      <LeadDetailClient lead={lead} activity={leadActivity} meetings={meetings} today={today} />
     </>
   );
 }

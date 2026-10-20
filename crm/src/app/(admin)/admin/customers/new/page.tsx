@@ -4,7 +4,7 @@ import NewCustomerForm from "./NewCustomerForm";
 export default function NewCustomerPage() {
   return (
     <>
-      <AdminHeader title="Add Customer" subtitle="Manually add a customer that didn't come through a lead conversion." />
+      <AdminHeader title="Add customer" subtitle="For a client who did not come through a lead. Won deals become customers on their own." />
       <NewCustomerForm />
     </>
   );
