@@ -32,13 +32,13 @@ export function signatureHtml({ name, title, address }: SignatureInput): string 
 ${titleRow}
 <tr><td style="padding:0 0 10px 0;"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr>${stripe}</tr></table></td></tr>
 <tr><td style="padding:0 0 10px 0;"><a href="${SITE}" style="text-decoration:none;"><img src="${LOGO}" width="200" height="25" alt="Launch Control" style="display:block;width:200px;height:25px;border:0;"></a></td></tr>
-<tr><td style="padding:0;font-size:13px;line-height:19px;color:#050607;"><a href="mailto:${mail}" style="color:#050607;text-decoration:none;">${mail}</a><span style="color:#a7adb4;">&nbsp;|&nbsp;</span><a href="${SITE}" style="color:#050607;text-decoration:none;">golaunchcontrol.com</a></td></tr>
+<tr><td style="padding:0;font-size:13px;line-height:19px;color:#050607;"><a href="mailto:${mail}" style="color:#050607;text-decoration:none;">${mail}</a></td></tr>
 <tr><td style="padding:0;font-size:12px;line-height:18px;color:#7a8189;">${TAGLINE}</td></tr>
 </table>`;
 }
 
 export function signatureText({ name, title, address }: SignatureInput): string {
-  return ["--", name.trim(), title.trim(), "Launch Control", `${address} | golaunchcontrol.com`, "Nashville · Miami"]
+  return ["--", name.trim(), title.trim(), "Launch Control", address, "Nashville · Miami"]
     .filter(Boolean)
     .join("\n");
 }
