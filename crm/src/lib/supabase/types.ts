@@ -168,6 +168,7 @@ export type Database = {
           connected_by: string
           created_at: string
           display_name: string
+          signature_title: string
           gmail_history_id: string | null
           id: string
           provider: string
@@ -179,6 +180,7 @@ export type Database = {
           connected_by: string
           created_at?: string
           display_name?: string
+          signature_title?: string
           gmail_history_id?: string | null
           id?: string
           provider: string
@@ -190,6 +192,7 @@ export type Database = {
           connected_by?: string
           created_at?: string
           display_name?: string
+          signature_title?: string
           gmail_history_id?: string | null
           id?: string
           provider?: string
