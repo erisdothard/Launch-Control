@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { createEvent, deleteEvent, updateEvent, type EventInput } from "@/lib/store/calendar";
+import { createEvent, deleteEvent, getEventById, setOutlookEventId, updateEvent, type EventInput } from "@/lib/store/calendar";
+import { mirrorToOutlook, removeFromOutlook } from "@/lib/email/outlookCalendar";
 
-type Result = { ok: true } | { ok: false; error: string };
+type Result = { ok: true; warning: string | null } | { ok: false; error: string };
 
 const MAX_EVENT_MS = 14 * 24 * 60 * 60 * 1000;
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -38,31 +39,38 @@ function revalidate(leadId: string | null) {
 export async function saveEventAction(id: string | null, raw: EventInput): Promise<Result> {
   const input = validate(raw);
   if (typeof input === "string") return { ok: false, error: input };
+  let saved;
   try {
     if (id) {
-      const updated = await updateEvent(id, input);
-      if (!updated) return { ok: false, error: "That event no longer exists." };
+      saved = await updateEvent(id, input);
+      if (!saved) return { ok: false, error: "That event no longer exists." };
     } else {
       const supabase = await createServerSupabaseClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user?.email) return { ok: false, error: "You're signed out. Sign in again." };
-      await createEvent(input, user.email);
+      saved = await createEvent(input, user.email);
     }
   } catch {
     return { ok: false, error: "Couldn't save. Try again." };
   }
+
+  const mirror = await mirrorToOutlook(input, saved.outlookEventId);
+  if (mirror.outlookEventId !== saved.outlookEventId) await setOutlookEventId(saved.id, mirror.outlookEventId).catch(() => undefined);
   revalidate(input.leadId);
-  return { ok: true };
+  return { ok: true, warning: mirror.warning };
 }
 
 export async function deleteEventAction(id: string, leadId: string | null): Promise<Result> {
+  let outlookId: string | null = null;
   try {
+    outlookId = (await getEventById(id))?.outlookEventId ?? null;
     await deleteEvent(id);
   } catch {
     return { ok: false, error: "Couldn't delete. Try again." };
   }
+  const warning = await removeFromOutlook(outlookId);
   revalidate(leadId);
-  return { ok: true };
+  return { ok: true, warning };
 }

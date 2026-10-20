@@ -30,6 +30,7 @@ interface CalendarClientProps {
   leads: CalendarLead[];
   presetLeadId: string | null;
   presetDay: string | null;
+  outlookError: boolean;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -111,7 +112,7 @@ function draftTimes(d: Draft): { startsAt: string; endsAt: string } {
   return { startsAt: at(d.date, d.start), endsAt: at(d.date, d.end) };
 }
 
-function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead[]; onDone: () => void }) {
+function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead[]; onDone: (warning?: string | null) => void }) {
   const router = useRouter();
   const [form, setForm] = useState(draft);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +131,7 @@ function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead
         leadId: form.leadId || null,
       });
       if (!res.ok) return setError(res.error);
-      onDone();
+      onDone(res.warning);
       router.refresh();
     });
   }
@@ -140,7 +141,7 @@ function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead
     startTransition(async () => {
       const res = await deleteEventAction(form.id!, form.leadId || null);
       if (!res.ok) return setError(res.error);
-      onDone();
+      onDone(res.warning);
       router.refresh();
     });
   }
@@ -202,7 +203,7 @@ function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead
         >
           {pending ? "Saving..." : "Save"}
         </button>
-        <button type="button" onClick={onDone} className="px-3 py-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+        <button type="button" onClick={() => onDone()} className="px-3 py-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
           Cancel
         </button>
         {form.id && (
@@ -215,7 +216,8 @@ function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead
   );
 }
 
-export default function CalendarClient({ year, month, events, dated, leads, presetLeadId, presetDay }: CalendarClientProps) {
+export default function CalendarClient({ year, month, events, dated, leads, presetLeadId, presetDay, outlookError }: CalendarClientProps) {
+  const [notice, setNotice] = useState<string | null>(outlookError ? "Couldn't load the Outlook calendar just now; showing CRM events only." : null);
   const today = todayISO();
   const inMonth = (day: string) => day.startsWith(monthParam(year, month));
   const [selected, setSelected] = useState(presetDay && inMonth(presetDay) ? presetDay : inMonth(today) ? today : `${monthParam(year, month)}-01`);
@@ -342,14 +344,35 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
           )}
         </div>
 
+        {notice && (
+          <p role="status" className="mb-4 rounded-[2px] border border-[var(--color-livery-orange)]/40 bg-[var(--color-livery-orange)]/10 px-3 py-2 text-xs text-[var(--color-text)]">
+            {notice}
+          </p>
+        )}
         {draft ? (
-          <EventForm key={draft.id ?? `new-${draft.date}`} draft={draft} leads={leads} onDone={() => setDraft(null)} />
+          <EventForm
+            key={draft.id ?? `new-${draft.date}`}
+            draft={draft}
+            leads={leads}
+            onDone={(warning) => {
+              setDraft(null);
+              setNotice(warning ?? null);
+            }}
+          />
         ) : day.events.length + day.dated.length === 0 ? (
           <p className="text-sm text-[var(--color-text-dim)]">Nothing on this day.</p>
         ) : (
           <ul className="space-y-2">
             {day.events.map((e) => (
               <li key={e.id}>
+                {e.outlookLink ? (
+                  <a href={e.outlookLink} target="_blank" rel="noopener noreferrer" className={`block border-l-2 px-3 py-2 hover:brightness-125 ${KIND_STYLE.event}`}>
+                    <p className="text-sm font-medium">{e.title}</p>
+                    <p className="text-xs text-[var(--color-text-muted)]">{e.allDay ? "All day" : `${timeLabel(e.startsAt)} – ${timeLabel(e.endsAt)}`}</p>
+                    {e.location && <p className="truncate text-xs text-[var(--color-text-dim)]">{e.location}</p>}
+                    <p className="text-[11px] text-[var(--color-text-dim)]">From Outlook · open to edit</p>
+                  </a>
+                ) : (
                 <button type="button" onClick={() => setDraft(draftFromEvent(e))} className={`w-full border-l-2 px-3 py-2 text-left hover:brightness-125 ${KIND_STYLE.event}`}>
                   <p className="text-sm font-medium">{e.title}</p>
                   <p className="text-xs text-[var(--color-text-muted)]">
@@ -359,6 +382,7 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
                   {e.location && <p className="truncate text-xs text-[var(--color-text-dim)]">{e.location}</p>}
                   <p className="text-[11px] text-[var(--color-text-dim)]">Added by {e.createdBy}</p>
                 </button>
+                )}
               </li>
             ))}
             {day.dated.map((d) => (

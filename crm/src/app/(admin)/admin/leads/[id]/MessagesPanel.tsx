@@ -131,7 +131,7 @@ export default function MessagesPanel({ leadId, leadEmail, contactName, suggeste
           <p className="text-sm text-[var(--color-text-muted)]">
             No sending address yet.{" "}
             <Link href="/admin/settings#email-accounts" className="text-[var(--color-accent)] hover:underline">
-              Connect Gmail or add a business address in Settings
+              Connect Outlook in Settings
             </Link>
             .
           </p>
@@ -143,7 +143,7 @@ export default function MessagesPanel({ leadId, leadEmail, contactName, suggeste
                 <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inputClass} disabled={pending}>
                   {active.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.address} {a.provider === "gmail" ? "(Gmail)" : "(business)"}
+                      {a.displayName ? `${a.displayName} <${a.address}>` : a.address}
                     </option>
                   ))}
                 </select>

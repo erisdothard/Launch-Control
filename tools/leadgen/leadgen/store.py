@@ -4,6 +4,7 @@ existing rows: a human may have moved a lead along the pipeline.
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import UTC, datetime
 from typing import Any
@@ -138,6 +139,56 @@ class Store:
                 "provider_thread_id": f"in.({chunk})", "select": "lead_id,provider_thread_id",
             }).json()
             out.update({r["provider_thread_id"]: r["lead_id"] for r in rows})
+        return out
+
+    def outlook_accounts(self) -> list[dict[str, Any]]:
+        """Connected Outlook mailboxes (alias rows share the mailbox's token and inbox, so skip them)."""
+        return self._req("GET", "email_accounts", params={
+            "provider": "eq.outlook", "status": "eq.active", "mailbox": "is.null", "select": "id,address,sync_cursor",
+        }).json()
+
+    def own_addresses(self) -> set[str]:
+        rows = self._req("GET", "email_accounts", params={"select": "address"}).json()
+        return {r["address"].lower() for r in rows}
+
+    def mail_refresh_token(self, account_id: str) -> str | None:
+        token = self._req("POST", "rpc/mail_refresh_token", json={"p_account_id": account_id}).json()
+        return token or None
+
+    def save_refresh_token(self, account_id: str, token: str) -> None:
+        self._req("POST", "rpc/save_mail_refresh_token", json={"p_account_id": account_id, "p_refresh_token": token})
+
+    def set_sync_cursor(self, account_id: str, cursor: str) -> None:
+        self._req("PATCH", "email_accounts", params={"id": f"eq.{account_id}"}, prefer="return=minimal",
+                  json={"sync_cursor": cursor})
+
+    def mark_mailbox_reconnect(self, account_id: str) -> None:
+        """Flag the mailbox and every alias row sharing its token."""
+        row = self._req("GET", "email_accounts", params={"id": f"eq.{account_id}", "select": "token_secret_id"}).json()
+        secret = row[0]["token_secret_id"] if row else None
+        params = {"token_secret_id": f"eq.{secret}"} if secret else {"id": f"eq.{account_id}"}
+        self._req("PATCH", "email_accounts", params=params, prefer="return=minimal", json={"status": "needs_reconnect"})
+
+    def leads_by_emails(self, emails: list[str]) -> dict[str, str]:
+        """Lowercased lead email -> lead id, for the given addresses."""
+        out: dict[str, str] = {}
+        wanted = sorted({e.lower() for e in emails if e})
+        for i in range(0, len(wanted), _CHUNK):
+            chunk = ",".join(f'"{e}"' for e in wanted[i : i + _CHUNK])
+            rows = self._req("GET", "leads", params={"email": f"in.({chunk})", "select": "id,email"}).json()
+            out.update({r["email"].lower(): r["id"] for r in rows})
+        return out
+
+    def known_message_ids(self, headers: list[str]) -> set[str]:
+        """RFC Message-IDs already stored (the CRM's own sends show up again in Sent Items)."""
+        out: set[str] = set()
+        wanted = sorted({h for h in headers if h})
+        for i in range(0, len(wanted), _CHUNK):
+            chunk = ",".join(json.dumps(h) for h in wanted[i : i + _CHUNK])
+            rows = self._req("GET", "email_messages", params={
+                "message_id_header": f"in.({chunk})", "select": "message_id_header",
+            }).json()
+            out.update(r["message_id_header"] for r in rows)
         return out
 
     def insert_message(self, row: dict[str, Any]) -> int:

@@ -7,9 +7,15 @@ export const emailConfig = {
   replyDomain: (process.env.EMAIL_REPLY_DOMAIN ?? "reply.golaunchcontrol.com").toLowerCase(),
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  msClientId: process.env.MS_CLIENT_ID ?? "",
+  msClientSecret: process.env.MS_CLIENT_SECRET ?? "",
+  msTenantId: process.env.MS_TENANT_ID ?? "",
+  // The zone all-day calendar events are pinned to when they're copied to Outlook.
+  teamTimeZone: process.env.TEAM_TIME_ZONE ?? "America/Chicago",
 };
 
 export const resendEnabled = () => Boolean(emailConfig.resendKey);
+export const outlookEnabled = () => Boolean(emailConfig.msClientId && emailConfig.msClientSecret && emailConfig.msTenantId);
 export const gmailEnabled = () => Boolean(emailConfig.googleClientId && emailConfig.googleClientSecret);
 
 // Replies to a business-address email go to lead+<lead id>@<reply domain>, so the inbound

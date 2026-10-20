@@ -2,6 +2,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { getEvents } from "@/lib/store/calendar";
 import { getLeads } from "@/lib/store/leads";
 import { getTasks } from "@/lib/store/tasks";
+import { outlookOnlyEvents } from "@/lib/email/outlookCalendar";
 import CalendarClient, { type CalendarLead, type DatedItem } from "./CalendarClient";
 
 const MONTH = /^(\d{4})-(\d{2})$/;
@@ -21,7 +22,9 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
   const from = new Date(Date.UTC(year, month - 1, 1 - PAD_DAYS)).toISOString();
   const to = new Date(Date.UTC(year, month, 1 + PAD_DAYS)).toISOString();
-  const [events, leads, tasks] = await Promise.all([getEvents(from, to), getLeads(), getTasks()]);
+  const [crmEvents, leads, tasks] = await Promise.all([getEvents(from, to), getLeads(), getTasks()]);
+  const outlook = await outlookOnlyEvents(from, to, new Set(crmEvents.flatMap((e) => (e.outlookEventId ? [e.outlookEventId] : []))));
+  const events = [...crmEvents, ...outlook.events];
 
   const leadOptions: CalendarLead[] = leads
     .map((l) => ({ id: l.id, name: l.businessName }))
@@ -61,6 +64,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         leads={leadOptions}
         presetLeadId={params.lead ?? null}
         presetDay={params.day ?? null}
+        outlookError={outlook.error}
       />
     </>
   );

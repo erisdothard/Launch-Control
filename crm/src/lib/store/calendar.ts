@@ -14,6 +14,7 @@ interface EventRow {
   lead_id: string | null;
   created_by: string;
   created_at: string;
+  outlook_event_id: string | null;
 }
 
 function rowToEvent(row: EventRow): CalendarEvent {
@@ -28,10 +29,11 @@ function rowToEvent(row: EventRow): CalendarEvent {
     leadId: row.lead_id,
     createdBy: row.created_by,
     createdAt: row.created_at,
+    outlookEventId: row.outlook_event_id,
   };
 }
 
-const COLUMNS = "id, title, starts_at, ends_at, all_day, location, notes, lead_id, created_by, created_at";
+const COLUMNS = "id, title, starts_at, ends_at, all_day, location, notes, lead_id, created_by, created_at, outlook_event_id";
 
 /** Events overlapping [from, to). */
 export async function getEvents(from: string, to: string, client?: StoreClient): Promise<CalendarEvent[]> {
@@ -105,6 +107,19 @@ export async function updateEvent(id: string, input: EventInput, client?: StoreC
     .eq("id", id)
     .select(COLUMNS)
     .maybeSingle();
+  if (error) throw error;
+  return data ? rowToEvent(data as EventRow) : null;
+}
+
+export async function setOutlookEventId(id: string, outlookEventId: string | null, client?: StoreClient): Promise<void> {
+  const supabase = await getStoreClient(client);
+  const { error } = await supabase.from("calendar_events").update({ outlook_event_id: outlookEventId }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function getEventById(id: string, client?: StoreClient): Promise<CalendarEvent | null> {
+  const supabase = await getStoreClient(client);
+  const { data, error } = await supabase.from("calendar_events").select(COLUMNS).eq("id", id).maybeSingle();
   if (error) throw error;
   return data ? rowToEvent(data as EventRow) : null;
 }

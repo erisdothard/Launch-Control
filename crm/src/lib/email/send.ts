@@ -4,8 +4,10 @@ import { getThread } from "@/lib/store/messages";
 import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { replyAddressFor } from "./config";
 import { accessTokenFor, sendViaGmail } from "./gmail";
+import { OutlookReconnectNeeded, sendViaOutlook } from "./outlook";
+import { outlookAccessToken } from "./outlookAccount";
 import { sendViaResend } from "./resend";
-import { emailHtml, signatureText } from "./signature";
+import { emailHtml, plainHtml, signatureText } from "./signature";
 import { isEmail } from "./text";
 
 export interface SendInput {
@@ -45,7 +47,7 @@ export async function sendLeadEmail(input: SendInput): Promise<SendResult> {
   const [lead, thread, accountRes] = await Promise.all([
     getLeadById(input.leadId),
     getThread(input.leadId),
-    supabase.from("email_accounts").select("id, provider, address, display_name, signature_title, status").eq("id", input.accountId).maybeSingle(),
+    supabase.from("email_accounts").select("id, provider, address, display_name, signature_title, status, mailbox").eq("id", input.accountId).maybeSingle(),
   ]);
   const account = accountRes.data;
   if (!lead) return { ok: false, error: "That lead no longer exists." };
@@ -70,6 +72,21 @@ export async function sendLeadEmail(input: SendInput): Promise<SendResult> {
       const inReplyTo = lastInbound ? await headerFor(lastInbound.id) : null;
       const sent = await sendViaResend({ from, to, subject, ...signed, replyTo: replyAddressFor(lead.id), inReplyTo });
       providerMessageId = sent.id;
+    } else if (account.provider === "outlook") {
+      const lastOutlookIn = [...thread].reverse().find((m) => m.direction === "in" && m.provider === "outlook");
+      const replyTo = lastOutlookIn ? await providerIdFor(lastOutlookIn.id) : null;
+      const sent = await sendViaOutlook(await outlookAccessToken(account.id), {
+        fromName: account.display_name,
+        fromAddress: account.address,
+        mailbox: account.mailbox ?? account.address,
+        to,
+        subject,
+        html: signed.html ?? plainHtml(body),
+        replyToMessageId: replyTo,
+      });
+      providerMessageId = sent.id;
+      providerThreadId = sent.conversationId;
+      messageIdHeader = sent.internetMessageId;
     } else {
       const admin = createServiceRoleClient();
       if (!admin) throw new Error("Server is missing SUPABASE_SERVICE_ROLE_KEY");
@@ -84,7 +101,7 @@ export async function sendLeadEmail(input: SendInput): Promise<SendResult> {
       messageIdHeader = sent.messageId;
     }
   } catch (err) {
-    sendError = err instanceof Error ? err.message : "Send failed";
+    sendError = err instanceof OutlookReconnectNeeded ? err.message : err instanceof Error ? err.message : "Send failed";
     if (/invalid_grant/i.test(sendError)) {
       await createServiceRoleClient()?.from("email_accounts").update({ status: "needs_reconnect" }).eq("id", account.id);
       sendError = "This Gmail connection expired. Reconnect it in Settings.";
@@ -121,6 +138,12 @@ async function headerFor(messageId: string): Promise<string | null> {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase.from("email_messages").select("message_id_header").eq("id", messageId).maybeSingle();
   return data?.message_id_header ?? null;
+}
+
+async function providerIdFor(messageId: string): Promise<string | null> {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase.from("email_messages").select("provider_message_id").eq("id", messageId).maybeSingle();
+  return data?.provider_message_id ?? null;
 }
 
 async function threadFor(messageId: string): Promise<string | null> {

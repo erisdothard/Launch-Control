@@ -50,3 +50,9 @@ export function emailHtml(body: string, signature: SignatureInput): string {
 <br>
 ${signatureHtml(signature)}`;
 }
+
+/** Plain-text body as HTML with no signature (addresses without a sender name). */
+export function plainHtml(body: string): string {
+  const paragraphs = escapeHtml(body).replace(/\r\n/g, "\n").replace(/\n/g, "<br>");
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#050607;">${paragraphs}</div>`;
+}

@@ -54,6 +54,7 @@ export type Database = {
           lead_id: string | null
           location: string
           notes: string
+          outlook_change_key: string | null
           outlook_event_id: string | null
           starts_at: string
           title: string
@@ -67,6 +68,7 @@ export type Database = {
           lead_id?: string | null
           location?: string
           notes?: string
+          outlook_change_key?: string | null
           outlook_event_id?: string | null
           starts_at: string
           title: string
@@ -80,6 +82,7 @@ export type Database = {
           lead_id?: string | null
           location?: string
           notes?: string
+          outlook_change_key?: string | null
           outlook_event_id?: string | null
           starts_at?: string
           title?: string
@@ -213,8 +216,10 @@ export type Database = {
           signature_title: string
           gmail_history_id: string | null
           id: string
+          mailbox: string | null
           provider: string
           status: string
+          sync_cursor: string | null
           token_secret_id: string | null
         }
         Insert: {
@@ -225,8 +230,10 @@ export type Database = {
           signature_title?: string
           gmail_history_id?: string | null
           id?: string
+          mailbox?: string | null
           provider: string
           status?: string
+          sync_cursor?: string | null
           token_secret_id?: string | null
         }
         Update: {
@@ -237,8 +244,10 @@ export type Database = {
           signature_title?: string
           gmail_history_id?: string | null
           id?: string
+          mailbox?: string | null
           provider?: string
           status?: string
+          sync_cursor?: string | null
           token_secret_id?: string | null
         }
         Relationships: []
@@ -549,6 +558,18 @@ export type Database = {
       }
       gmail_refresh_token: { Args: { p_account_id: string }; Returns: string }
       is_crm_user: { Args: never; Returns: boolean }
+      mail_refresh_token: { Args: { p_account_id: string }; Returns: string }
+      save_mail_refresh_token: { Args: { p_account_id: string; p_refresh_token: string }; Returns: undefined }
+      save_outlook_account: {
+        Args: {
+          p_aliases: string[]
+          p_connected_by: string
+          p_display_name: string
+          p_mailbox: string
+          p_refresh_token: string
+        }
+        Returns: string
+      }
       save_gmail_account: {
         Args: {
           p_address: string
