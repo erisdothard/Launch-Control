@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CalendarEvent } from "@/lib/store/types";
-import { todayISO } from "@/lib/leads/followUp";
+
 import { deleteEventAction, saveEventAction } from "./actions";
 
 export interface CalendarLead {
@@ -31,6 +31,7 @@ interface CalendarClientProps {
   presetLeadId: string | null;
   presetDay: string | null;
   outlookError: boolean;
+  today: string; // the team's calendar day, from the server
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -216,9 +217,8 @@ function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead
   );
 }
 
-export default function CalendarClient({ year, month, events, dated, leads, presetLeadId, presetDay, outlookError }: CalendarClientProps) {
+export default function CalendarClient({ year, month, events, dated, leads, presetLeadId, presetDay, outlookError, today }: CalendarClientProps) {
   const [notice, setNotice] = useState<string | null>(outlookError ? "Couldn't load the Outlook calendar just now; showing CRM events only." : null);
-  const today = todayISO();
   const inMonth = (day: string) => day.startsWith(monthParam(year, month));
   const [selected, setSelected] = useState(presetDay && inMonth(presetDay) ? presetDay : inMonth(today) ? today : `${monthParam(year, month)}-01`);
   const [draft, setDraft] = useState<Draft | null>(presetLeadId ? newDraft(selected, presetLeadId) : null);

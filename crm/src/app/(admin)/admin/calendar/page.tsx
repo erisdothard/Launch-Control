@@ -3,6 +3,7 @@ import { getEvents } from "@/lib/store/calendar";
 import { getLeads } from "@/lib/store/leads";
 import { getTasks } from "@/lib/store/tasks";
 import { outlookOnlyEvents } from "@/lib/email/outlookCalendar";
+import { teamTodayISO } from "@/lib/leads/followUp";
 import CalendarClient, { type CalendarLead, type DatedItem } from "./CalendarClient";
 
 const MONTH = /^(\d{4})-(\d{2})$/;
@@ -65,6 +66,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         presetLeadId={params.lead ?? null}
         presetDay={params.day ?? null}
         outlookError={outlook.error}
+        today={teamTodayISO()}
       />
     </>
   );

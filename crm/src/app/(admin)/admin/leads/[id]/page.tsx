@@ -6,6 +6,7 @@ import LeadDetailClient from "./LeadDetailClient";
 import MessagesPanel from "./MessagesPanel";
 import { getEmailAccounts, getThread } from "@/lib/store/messages";
 import { getUpcomingEventsForLead } from "@/lib/store/calendar";
+import { teamTodayISO } from "@/lib/leads/followUp";
 import { getPendingDrafts } from "@/lib/store/drafts";
 import Link from "next/link";
 
@@ -50,7 +51,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           accounts={accounts}
         />
       </div>
-      <LeadDetailClient lead={lead} activity={leadActivity} meetings={meetings} />
+      <LeadDetailClient lead={lead} activity={leadActivity} meetings={meetings} today={teamTodayISO()} />
     </>
   );
 }

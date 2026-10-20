@@ -36,10 +36,11 @@ interface LeadDetailClientProps {
   lead: Lead;
   activity: ActivityEntry[];
   meetings: CalendarEvent[];
+  today: string; // the team's calendar day, from the server
 }
 
 
-export default function LeadDetailClient({ lead, activity, meetings }: LeadDetailClientProps) {
+export default function LeadDetailClient({ lead, activity, meetings, today }: LeadDetailClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -286,7 +287,7 @@ export default function LeadDetailClient({ lead, activity, meetings }: LeadDetai
       </div>
 
       <div className="space-y-3">
-        <NextStepCard lead={lead} />
+        <NextStepCard lead={lead} today={today} />
 
         <section aria-labelledby="meetings-heading" className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
           <div className="mb-3 flex items-center justify-between">
