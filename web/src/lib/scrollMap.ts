@@ -10,6 +10,10 @@
   the first (STAGE_SCREENS - 1) screens of scroll with the hero copy held in place. Before this the
   timeline ran over the whole page and the explode peaked behind the Work panels, where nobody
   saw it (Eris: "they never really see it deconstruct").
+
+  Opening (2026-10-19): the first frame is the engine fully apart, filling the black right half of
+  the hero; scroll puts it back together, assembled by the time the Hyper Racer work comes up, and
+  it stays assembled behind the content.
 */
 
 /** Screens of scroll the hero holds for: the stage is (STAGE_SCREENS - 1) screens of travel. */
@@ -46,18 +50,13 @@ export const BEATS: readonly Beat[] = [
 ];
 
 export const LAUNCH_START = 0.94;
-/** Explode window: fully apart at EXPLODE_PEAK, back together by EXPLODE_END. */
-export const EXPLODE_START = 0.05;
-export const EXPLODE_PEAK = 0.45;
+/** Explode window: fully apart from the first frame to EXPLODE_HOLD, back together by EXPLODE_END. */
+export const EXPLODE_HOLD = 0.08;
 export const EXPLODE_END = 0.9;
 /** Part stagger: outer parts leave last and come home first. 0 = all parts move together. */
 export const EXPLODE_STAGGER = 0.35;
 /** Fraction of the author's exploded offsets used at full explode, so the stack stays in frame. */
 export const EXPLODE_AMPLITUDE = 0.9;
-/** Content era: once the stage is over the engine comes apart again, slowly, as the page scrolls
-    (q = content progress), and stays apart. Faint behind the panels, it is texture, not a show. */
-export const CONTENT_EXPLODE_START = 0.04;
-export const CONTENT_EXPLODE_END = 0.7;
 
 /** Hz of the fuel-cut stutter on the limiter. */
 export const LIMITER_STUTTER_HZ = 11;
@@ -110,26 +109,14 @@ export function launchForProgress(p: number): number {
 }
 
 /**
- * Explode amount 0..1: 0 assembled at idle, 1 fully apart at EXPLODE_PEAK, 0 again from
- * EXPLODE_END on. Eased both ways so the parts never snap.
+ * Explode amount 0..1: 1 (fully apart) from the first frame to EXPLODE_HOLD, eased down to 0
+ * (assembled) at EXPLODE_END and held there for the rest of the page.
  */
 export function explodeForProgress(p: number): number {
   const x = clamp01(p);
-  if (x <= EXPLODE_START) return 0;
-  if (x < EXPLODE_PEAK) return smooth((x - EXPLODE_START) / (EXPLODE_PEAK - EXPLODE_START));
-  if (x < EXPLODE_END) return 1 - smooth((x - EXPLODE_PEAK) / (EXPLODE_END - EXPLODE_PEAK));
+  if (x <= EXPLODE_HOLD) return 1;
+  if (x < EXPLODE_END) return 1 - smooth((x - EXPLODE_HOLD) / (EXPLODE_END - EXPLODE_HOLD));
   return 0;
-}
-
-/** Explode amount 0..1 from the content progress q: 0 until CONTENT_EXPLODE_START, eased to 1 at
-    CONTENT_EXPLODE_END, held there to the bottom of the page. */
-export function contentExplodeForProgress(q: number): number {
-  return smooth((clamp01(q) - CONTENT_EXPLODE_START) / (CONTENT_EXPLODE_END - CONTENT_EXPLODE_START));
-}
-
-/** The explode the scene shows: the stage's own, or the content era's, whichever is larger. */
-export function explodeForState(p: number, q: number): number {
-  return Math.max(explodeForProgress(p), contentExplodeForProgress(q));
 }
 
 /**

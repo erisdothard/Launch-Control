@@ -34,6 +34,8 @@ export function attachSpin(el: HTMLElement): () => void {
     lastY = e.clientY;
     lastT = e.timeStamp;
     engineSpin.dragging = true;
+    // Retires the "drag to rotate" hint: once they have found it, it has done its job.
+    el.dataset.spun = "1";
     engineSpin.vyaw = 0;
     engineSpin.vpitch = 0;
     el.setPointerCapture(e.pointerId);
@@ -79,6 +81,7 @@ export function attachSpin(el: HTMLElement): () => void {
     el.removeEventListener("pointercancel", up);
     el.style.cursor = "";
     el.style.touchAction = "";
+    delete el.dataset.spun;
   };
 }
 

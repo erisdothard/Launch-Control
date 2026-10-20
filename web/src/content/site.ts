@@ -68,6 +68,8 @@ export const siteSchema = z.object({
     primaryCta: linkSchema,
     secondaryCta: linkSchema,
     webglOffNotice: z.string(),
+    /** Small cue that the engine behind the hero can be dragged. Shown only when the 3D is running. */
+    rotateHint: z.string(),
   }),
   clients: z.object({
     label: z.string(),
@@ -211,6 +213,7 @@ const content: SiteContent = {
     primaryCta: { label: "Book a launch", href: "#book" },
     secondaryCta: { label: "See the work", href: "#work" },
     webglOffNotice: "3D is off on this device. The site works without it.",
+    rotateHint: "Drag to rotate",
   },
   clients: {
     label: "Shipped for",

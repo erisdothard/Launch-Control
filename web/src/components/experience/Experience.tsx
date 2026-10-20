@@ -230,6 +230,7 @@ export function Experience({ children }: { children: ReactNode }) {
       ref={heroRef}
       aria-labelledby="hero-title"
       className="relative"
+      data-engine={mode}
       style={{ zIndex: "var(--z-canvas)", minHeight: mode === "full" ? `calc(${STAGE_SCREENS} * 100svh)` : "100svh" }}
     >
       {mode === "full" && (
