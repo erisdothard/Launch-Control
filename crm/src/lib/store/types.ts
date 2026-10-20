@@ -151,4 +151,7 @@ export interface CalendarEvent {
   leadId: string | null;
   createdBy: string;
   createdAt: string;
+  outlookEventId: string | null;
+  /** Set on events read from the Outlook calendar (not created in the CRM): open them in Outlook. */
+  outlookLink?: string | null;
 }

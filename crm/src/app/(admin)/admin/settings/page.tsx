@@ -3,10 +3,10 @@ import CompanyInfoForm from "./CompanyInfoForm";
 import EmailAccountsSection from "./EmailAccountsSection";
 import { getCompanyInfo } from "@/lib/store/company";
 import { getEmailAccounts } from "@/lib/store/messages";
-import { emailConfig, gmailEnabled, resendEnabled } from "@/lib/email/config";
+import { emailConfig, gmailEnabled, outlookEnabled, resendEnabled } from "@/lib/email/config";
 
 interface SettingsPageProps {
-  searchParams: Promise<{ gmail?: string }>;
+  searchParams: Promise<{ gmail?: string; outlook?: string }>;
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
@@ -22,6 +22,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         resendReady={resendEnabled()}
         gmailReady={gmailEnabled()}
         gmailResult={params.gmail ?? null}
+        outlookReady={outlookEnabled()}
+        outlookResult={params.outlook ?? null}
       />
     </>
   );

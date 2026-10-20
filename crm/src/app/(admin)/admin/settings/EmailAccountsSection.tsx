@@ -10,7 +10,21 @@ interface EmailAccountsSectionProps {
   resendReady: boolean;
   gmailReady: boolean;
   gmailResult: string | null;
+  outlookReady: boolean;
+  outlookResult: string | null;
 }
+
+const OUTLOOK_RESULT: Record<string, { text: string; good: boolean }> = {
+  connected: { text: "Outlook connected. Every address on the mailbox can now send, and replies sync every couple of minutes.", good: true },
+  cancelled: { text: "Outlook connection cancelled.", good: false },
+  "no-refresh-token": { text: "Microsoft didn't grant offline access. Try connecting again.", good: false },
+  "bad-state": { text: "That sign-in link expired. Try connecting again.", good: false },
+  "not-configured": { text: "Outlook isn't set up on the server yet.", good: false },
+  "save-failed": { text: "Couldn't save the connection. Try again.", good: false },
+  failed: { text: "Outlook connection failed. Try again.", good: false },
+};
+
+const PROVIDER_LABEL = { gmail: "Gmail", resend: "Business address", outlook: "Outlook" } as const;
 
 const GMAIL_RESULT: Record<string, { text: string; good: boolean }> = {
   connected: { text: "Gmail connected. Replies on CRM threads will sync every couple of minutes.", good: true },
@@ -44,7 +58,8 @@ function AccountRow({ account }: { account: EmailAccount }) {
       <div className="min-w-0">
         <p className="truncate font-medium text-[var(--color-text)]">{account.address}</p>
         <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
-          {account.provider === "gmail" ? "Gmail" : "Business address"} · added by {account.connectedBy}
+          {PROVIDER_LABEL[account.provider]}
+          {account.mailbox ? ` alias on ${account.mailbox}` : ""} · added by {account.connectedBy}
           {account.status === "needs_reconnect" && <span className="text-[var(--color-livery-red)]"> · needs reconnecting</span>}
         </p>
         {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
@@ -75,7 +90,7 @@ function AccountRow({ account }: { account: EmailAccount }) {
           Save
         </button>
         {account.status === "needs_reconnect" && (
-          <a href="/api/gmail/connect" className="rounded-[2px] border border-[var(--color-accent)] px-3 py-2 text-xs text-[var(--color-accent)]">
+          <a href={account.provider === "outlook" ? "/api/outlook/connect" : "/api/gmail/connect"} className="rounded-[2px] border border-[var(--color-accent)] px-3 py-2 text-xs text-[var(--color-accent)]">
             Reconnect
           </a>
         )}
@@ -92,13 +107,22 @@ function AccountRow({ account }: { account: EmailAccount }) {
   );
 }
 
-export default function EmailAccountsSection({ accounts, sendingDomain, resendReady, gmailReady, gmailResult }: EmailAccountsSectionProps) {
+export default function EmailAccountsSection({
+  accounts,
+  sendingDomain,
+  resendReady,
+  gmailReady,
+  gmailResult,
+  outlookReady,
+  outlookResult,
+}: EmailAccountsSectionProps) {
   const [local, setLocal] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const visible = accounts.filter((a) => a.status !== "disabled");
-  const notice = gmailResult ? GMAIL_RESULT[gmailResult] : null;
+  const notice = outlookResult ? OUTLOOK_RESULT[outlookResult] : gmailResult ? GMAIL_RESULT[gmailResult] : null;
+  const outlookConnected = visible.some((a) => a.provider === "outlook" && !a.mailbox && a.status === "active");
 
   function add() {
     setError(null);
@@ -127,6 +151,23 @@ export default function EmailAccountsSection({ accounts, sendingDomain, resendRe
 
       {visible.length > 0 && <ul className="mt-4">{visible.map((a) => <AccountRow key={a.id} account={a} />)}</ul>}
 
+      {outlookReady && (
+        <div className="mt-6">
+          <p className="text-sm font-medium text-[var(--color-text)]">Microsoft 365 (Outlook)</p>
+          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+            Sign in as the shared mailbox. Its aliases are added too, mail goes out from the real mailbox (it shows in Outlook&apos;s Sent
+            folder) and CRM meetings appear on its calendar.
+          </p>
+          <a
+            href="/api/outlook/connect"
+            className="mt-3 inline-flex items-center rounded-[2px] bg-[var(--color-accent)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
+          >
+            {outlookConnected ? "Reconnect Outlook" : "Connect Outlook"}
+          </a>
+        </div>
+      )}
+
+      {(resendReady || gmailReady) && (
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <p className="text-sm font-medium text-[var(--color-text)]">Business address</p>
@@ -167,6 +208,7 @@ export default function EmailAccountsSection({ accounts, sendingDomain, resendRe
           )}
         </div>
       </div>
+      )}
     </section>
   );
 }

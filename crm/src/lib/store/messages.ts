@@ -11,7 +11,7 @@ export interface EmailMessage {
   toAddress: string;
   subject: string;
   bodyText: string;
-  provider: "resend" | "gmail";
+  provider: "resend" | "gmail" | "outlook";
   status: "sent" | "failed" | "received";
   error: string | null;
   sentBy: string | null;
@@ -21,12 +21,13 @@ export interface EmailMessage {
 
 export interface EmailAccount {
   id: string;
-  provider: "resend" | "gmail";
+  provider: "resend" | "gmail" | "outlook";
   address: string;
   displayName: string;
   signatureTitle: string;
   connectedBy: string;
   status: "active" | "needs_reconnect" | "disabled";
+  mailbox: string | null; // Outlook alias rows: the mailbox they belong to
 }
 
 export interface InboxRow {
@@ -105,7 +106,7 @@ export async function getEmailAccounts(client?: StoreClient): Promise<EmailAccou
   const supabase = await getStoreClient(client);
   const { data, error } = await supabase
     .from("email_accounts")
-    .select("id, provider, address, display_name, signature_title, connected_by, status")
+    .select("id, provider, address, display_name, signature_title, connected_by, status, mailbox")
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data.map((a) => ({
@@ -116,6 +117,7 @@ export async function getEmailAccounts(client?: StoreClient): Promise<EmailAccou
     signatureTitle: a.signature_title,
     connectedBy: a.connected_by,
     status: a.status as EmailAccount["status"],
+    mailbox: a.mailbox,
   }));
 }
 
