@@ -10,8 +10,10 @@ import { OutlookReconnectNeeded, sendViaOutlookSmtp, type OutboundFile } from ".
 import { outlookAccessToken } from "./outlookAccount";
 import { sendViaResend } from "./resend";
 import { currentCrmUserEmail } from "./session";
-import { emailHtml, emailText, type SignatureInput } from "./signature";
+import { SIGNATURE_LOGO_PNG_BASE64 } from "./logoData";
+import { emailHtml, emailText, LOGO_CID, type SignatureInput } from "./signature";
 import { isEmail } from "./text";
+import { isDemoMode } from "@/lib/demo/mode";
 import { unsubscribeHeaders } from "./unsubscribe";
 
 export { ATTACHMENT_BUCKET, validAttachment, type EmailAttachment };
@@ -155,7 +157,7 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
 
   const { data: account } = await supabase
     .from("email_accounts")
-    .select("id, provider, address, display_name, signature_name, signature_title, signature_phone, status, mailbox")
+    .select("id, provider, address, display_name, signature_name, signature_title, signature_phone, signature_lines, status, mailbox")
     .eq("id", input.accountId)
     .maybeSingle();
   if (!account) return { ok: false, error: "Pick who it's from." };
@@ -197,6 +199,7 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
     title: account.signature_title,
     address: account.address,
     phone: account.signature_phone,
+    lines: account.signature_lines,
   };
   const sign = input.includeSignature !== false && Boolean(account.signature_name.trim());
   const signed = sign ? { text: emailText(body, signature), html: emailHtml(body, signature) } : { text: body, html: null };
@@ -208,7 +211,11 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
   let messageIdHeader: string | null = null;
   let sendError: string | null = null;
 
-  try {
+  // The demo never reaches a mail provider: the message is stored as sent, so the thread, the
+  // lead's state and the Today queue all move exactly as they would for real.
+  if (isDemoMode()) {
+    messageIdHeader = `<demo-${crypto.randomUUID()}@demo.golaunchcontrol.com>`;
+  } else try {
     if (account.provider === "resend") {
       if (cc.length || bcc.length || outbound.length) throw new Error("This address can't send copies or attachments. Send from Outlook instead.");
       const lastInbound = [...thread].reverse().find((m) => m.direction === "in");
@@ -231,7 +238,9 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
         bcc,
         subject,
         ...signed,
-        attachments: outbound,
+        // Outlook mail embeds the signature logo so it shows even where remote images are blocked.
+        ...(sign && signed.html ? { html: emailHtml(body, signature, "cid") } : {}),
+        attachments: sign ? [...outbound, signatureLogoFile()] : outbound,
         inReplyTo,
         headers,
       });
@@ -365,4 +374,9 @@ async function headerFor(messageId: string): Promise<string | null> {
 async function threadFor(messageId: string): Promise<string | null> {
   const { data } = (await createServiceRoleClient()?.from("email_messages").select("provider_thread_id").eq("id", messageId).maybeSingle()) ?? {};
   return data?.provider_thread_id ?? null;
+}
+
+/** The signature logo as an inline (cid:) part, so it never depends on loading a remote image. */
+function signatureLogoFile(): OutboundFile {
+  return { filename: "launch-control.png", content: Buffer.from(SIGNATURE_LOGO_PNG_BASE64, "base64"), contentType: "image/png", cid: LOGO_CID };
 }

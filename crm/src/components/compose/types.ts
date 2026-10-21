@@ -13,6 +13,7 @@ export interface ComposerAccount {
   signatureName: string;
   signatureTitle: string;
   signaturePhone: string;
+  signatureLines: string;
   /** "active", or "needs_reconnect" while Outlook wants a fresh sign-in. */
   status: string;
   mailbox: string | null;

@@ -456,6 +456,7 @@ export async function getSendingAccounts(client?: StoreClient): Promise<
     signatureName: string;
     signatureTitle: string;
     signaturePhone: string;
+    signatureLines: string;
     status: string;
     mailbox: string | null;
   }[]
@@ -463,7 +464,7 @@ export async function getSendingAccounts(client?: StoreClient): Promise<
   const supabase = await getStoreClient(client);
   const { data, error } = await supabase
     .from("email_accounts")
-    .select("id, address, display_name, provider, signature_name, signature_title, signature_phone, status, mailbox")
+    .select("id, address, display_name, provider, signature_name, signature_title, signature_phone, signature_lines, status, mailbox")
     .neq("status", "disabled")
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -475,6 +476,7 @@ export async function getSendingAccounts(client?: StoreClient): Promise<
     signatureName: a.signature_name,
     signatureTitle: a.signature_title,
     signaturePhone: a.signature_phone,
+    signatureLines: a.signature_lines,
     status: a.status,
     mailbox: a.mailbox,
   }));

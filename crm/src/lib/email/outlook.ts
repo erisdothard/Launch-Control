@@ -139,6 +139,8 @@ export interface OutboundFile {
   filename: string;
   content: Buffer;
   contentType: string;
+  /** Set for an inline image the HTML points at with cid:, e.g. the signature logo. */
+  cid?: string;
 }
 
 /** Sends through smtp.office365.com as the mailbox; Exchange files a copy in Sent Items. */
@@ -163,7 +165,7 @@ export async function sendViaOutlookSmtp(accessToken: string, msg: SmtpSend): Pr
       subject: msg.subject,
       text: msg.text,
       html: msg.html ?? undefined,
-      attachments: msg.attachments?.map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
+      attachments: msg.attachments?.map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType, ...(a.cid ? { cid: a.cid, contentDisposition: "inline" as const } : {}) })),
       messageId,
       inReplyTo: msg.inReplyTo ?? undefined,
       references: msg.references ?? msg.inReplyTo ?? undefined,

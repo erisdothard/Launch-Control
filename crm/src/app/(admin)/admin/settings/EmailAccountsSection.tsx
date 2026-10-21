@@ -45,6 +45,7 @@ interface SignatureDraft {
   name: string;
   title: string;
   phone: string;
+  lines: string;
 }
 
 const labelClass = "mb-1.5 block text-sm text-[var(--color-text-dim)]";
@@ -107,7 +108,9 @@ function AccountRow({ account, phone: savedPhone }: { account: EmailAccount; pho
   const [signer, setSigner] = useState(account.signatureName);
   const [title, setTitle] = useState(account.signatureTitle);
   const [phone, setPhone] = useState(savedPhone);
-  const dirty = name !== account.displayName || signer !== account.signatureName || title !== account.signatureTitle || phone !== savedPhone;
+  const [lines, setLines] = useState(account.signatureLines);
+  const dirty =
+    name !== account.displayName || signer !== account.signatureName || title !== account.signatureTitle || phone !== savedPhone || lines !== account.signatureLines;
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -130,7 +133,7 @@ function AccountRow({ account, phone: savedPhone }: { account: EmailAccount; pho
   }
 
   // The preview is drawn from what's typed, so it changes with every keystroke.
-  const draft: SignatureDraft = { name: signer, title, phone };
+  const draft: SignatureDraft = { name: signer, title, phone, lines };
   const id = account.id;
   return (
     <li className="border-b border-[var(--color-border)] py-7 first:pt-3 last:border-0 last:pb-2">
@@ -179,13 +182,25 @@ function AccountRow({ account, phone: savedPhone }: { account: EmailAccount; pho
           <input id={`from-${id}`} value={name} onChange={(e) => edit(setName)(e.target.value)} placeholder="Launch Control" className="field" disabled={pending} />
         </label>
       </div>
+      <label className="mt-3 block" htmlFor={`lines-${id}`}>
+        <span className={labelClass}>Small print under the signature (one line each, optional)</span>
+        <textarea
+          id={`lines-${id}`}
+          rows={2}
+          value={lines}
+          onChange={(e) => edit(setLines)(e.target.value)}
+          placeholder={"Business Development • Client Acquisition\nMiami, FL | Nashville, TN"}
+          className="field resize-y"
+          disabled={pending}
+        />
+      </label>
       <div className="mt-5">
         <p className="mb-2 text-sm text-[var(--color-text-dim)]">
           {draft.name.trim() ? `Under every email sent as ${account.address}` : "Add who signs it to see the signature"}
         </p>
         {draft.name.trim() && (
           <SignaturePreview
-            account={{ ...account, signatureName: draft.name, signatureTitle: draft.title, signaturePhone: draft.phone }}
+            account={{ ...account, signatureName: draft.name, signatureTitle: draft.title, signaturePhone: draft.phone, signatureLines: draft.lines }}
             label={`Signature preview for ${account.address}`}
           />
         )}
@@ -194,7 +209,7 @@ function AccountRow({ account, phone: savedPhone }: { account: EmailAccount; pho
         <button
           type="button"
           disabled={pending || !dirty}
-          onClick={() => run(() => setDisplayNameAction(account.id, name, title, signer, phone), () => setSaved(true))}
+          onClick={() => run(() => setDisplayNameAction(account.id, name, title, signer, phone, lines), () => setSaved(true))}
           className="btn btn-secondary btn-sm"
         >
           {pending ? "Saving..." : "Save"}
