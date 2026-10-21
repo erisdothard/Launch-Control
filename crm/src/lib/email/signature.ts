@@ -7,8 +7,8 @@ const SITE = "https://golaunchcontrol.com";
 // Sent mail embeds it (cid:) so it shows even where remote images are blocked; the URL is the
 // fallback for providers that can't attach inline, and the CRM serves its own copy for previews.
 export const LOGO_CID = "lc-signature-logo";
-const LOGO_URL = "https://crm.golaunchcontrol.com/brand/launch-control-email-mark-v1.png";
-const PREVIEW_LOGO = "/brand/launch-control-email-mark-v1.png";
+const LOGO_URL = "https://crm.golaunchcontrol.com/brand/launch-control-email-mark-v2.png";
+const PREVIEW_LOGO = "/brand/launch-control-email-mark-v2.png";
 const LOGO_W = 140;
 const LOGO_H = 31;
 const COMPANY = "Launch Control";

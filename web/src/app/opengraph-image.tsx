@@ -27,8 +27,8 @@ export default function OpenGraphImage() {
           <svg width="84" height="80" viewBox="0 0 126 120">
             <polygon fill="#c6ccd3" points="96,14 24,14 10,28 10,92 24,106 96,106 96,92 24,92 24,28 96,28" />
             <rect x="36" y="40" width="14" height="40" fill="#c6ccd3" />
-            <polygon fill="#f0c419" points="36,66 77,66 68,80 36,80" />
-            <polygon fill="#f07d1a" points="80,66 105,66 96,80 71,80" />
+            <polygon fill="#2bb24c" points="36,66 77,66 68,80 36,80" />
+            <polygon fill="#f0c419" points="80,66 105,66 96,80 71,80" />
             <polygon fill="#e3261d" points="108,66 124,66 115,80 99,80" />
           </svg>
           <div style={{ fontSize: 22, letterSpacing: "0.14em", color: "#c6ccd3" }}>{site.brand.wordmark}</div>
