@@ -49,3 +49,11 @@ export async function saveCompanyInfo(info: CompanyInfo, client?: StoreClient): 
 
   if (error) throw error;
 }
+
+/** Signature phone per sending address, keyed by email_accounts.id. Blank when none is set. */
+export async function getSignaturePhones(client?: StoreClient): Promise<Record<string, string>> {
+  const supabase = await getStoreClient(client);
+  const { data, error } = await supabase.from("email_accounts").select("id, signature_phone");
+  if (error) throw error;
+  return Object.fromEntries(data.map((a) => [a.id, a.signature_phone ?? ""]));
+}

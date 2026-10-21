@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BrandLockup, LiveryStripe } from "@/components/brand/BrandMark";
+import { BrandLockup } from "@/components/brand/BrandMark";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,25 +31,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)] px-6">
-      <div className="w-full max-w-md">
-        <div className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-8 relative">
-          <LiveryStripe className="absolute top-[-2px] left-8" />
-          <div className="mb-8 text-center">
-            <BrandLockup className="mb-6 justify-center" />
-            <h1 className="text-xl font-semibold text-[var(--color-steel)]">Launch Control CRM</h1>
-            <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">Sign in to your account</p>
+    <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-sidebar)] px-4 py-10 sm:px-6">
+      <div className="w-full max-w-[440px]">
+        <BrandLockup className="mb-8 justify-center" />
+        <div className="card relative overflow-hidden px-6 py-8 sm:px-10 sm:py-10">
+          <div aria-hidden="true" className="absolute top-0 bottom-0 left-0 flex w-[5px] flex-col">
+            <span className="flex-[5] bg-[var(--color-accent)]" />
+            <span className="flex-[3] bg-[var(--color-livery-orange)]" />
+            <span className="flex-[2] bg-[var(--color-livery-red)]" />
           </div>
+          <h1 className="text-[32px] leading-[1.1] font-semibold tracking-[-0.03em] text-[var(--color-steel)]">Sign in</h1>
+          <p className="mt-2 text-base text-[var(--color-text-muted)]">Use the email and password for your Launch Control account.</p>
 
           {error && (
-            <div className="mb-6 rounded-[2px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            <p role="alert" className="well mt-6 px-4 py-3 text-base text-[var(--color-hot)]">
               {error}
-            </div>
+            </p>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="mt-7 space-y-5">
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]">
+              <label htmlFor="email" className="mb-1.5 block text-sm text-[var(--color-text-dim)]">
                 Email
               </label>
               <input
@@ -59,13 +61,13 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] transition-colors outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
+                className="field"
                 placeholder="you@company.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]">
+              <label htmlFor="password" className="mb-1.5 block text-sm text-[var(--color-text-dim)]">
                 Password
               </label>
               <input
@@ -75,17 +77,13 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] transition-colors outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
+                className="field"
                 placeholder="••••••••"
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-[2px] bg-[var(--color-accent)] px-4 py-3 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-all hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Signing in..." : "Sign In"}
+            <button type="submit" disabled={loading} className="btn btn-primary mt-2 w-full">
+              {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
         </div>

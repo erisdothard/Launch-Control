@@ -108,3 +108,47 @@ def test_follow_up_is_drafted_once_and_counted() -> None:
     assert store.drafts[0]["lead_id"] == "l1" and store.drafts[0]["follow_up_number"] == 1
     assert store.drafts[0]["subject"] == "Re: Hello" and store.drafts[0]["to_address"] == "paul@acme.com"
     assert store.patches == [("l1", {"follow_up_count": 1, "next_action": "Follow-up 1 ready in Drafts"})]
+
+
+def test_first_address_takes_the_first_of_a_recipient_list() -> None:
+    assert automation.first_address("paul@acme.com, ops@acme.com") == "paul@acme.com"
+    assert automation.first_address("") == "" and automation.first_address(None) == ""
+
+
+def test_thread_reads_are_scoped_to_one_lead() -> None:
+    """The Inbox stores mail with no lead; drafting must never read it."""
+    seen: list[dict[str, Any]] = []
+
+    class S:
+        def _req(self, method: str, path: str, **kw: Any) -> Any:
+            seen.append(kw["params"])
+
+            class R:
+                def json(self) -> Any:
+                    return []
+
+            return R()
+
+    automation.thread(S(), "l1")  # type: ignore[arg-type]
+    assert seen[0]["lead_id"] == "eq.l1"
+
+
+def test_follow_up_goes_to_the_first_recipient_when_several_were_on_to() -> None:
+    multi = [{**MSGS[0], "to_address": "paul@acme.com, ops@acme.com"}]
+    store = FakeStore([{**LEAD, "follow_up_count": 0}], pending=[])
+    store._req = _with_messages(store._req, multi)  # type: ignore[method-assign]
+    automation.queue_follow_ups(store, RecordingWriter(), automation.Settings(True, 3, 7), date(2026, 10, 19))  # type: ignore[arg-type]
+    assert store.drafts[0]["to_address"] == "paul@acme.com"
+
+
+def _with_messages(req: Any, msgs: list[dict[str, Any]]) -> Any:
+    def wrapped(method: str, path: str, **kw: Any) -> Any:
+        if method == "GET" and path == "email_messages":
+            class R:
+                def json(self) -> Any:
+                    return list(reversed(msgs))
+
+            return R()
+        return req(method, path, **kw)
+
+    return wrapped

@@ -26,14 +26,29 @@ export async function addBusinessAddressAction(localPart: string, displayName: s
   return { ok: true };
 }
 
-/** From name on outgoing mail, plus the person and title that sign it. */
+/**
+ * A signature phone as typed ("646-942-0682", "+1 (646) 942 0682"), or blank to leave it off.
+ * Returns null when it is not a phone number.
+ */
+function cleanPhone(value: string): string | null {
+  const phone = value.replace(/\s+/g, " ").trim();
+  if (!phone) return "";
+  if (phone.length > 30 || !/^\+?[0-9 ().-]+$/.test(phone)) return null;
+  const digits = phone.replace(/\D/g, "").length;
+  return digits >= 7 && digits <= 15 ? phone : null;
+}
+
+/** From name on outgoing mail, plus the person, title and phone that sign it. */
 export async function setDisplayNameAction(
   accountId: string,
   displayName: string,
   signatureTitle: string,
-  signatureName = ""
+  signatureName = "",
+  signaturePhone?: string
 ): Promise<EmailSettingsResult> {
   if (!(await currentCrmUserEmail())) return { ok: false, error: "Sign in again." };
+  const phone = signaturePhone === undefined ? undefined : cleanPhone(signaturePhone);
+  if (phone === null) return { ok: false, error: "That phone number doesn't look right. Use digits, like 646-942-0682." };
   const admin = createServiceRoleClient();
   if (!admin) return { ok: false, error: "Server is missing its Supabase key." };
   const { error } = await admin
@@ -42,6 +57,7 @@ export async function setDisplayNameAction(
       display_name: displayName.replace(/["<>\r\n]/g, "").trim().slice(0, 80),
       signature_name: signatureName.replace(/[<>\r\n]/g, "").trim().slice(0, 80),
       signature_title: signatureTitle.replace(/[<>\r\n]/g, "").trim().slice(0, 120),
+      ...(phone === undefined ? {} : { signature_phone: phone }),
     })
     .eq("id", accountId);
   if (error) return { ok: false, error: "Could not save." };

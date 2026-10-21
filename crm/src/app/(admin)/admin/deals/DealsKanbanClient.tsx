@@ -1,142 +1,278 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { DEAL_STAGES, type Deal, type DealStage } from "@/lib/store/types";
+import StatusBadge from "@/components/admin/StatusBadge";
+import { formatMoney } from "@/components/records/format";
+import { BoardIcon, ListIcon } from "@/components/records/icons";
+import type { DealStage } from "@/lib/store/types";
 import { updateDealStageAction, deleteDealAction } from "./actions";
+import DealCard, { StageMenu, Touch } from "./DealCard";
+import { STAGE_COPY, type PipelineRow } from "./pipeline";
 
-const STAGE_META: Record<DealStage, { label: string; header: string; dot: string }> = {
-  inquiry: { label: "Inquiry", header: "bg-[var(--color-steel)]/10 text-[var(--color-steel)]", dot: "bg-[var(--color-steel)]" },
-  proposal: { label: "Proposal", header: "bg-purple-400/10 text-purple-300", dot: "bg-purple-400" },
-  negotiation: { label: "Negotiation", header: "bg-amber-400/10 text-amber-300", dot: "bg-amber-400" },
-  won: { label: "Won", header: "bg-emerald-400/10 text-emerald-300", dot: "bg-[var(--color-accent)]" },
-  lost: { label: "Lost", header: "bg-red-400/10 text-red-300", dot: "bg-red-400" },
-};
+// The pipeline: a board by stage (Attio/Pipedrive), or the same deals as a list. Columns carry
+// their count and total; cards answer "what next" without opening. Lost deals fold away under
+// the board so the four live columns get the width.
 
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+const BOARD_STAGES: DealStage[] = ["inquiry", "proposal", "negotiation", "won"];
 
-interface DealsKanbanClientProps {
-  deals: Deal[];
+interface PipelineClientProps {
+  rows: PipelineRow[];
+  view: "board" | "list";
+  nowMs: number;
+  demo: boolean;
 }
 
-export default function DealsKanbanClient({ deals }: DealsKanbanClientProps) {
+function ViewToggle({ view, demo }: { view: "board" | "list"; demo: boolean }) {
+  const href = (v: string) => `/admin/deals?view=${v}${demo ? "&demo" : ""}`;
+  const item = (v: "board" | "list", label: string, icon: React.ReactNode) => (
+    <Link
+      href={href(v)}
+      aria-current={view === v ? "page" : undefined}
+      className={`inline-flex h-10 items-center gap-2 rounded-[var(--radius-sm)] px-4 text-[15px] transition-colors ${
+        view === v ? "bg-[var(--color-bg-secondary)] text-[var(--color-text)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+      }`}
+    >
+      {icon}
+      {label}
+    </Link>
+  );
+  return (
+    <nav aria-label="Pipeline view" className="inline-flex gap-1 rounded-[10px] bg-[var(--color-bg-card)] p-1">
+      {item("board", "Board", <BoardIcon />)}
+      {item("list", "List", <ListIcon />)}
+    </nav>
+  );
+}
+
+export default function PipelineClient({ rows, view, nowMs, demo }: PipelineClientProps) {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  const [busy, startTransition] = useTransition();
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverStage, setDragOverStage] = useState<DealStage | null>(null);
+  const [overStage, setOverStage] = useState<DealStage | null>(null);
+  const [showLost, setShowLost] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function moveDeal(id: string, stage: DealStage) {
+    const current = rows.find((r) => r.deal.id === id);
+    if (demo || !current || current.deal.stage === stage) return;
+    setError(null);
     startTransition(async () => {
-      await updateDealStageAction(id, stage);
-      router.refresh();
+      try {
+        await updateDealStageAction(id, stage);
+        router.refresh();
+      } catch {
+        setError(`Couldn't move ${current.deal.businessName}. Nothing changed; try again.`);
+      }
     });
   }
 
   function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete "${name}"? This can't be undone.`)) return;
+    if (demo || !confirm(`Delete the ${name} deal? This can't be undone.`)) return;
+    setError(null);
     startTransition(async () => {
-      await deleteDealAction(id);
-      router.refresh();
+      try {
+        await deleteDealAction(id);
+        router.refresh();
+      } catch {
+        setError(`Couldn't delete ${name}. Try again.`);
+      }
     });
   }
 
-  function handleDrop(stage: DealStage) {
-    setDragOverStage(null);
-    if (draggingId) moveDeal(draggingId, stage);
-    setDraggingId(null);
-  }
+  const lost = rows.filter((r) => r.deal.stage === "lost");
+  const cardProps = (row: PipelineRow) => ({
+    row,
+    nowMs,
+    busy,
+    readOnly: demo,
+    dragging: draggingId === row.deal.id,
+    onMove: moveDeal,
+    onDelete: handleDelete,
+    onDragStart: setDraggingId,
+    onDragEnd: () => {
+      setDraggingId(null);
+      setOverStage(null);
+    },
+  });
 
   return (
-    <div className="grid grid-cols-1 gap-4 overflow-x-auto sm:grid-cols-2 lg:grid-cols-5">
-      {DEAL_STAGES.map((stage) => {
-        const stageDeals = deals.filter((d) => d.stage === stage);
-        const stageValue = stageDeals.reduce((sum, d) => sum + d.value, 0);
-        const meta = STAGE_META[stage];
-        const isDragOver = dragOverStage === stage;
+    <div>
+      <div className="mb-6">
+        <ViewToggle view={view} demo={demo} />
+      </div>
 
-        return (
-          <div
-            key={stage}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOverStage(stage);
-            }}
-            onDragLeave={() => setDragOverStage((cur) => (cur === stage ? null : cur))}
-            onDrop={(e) => {
-              e.preventDefault();
-              handleDrop(stage);
-            }}
-            className={`min-h-[200px] rounded-[2px] border p-3 transition-colors ${
-              isDragOver
-                ? "border-[var(--color-accent)] bg-[var(--color-accent)]/[0.04]"
-                : "border-[var(--color-border)] bg-[var(--color-bg-secondary)]"
-            }`}
-          >
-            <div className={`mb-3 flex items-center justify-between rounded-[2px] px-3 py-2 ${meta.header}`}>
-              <span className="text-xs font-semibold">{meta.label}</span>
-              <span className="text-xs font-medium">{stageDeals.length}</span>
-            </div>
-            {stageValue > 0 && (
-              <p className="mb-3 px-1 text-xs text-[var(--color-text-dim)]">{currencyFormatter.format(stageValue)}</p>
-            )}
+      {error && (
+        <p role="alert" className="mb-4 text-[15px] text-[var(--color-hot)]">
+          {error}
+        </p>
+      )}
 
-            <div className="space-y-2">
-              {stageDeals.map((deal) => (
-                <div
-                  key={deal.id}
-                  draggable
-                  onDragStart={() => setDraggingId(deal.id)}
-                  onDragEnd={() => setDraggingId(null)}
-                  className={`cursor-grab rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 transition-opacity active:cursor-grabbing ${
-                    draggingId === deal.id ? "opacity-40" : "opacity-100"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-[var(--color-text)]">{deal.businessName}</p>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(deal.id, deal.businessName)}
-                      className="shrink-0 rounded-[2px] p-1 text-[var(--color-text-dim)] transition-colors hover:bg-red-400/10 hover:text-red-400"
-                      aria-label={`Delete ${deal.businessName}`}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 4h10M6.5 4V2.5h3V4M6 7v4M10 7v4M4 4l.5 9a1 1 0 001 1h5a1 1 0 001-1l.5-9" />
-                      </svg>
-                    </button>
-                  </div>
-                  {deal.value > 0 && (
-                    <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">
-                      {currencyFormatter.format(deal.value)}
-                    </p>
-                  )}
-                  {deal.notes && <p className="mt-1.5 line-clamp-2 text-xs text-[var(--color-text-dim)]">{deal.notes}</p>}
-
-                  {/* Keyboard/no-drag fallback for moving stages */}
-                  <select
-                    value={deal.stage}
-                    onChange={(e) => moveDeal(deal.id, e.target.value as DealStage)}
-                    aria-label={`Move ${deal.businessName} to a different stage`}
-                    className="mt-2 w-full rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] px-2 py-1 text-xs text-[var(--color-text-muted)] outline-none focus:border-[var(--color-accent)]/50"
+      {view === "board" ? (
+        <>
+          <div className="sm:-mx-6 sm:overflow-x-auto sm:px-6 sm:pb-2 lg:mx-0 lg:px-0">
+            <div className="grid grid-cols-1 gap-4 sm:auto-cols-[minmax(272px,1fr)] sm:grid-flow-col sm:grid-cols-none">
+              {BOARD_STAGES.map((stage) => {
+                const stageRows = rows.filter((r) => r.deal.stage === stage);
+                const total = stageRows.reduce((sum, r) => sum + r.deal.value, 0);
+                const over = overStage === stage && draggingId !== null;
+                return (
+                  <section
+                    key={stage}
+                    aria-labelledby={`stage-${stage}`}
+                    onDragOver={(e) => {
+                      if (!draggingId) return;
+                      e.preventDefault();
+                      setOverStage(stage);
+                    }}
+                    onDragLeave={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOverStage((cur) => (cur === stage ? null : cur));
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (draggingId) moveDeal(draggingId, stage);
+                      setDraggingId(null);
+                      setOverStage(null);
+                    }}
+                    className={`rounded-[14px] sm:min-h-[240px] p-2 transition-[background-color,box-shadow] duration-150 ${
+                      over ? "bg-white/[0.035] shadow-[inset_0_0_0_1px_var(--color-steel)]" : "bg-white/[0.015]"
+                    }`}
                   >
-                    {DEAL_STAGES.map((s) => (
-                      <option key={s} value={s}>
-                        {STAGE_META[s].label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-              {stageDeals.length === 0 && (
-                <p className="px-1 py-4 text-center text-xs text-[var(--color-text-dim)]">No deals</p>
-              )}
+                    <header className="px-2 pt-2 pb-4">
+                      <div className="flex items-center gap-2.5">
+                        <i aria-hidden="true" className="h-2.5 w-2.5 rounded-[2px]" style={{ background: STAGE_COPY[stage].swatch }} />
+                        <h2 id={`stage-${stage}`} className="text-[15px] font-semibold text-[var(--color-text)]">
+                          {STAGE_COPY[stage].label}
+                        </h2>
+                        <span className="tabular text-sm text-[var(--color-text-dim)]">{stageRows.length}</span>
+                      </div>
+                      <p
+                        className={`tabular mt-2 text-[24px] leading-none font-light tracking-[-0.02em] ${
+                          stage === "won" && total > 0 ? "text-[var(--color-success)]" : "text-[var(--color-steel)]"
+                        }`}
+                      >
+                        {formatMoney(total)}
+                      </p>
+                    </header>
+                    <div className="space-y-2">
+                      {stageRows.map((row) => (
+                        <DealCard key={row.deal.id} {...cardProps(row)} />
+                      ))}
+                      {stageRows.length === 0 && (
+                        <p className="rounded-[12px] px-3 py-8 text-center text-[15px] text-[var(--color-text-dim)] shadow-[inset_0_0_0_1px_var(--color-border)]">
+                          {draggingId ? "Drop here" : "Nothing here"}
+                        </p>
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
             </div>
           </div>
-        );
-      })}
+
+          {lost.length > 0 && (
+            <section aria-labelledby="lost-heading" className="mt-6">
+              <button
+                type="button"
+                onClick={() => setShowLost((v) => !v)}
+                aria-expanded={showLost}
+                className="btn-quiet inline-flex items-center gap-2"
+                id="lost-heading"
+              >
+                <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform duration-150 ${showLost ? "rotate-90" : ""}`}>
+                  <path d="M4.5 3 7.5 6l-3 3" />
+                </svg>
+                {showLost ? "Hide" : "Show"} lost deals ({lost.length})
+              </button>
+              {showLost && (
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                  {lost.map((row) => (
+                    <DealCard key={row.deal.id} {...cardProps(row)} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </>
+      ) : (
+        <DealList rows={rows} nowMs={nowMs} busy={busy} readOnly={demo} onMove={moveDeal} />
+      )}
+    </div>
+  );
+}
+
+interface DealListProps {
+  rows: PipelineRow[];
+  nowMs: number;
+  busy: boolean;
+  readOnly: boolean;
+  onMove: (id: string, stage: DealStage) => void;
+}
+
+const ORDER: DealStage[] = ["negotiation", "proposal", "inquiry", "won", "lost"];
+
+function DealList({ rows, nowMs, busy, readOnly, onMove }: DealListProps) {
+  if (rows.length === 0) {
+    return <p className="card p-8 text-center text-[15px] text-[var(--color-text-muted)]">No deals yet. Open one from a lead&apos;s record.</p>;
+  }
+  const sorted = [...rows].sort((a, b) => ORDER.indexOf(a.deal.stage) - ORDER.indexOf(b.deal.stage) || b.deal.value - a.deal.value);
+  const total = rows.filter((r) => r.deal.stage !== "lost" && r.deal.stage !== "won").reduce((s, r) => s + r.deal.value, 0);
+  const grid = "lg:grid lg:grid-cols-[minmax(0,1.3fr)_150px_120px_minmax(0,1.5fr)_150px_96px] lg:items-center lg:gap-5";
+
+  return (
+    <div className="card px-4 sm:px-6">
+      <div className={`hidden border-b border-[var(--color-border)] py-3 text-sm text-[var(--color-text-dim)] ${grid}`}>
+        <span>Deal</span>
+        <span>Stage</span>
+        <span className="text-right">Value</span>
+        <span>Next step</span>
+        <span>Last touch</span>
+        <span className="sr-only">Move</span>
+      </div>
+      <ul>
+        {sorted.map((row) => {
+          const { deal } = row;
+          const open = deal.stage !== "won" && deal.stage !== "lost";
+          return (
+            <li key={deal.id} className={`border-b border-[var(--color-border)] py-4 last:border-0 ${grid} ${deal.stage === "lost" ? "opacity-70" : ""}`}>
+              <div className="flex items-start justify-between gap-3 lg:block">
+                <div className="min-w-0">
+                  <p className="text-[16px] font-semibold text-[var(--color-text)]">
+                    {deal.fromLeadId ? (
+                      <Link href={`/admin/leads/${deal.fromLeadId}`} className="hover:underline">
+                        {deal.businessName}
+                      </Link>
+                    ) : (
+                      deal.businessName
+                    )}
+                  </p>
+                  {row.contact && <p className="truncate text-sm text-[var(--color-text-muted)]">{row.contact}</p>}
+                </div>
+                <p className="tabular shrink-0 text-[16px] text-[var(--color-text)] lg:hidden">{deal.value > 0 ? formatMoney(deal.value) : "No price"}</p>
+              </div>
+              <div className="mt-2 lg:mt-0">
+                <StatusBadge status={deal.stage} variant="deal" />
+              </div>
+              <p className="tabular hidden text-right text-[16px] text-[var(--color-text)] lg:block">
+                {deal.value > 0 ? formatMoney(deal.value) : <span className="text-[var(--color-text-dim)]">No price</span>}
+              </p>
+              <p className={`mt-2 line-clamp-2 text-[15px] lg:mt-0 ${row.nextStep ? "text-[var(--color-text)]" : "text-[var(--color-text-dim)]"}`}>
+                {row.nextStep || "No next step"}
+              </p>
+              <div className="mt-3 flex items-center justify-between gap-3 lg:contents">
+                <Touch iso={row.lastTouch} nowMs={nowMs} open={open} />
+                <StageMenu row={row} disabled={busy || readOnly} onMove={onMove} className="lg:justify-self-end" />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <div className={`flex justify-between border-t border-[var(--color-border-bright)] py-3 text-[15px] ${grid}`}>
+        <span className="text-[var(--color-text-muted)]">Open total</span>
+        <span className="hidden lg:block" />
+        <span className="tabular text-right text-[var(--color-text)]">{formatMoney(total)}</span>
+      </div>
     </div>
   );
 }

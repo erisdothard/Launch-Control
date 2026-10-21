@@ -1,13 +1,10 @@
 "use client";
 
-import LocalDate from "@/components/admin/LocalDate";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useMounted } from "@/components/admin/LocalDate";
 import type { Task, TaskRelatedType } from "@/lib/store/types";
 import { createTaskAction, setTaskDoneAction, deleteTaskAction } from "./actions";
-
-const inputClass =
-  "rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30";
 
 interface RelatedOption {
   type: TaskRelatedType;
@@ -20,23 +17,109 @@ interface TasksListClientProps {
   relatedOptions: RelatedOption[];
 }
 
-function formatDueDate(iso: string) {
-  return <LocalDate iso={iso} options={{ month: "short", day: "numeric" }} />;
+type DueState = "overdue" | "today" | "later" | "none";
+
+// Due dates are calendar days ("2026-10-21"). Parse them as the viewer's local day: new Date() on a
+// bare date reads it as UTC midnight, which is the previous evening anywhere in the Americas.
+function localDay(value: string): Date {
+  const [y, m, d] = value.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d);
 }
 
-function isOverdue(dueDate: string | null, done: boolean): boolean {
-  if (!dueDate || done) return false;
+function dueState(dueDate: string | null, done: boolean): DueState {
+  if (!dueDate || done) return dueDate ? "later" : "none";
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  return new Date(dueDate) < today;
+  const due = localDay(dueDate).getTime();
+  if (due < today.getTime()) return "overdue";
+  if (due === today.getTime()) return "today";
+  return "later";
+}
+
+function dueLabel(dueDate: string, state: DueState): string {
+  if (state === "today") return "Due today";
+  const day = localDay(dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return state === "overdue" ? `Overdue since ${day}` : `Due ${day}`;
+}
+
+const DUE_CLASS: Record<DueState, string> = {
+  overdue: "text-[var(--color-hot)] font-medium",
+  today: "text-[var(--color-warm)] font-medium",
+  later: "text-[var(--color-text-muted)]",
+  none: "",
+};
+
+function TaskRow({
+  task,
+  mounted,
+  onToggle,
+  onDelete,
+}: {
+  task: Task;
+  mounted: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  const state = dueState(task.dueDate, task.done);
+  return (
+    <li className="group flex items-start gap-4 border-b border-[var(--color-border)] py-4 last:border-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={task.done ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
+        className="-m-2.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+      >
+        <span
+          className={`flex h-6 w-6 items-center justify-center rounded-full transition-colors duration-150 ${
+            task.done
+              ? "bg-[var(--color-steel)] text-[var(--color-on-accent)]"
+              : "text-transparent shadow-[inset_0_0_0_1.5px_var(--color-border-bright)] hover:text-[var(--color-text-dim)] hover:shadow-[inset_0_0_0_1.5px_var(--color-steel)]"
+          }`}
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 8l3.5 3.5L13 5" />
+          </svg>
+        </span>
+      </button>
+
+      <div className="min-w-0 flex-1">
+        <p className={`text-base leading-snug ${task.done ? "text-[var(--color-text-dim)] line-through" : "font-medium text-[var(--color-text)]"}`}>
+          {task.title}
+        </p>
+        <p className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-[var(--color-text-dim)]">
+          {task.relatedLabel && (
+            <span>
+              {task.relatedType === "lead" ? "Lead" : "Deal"} · {task.relatedLabel}
+            </span>
+          )}
+          {task.dueDate && mounted && <span className={`tabular ${DUE_CLASS[state]}`}>{dueLabel(task.dueDate, state)}</span>}
+          {!task.dueDate && !task.relatedLabel && <span>No due date</span>}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onDelete}
+        className="-my-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-dim)] transition-colors duration-150 hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-hot)] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+        aria-label={`Delete ${task.title}`}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M3 4h10M6.5 4V2.5h3V4M6 7v4M10 7v4M4 4l.5 9a1 1 0 001 1h5a1 1 0 001-1l.5-9" />
+        </svg>
+      </button>
+    </li>
+  );
 }
 
 export default function TasksListClient({ tasks, relatedOptions }: TasksListClientProps) {
   const router = useRouter();
+  const mounted = useMounted();
   const [, startTransition] = useTransition();
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [relatedKey, setRelatedKey] = useState("");
+  const open = tasks.filter((t) => !t.done);
+  const done = tasks.filter((t) => t.done);
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -60,9 +143,9 @@ export default function TasksListClient({ tasks, relatedOptions }: TasksListClie
     setRelatedKey("");
   }
 
-  function handleToggle(id: string, done: boolean) {
+  function handleToggle(id: string, next: boolean) {
     startTransition(async () => {
-      await setTaskDoneAction(id, done);
+      await setTaskDoneAction(id, next);
       router.refresh();
     });
   }
@@ -75,112 +158,77 @@ export default function TasksListClient({ tasks, relatedOptions }: TasksListClie
     });
   }
 
+  const row = (task: Task) => (
+    <TaskRow
+      key={task.id}
+      task={task}
+      mounted={mounted}
+      onToggle={() => handleToggle(task.id, !task.done)}
+      onDelete={() => handleDelete(task.id, task.title)}
+    />
+  );
+
   return (
-    <div>
-      <form
-        onSubmit={handleAdd}
-        className="mb-4 flex flex-col gap-3 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 sm:flex-row sm:items-center"
-      >
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Follow up with..."
-          required
-          className={`${inputClass} flex-1`}
-        />
-        <input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className={`${inputClass} shrink-0`}
-        />
-        <select value={relatedKey} onChange={(e) => setRelatedKey(e.target.value)} className={`${inputClass} shrink-0`}>
-          <option value="">Not related</option>
-          {relatedOptions.map((o) => (
-            <option key={`${o.type}:${o.id}`} value={`${o.type}:${o.id}`}>
-              {o.type === "lead" ? "Lead" : "Deal"} — {o.label}
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[2px] bg-[var(--color-accent)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)]"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <path d="M8 3v10M3 8h10" />
-          </svg>
-          Add Task
-        </button>
+    <div className="max-w-[900px]">
+      <form onSubmit={handleAdd} className="card p-5 sm:p-6" aria-labelledby="add-task-heading">
+        <h2 id="add-task-heading" className="text-[17px] font-semibold text-[var(--color-text)]">
+          Add a task
+        </h2>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_11rem] lg:grid-cols-[minmax(0,1fr)_11rem_14rem_auto]">
+          <label className="block sm:col-span-2 lg:col-span-1">
+            <span className="mb-1.5 block text-sm text-[var(--color-text-dim)]">What needs doing</span>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Call Dana about the third car" required className="field" />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm text-[var(--color-text-dim)]">Due</span>
+            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="field" />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm text-[var(--color-text-dim)]">For</span>
+            <select value={relatedKey} onChange={(e) => setRelatedKey(e.target.value)} className="field">
+              <option value="">Nobody in particular</option>
+              {relatedOptions.map((o) => (
+                <option key={`${o.type}:${o.id}`} value={`${o.type}:${o.id}`}>
+                  {o.type === "lead" ? "Lead" : "Deal"} · {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex items-end sm:col-span-2 lg:col-span-1">
+            <button type="submit" disabled={!title.trim()} className="btn btn-primary w-full lg:w-auto">
+              Add task
+            </button>
+          </div>
+        </div>
       </form>
 
-      <div className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)]">
-        {tasks.length === 0 ? (
-          <p className="p-8 text-center text-sm text-[var(--color-text-dim)]">
-            No tasks yet — add a follow-up above.
+      <section aria-labelledby="open-heading" className="mt-9">
+        <div className="mb-1 flex items-baseline justify-between">
+          <h2 id="open-heading" className="text-[17px] font-semibold text-[var(--color-text)]">
+            To do
+          </h2>
+          <span className="text-sm text-[var(--color-text-dim)] tabular">{open.length}</span>
+        </div>
+        {open.length === 0 ? (
+          <p className="border-t border-[var(--color-border)] py-6 text-base text-[var(--color-text-muted)]">
+            Nothing left to do. Add a task above when something comes up.
           </p>
         ) : (
-          <ul className="divide-y divide-[var(--color-border)]">
-            {tasks.map((task) => {
-              const overdue = isOverdue(task.dueDate, task.done);
-              return (
-                <li key={task.id} className="flex items-center gap-3 px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(task.id, !task.done)}
-                    aria-label={task.done ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
-                      task.done
-                        ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-                        : "border-[var(--color-border-bright)] text-transparent hover:border-[var(--color-accent)]"
-                    }`}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 8l3.5 3.5L13 5" />
-                    </svg>
-                  </button>
-
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className={`truncate text-sm ${
-                        task.done ? "text-[var(--color-text-dim)] line-through" : "text-[var(--color-text)]"
-                      }`}
-                    >
-                      {task.title}
-                    </p>
-                    {task.relatedLabel && (
-                      <p className="truncate text-xs text-[var(--color-text-dim)]">
-                        {task.relatedType === "lead" ? "Lead" : "Deal"} — {task.relatedLabel}
-                      </p>
-                    )}
-                  </div>
-
-                  {task.dueDate && (
-                    <span
-                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        overdue ? "bg-red-400/10 text-red-400" : "bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]"
-                      }`}
-                    >
-                      {overdue ? "Overdue " : ""}
-                      {formatDueDate(task.dueDate)}
-                    </span>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(task.id, task.title)}
-                    className="shrink-0 rounded-[2px] p-1.5 text-[var(--color-text-dim)] transition-colors hover:bg-red-400/10 hover:text-red-400"
-                    aria-label={`Delete ${task.title}`}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 4h10M6.5 4V2.5h3V4M6 7v4M10 7v4M4 4l.5 9a1 1 0 001 1h5a1 1 0 001-1l.5-9" />
-                    </svg>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <ul className="border-t border-[var(--color-border)]">{open.map(row)}</ul>
         )}
-      </div>
+      </section>
+
+      {done.length > 0 && (
+        <section aria-labelledby="done-heading" className="mt-9">
+          <div className="mb-1 flex items-baseline justify-between">
+            <h2 id="done-heading" className="text-[17px] font-semibold text-[var(--color-text-muted)]">
+              Done
+            </h2>
+            <span className="text-sm text-[var(--color-text-dim)] tabular">{done.length}</span>
+          </div>
+          <ul className="border-t border-[var(--color-border)]">{done.map(row)}</ul>
+        </section>
+      )}
     </div>
   );
 }

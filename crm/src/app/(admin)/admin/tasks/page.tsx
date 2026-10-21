@@ -14,7 +14,7 @@ export default async function TasksPage() {
 
   return (
     <>
-      <AdminHeader title="Tasks" subtitle="Follow-ups and to-dos across leads and deals." />
+      <AdminHeader title="Tasks" subtitle="Your to-do list for leads and deals. Tick a task off when it is done; overdue ones show in red." />
       <TasksListClient tasks={tasks} relatedOptions={relatedOptions} />
     </>
   );

@@ -1,13 +1,16 @@
 "use client";
 
-import LocalDate from "@/components/admin/LocalDate";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Composer from "@/components/inbox/Composer";
+import MessageItem from "@/components/inbox/MessageItem";
+import { inboxHref } from "@/components/inbox/url";
+import { replySubject } from "@/lib/email/text";
 import type { EmailAccount, EmailMessage } from "@/lib/store/messages";
-import { markThreadReadAction, sendLeadEmailAction } from "./messageActions";
+import { markThreadReadAction } from "./messageActions";
 
-// Replies land in the background (webhook / Gmail sync); re-read the thread this often while open.
+// Replies land in the background (Outlook / Gmail sync); re-read the thread this often while open.
 const POLL_MS = 30_000;
 
 interface MessagesPanelProps {
@@ -19,51 +22,19 @@ interface MessagesPanelProps {
   accounts: EmailAccount[];
 }
 
-function when(iso: string) {
-  return <LocalDate iso={iso} options={{ month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }} />;
-}
-
-function Bubble({ message }: { message: EmailMessage }) {
-  const out = message.direction === "out";
-  return (
-    <li className={`flex ${out ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[85%] sm:max-w-[75%] ${out ? "items-end" : "items-start"} flex flex-col`}>
-        <div
-          className={`rounded-[2px] border px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
-            out
-              ? message.status === "failed"
-                ? "border-[var(--color-livery-red)]/50 bg-[var(--color-livery-red)]/10 text-[var(--color-text)]"
-                : "border-[var(--color-accent)]/30 bg-[var(--color-accent)]/[0.08] text-[var(--color-text)]"
-              : "border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text)]"
-          }`}
-        >
-          {message.subject && <p className="mb-1.5 text-xs font-medium text-[var(--color-text-muted)]">{message.subject}</p>}
-          {message.bodyText}
-        </div>
-        <p className="mt-1 px-1 text-[11px] text-[var(--color-text-dim)]">
-          {out ? `${message.sentBy ?? message.fromAddress} via ${message.fromAddress}` : message.fromAddress} · {when(message.createdAt)}
-          {message.status === "failed" && <span className="text-[var(--color-livery-red)]"> · not sent: {message.error}</span>}
-        </p>
-      </div>
-    </li>
-  );
+// Answer as whoever wrote last on this thread (Max or Eris); a first email starts as Max.
+function defaultAccount(accounts: EmailAccount[], messages: EmailMessage[]): string {
+  return [...messages].reverse().find((m) => m.direction === "out" && accounts.some((a) => a.id === m.accountId))?.accountId ?? "";
 }
 
 export default function MessagesPanel({ leadId, leadEmail, contactName, suggestedOpener, messages, accounts }: MessagesPanelProps) {
   const router = useRouter();
-  const active = accounts.filter((a) => a.status === "active");
-  const lastSubject = [...messages].reverse().find((m) => m.subject)?.subject ?? "";
-  const lastInbound = [...messages].reverse().find((m) => m.direction === "in");
-
-  const [accountId, setAccountId] = useState(active[0]?.id ?? "");
-  // The lead's own address first; a reply's sender only when the lead has none (bounces come from system addresses).
-  const [to, setTo] = useState(leadEmail || lastInbound?.fromAddress || "");
-  const [subject, setSubject] = useState(lastSubject ? (/^re:/i.test(lastSubject) ? lastSubject : `Re: ${lastSubject}`) : "");
-  const [body, setBody] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const endRef = useRef<HTMLDivElement>(null);
   const unread = messages.some((m) => m.direction === "in" && !m.readAt);
+  const lastInbound = [...messages].reverse().find((m) => m.direction === "in");
+  const lastSubject = [...messages].reverse().find((m) => m.subject)?.subject ?? "";
+  const conversation = [...messages].reverse().find((m) => m.conversationId)?.conversationId;
 
   useEffect(() => {
     if (unread) void markThreadReadAction(leadId);
@@ -78,121 +49,66 @@ export default function MessagesPanel({ leadId, leadEmail, contactName, suggeste
     endRef.current?.scrollIntoView({ block: "nearest" });
   }, [messages.length]);
 
-  function applyOpener() {
-    const greeting = contactName ? `Hi ${contactName.split(" ")[0]},\n\n` : "Hi,\n\n";
-    setBody(`${greeting}${suggestedOpener ?? ""}\n\n`);
-  }
-
-  function send() {
-    setError(null);
-    startTransition(async () => {
-      const result = await sendLeadEmailAction({ leadId, accountId, to, subject, body });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setBody("");
-      if (!/^re:/i.test(subject)) setSubject(`Re: ${subject}`);
-      router.refresh();
-    });
-  }
-
-  const inputClass =
-    "w-full rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50";
+  // The lead's own address first; a reply's sender only when the lead has none (bounces come from system addresses).
+  const initial = useMemo(
+    () => ({ to: leadEmail || lastInbound?.fromAddress || "", cc: "", bcc: "", subject: lastSubject ? replySubject(lastSubject) : "", body: "" }),
+    [leadEmail, lastInbound?.fromAddress, lastSubject]
+  );
+  const greeting = contactName ? `Hi ${contactName.split(" ")[0]},\n\n` : "Hi,\n\n";
+  const collapseBefore = messages.length > 3 ? messages.length - 2 : 0;
 
   return (
-    <section id="messages" aria-labelledby="messages-heading" className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)]">
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4 sm:px-6">
-        <h2 id="messages-heading" className="label-mono text-[var(--color-steel)]">
-          Messages
+    <section id="messages" aria-labelledby="messages-heading" className="card">
+      <div className="flex flex-wrap items-baseline justify-between gap-3 px-5 pt-5 sm:px-7 sm:pt-6">
+        <h2 id="messages-heading" className="text-[17px] font-semibold text-[var(--color-text)]">
+          Email
         </h2>
-        <span className="text-xs text-[var(--color-text-dim)]">{messages.length ? `${messages.length} in thread` : "No emails yet"}</span>
+        <p className="text-[15px] text-[var(--color-text-muted)]">
+          {messages.length ? `${messages.length} in this conversation` : "No emails yet"}
+          {conversation && (
+            <>
+              {" · "}
+              <Link href={inboxHref({ folder: "inbox", thread: conversation })} className="btn-quiet text-[15px]">
+                Open in Inbox
+              </Link>
+            </>
+          )}
+        </p>
       </div>
 
-      <div className="max-h-[32rem] overflow-y-auto px-4 py-5 sm:px-6">
+      <div className="max-h-[36rem] overflow-y-auto px-5 sm:px-7">
         {messages.length === 0 ? (
-          <p className="py-6 text-center text-sm text-[var(--color-text-dim)]">
-            Start the conversation below. Replies show up here automatically.
-          </p>
+          <p className="py-8 text-[16px] text-[var(--color-text-muted)]">Start the conversation below. Replies show up here automatically.</p>
         ) : (
-          <ul className="space-y-4">
-            {messages.map((m) => (
-              <Bubble key={m.id} message={m} />
+          <ol className="divide-y divide-[var(--color-border)]">
+            {messages.map((m, i) => (
+              <MessageItem
+                key={m.id}
+                m={m}
+                demo={false}
+                collapsed={i < collapseBefore && !expanded.has(m.id)}
+                onExpand={() => setExpanded((s) => new Set(s).add(m.id))}
+              />
             ))}
-          </ul>
+          </ol>
         )}
         <div ref={endRef} />
       </div>
 
-      <div className="border-t border-[var(--color-border)] px-4 py-4 sm:px-6">
-        {active.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-muted)]">
-            No sending address yet.{" "}
-            <Link href="/admin/settings#email-accounts" className="text-[var(--color-accent)] hover:underline">
-              Connect Outlook in Settings
-            </Link>
-            .
-          </p>
-        ) : (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="label-mono mb-1 block text-[var(--color-text-dim)]">From</span>
-                <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inputClass} disabled={pending}>
-                  {active.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.displayName ? `${a.displayName} <${a.address}>` : a.address}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="label-mono mb-1 block text-[var(--color-text-dim)]">To</span>
-                <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="name@business.com" className={inputClass} disabled={pending} />
-              </label>
-            </div>
-            <label className="block">
-              <span className="label-mono mb-1 block text-[var(--color-text-dim)]">Subject</span>
-              <input value={subject} onChange={(e) => setSubject(e.target.value)} className={inputClass} disabled={pending} maxLength={200} />
-            </label>
-            <label className="block">
-              <span className="sr-only">Message</span>
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send();
-                }}
-                rows={6}
-                placeholder="Write your message…"
-                className={`${inputClass} resize-y leading-relaxed`}
-                disabled={pending}
-              />
-            </label>
-            {error && (
-              <p role="alert" className="text-sm text-red-400">
-                {error}
-              </p>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              {suggestedOpener && messages.length === 0 ? (
-                <button type="button" onClick={applyOpener} disabled={pending} className="text-sm text-[var(--color-accent)] hover:underline">
-                  Use suggested opener
-                </button>
-              ) : (
-                <span className="text-xs text-[var(--color-text-dim)]">⌘ Enter to send</span>
-              )}
-              <button
-                type="button"
-                onClick={send}
-                disabled={pending || !body.trim()}
-                className="inline-flex min-h-10 items-center justify-center rounded-[2px] bg-[var(--color-accent)] px-6 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {pending ? "Sending..." : "Send"}
-              </button>
-            </div>
-          </div>
-        )}
+      <div className="border-t border-[var(--color-border)] px-2 pt-4 pb-3 sm:px-4">
+        <Composer
+          key={`${leadId}:${messages.length}`}
+          mode={messages.length ? "reply" : "new"}
+          accounts={accounts}
+          defaultAccountId={defaultAccount(accounts, messages)}
+          initial={initial}
+          replyToMessageId={lastInbound?.id ?? null}
+          leadId={leadId}
+          storageKey={`lc-lead:${leadId}`}
+          compactHeader={messages.length > 0 && Boolean(initial.to)}
+          primary={false}
+          suggestion={suggestedOpener && messages.length === 0 ? { label: "Use suggested opener", body: `${greeting}${suggestedOpener}\n\n` } : undefined}
+        />
       </div>
     </section>
   );

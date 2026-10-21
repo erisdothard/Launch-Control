@@ -4,7 +4,7 @@ import "./globals.css";
 
 // The site's three faces (web/src/app/layout.tsx): Sora body, Michroma for the wordmark, labels and
 // buttons, Chivo Mono for numbers and utility labels.
-const sora = Sora({ variable: "--font-sora", subsets: ["latin"], weight: ["400", "500", "600"], display: "swap" });
+const sora = Sora({ variable: "--font-sora", subsets: ["latin"], weight: ["300", "400", "500", "600"], display: "swap" });
 const michroma = Michroma({ variable: "--font-michroma", subsets: ["latin"], weight: ["400"], display: "swap" });
 const chivoMono = Chivo_Mono({ variable: "--font-chivo-mono", subsets: ["latin"], weight: ["400", "500"], display: "swap" });
 

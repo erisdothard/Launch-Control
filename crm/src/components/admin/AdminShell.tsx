@@ -32,7 +32,7 @@ export default function AdminShell({ children, role, userEmail, companyName, log
   return (
     <>
       <AdminSidebar role={role} userEmail={userEmail} companyName={companyName} logoUrl={logoUrl} unread={unread} drafts={drafts} />
-      <div className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-[var(--color-bg-primary)] lg:ml-64">
+      <div className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-[var(--color-bg-primary)] lg:ml-60">
         {/* Phones have no sidebar, so the brand rides at the top of the page */}
         <div className="relative z-10 border-b border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3.5 lg:hidden">
           <BrandLockup />

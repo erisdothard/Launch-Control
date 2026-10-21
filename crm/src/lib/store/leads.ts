@@ -172,6 +172,17 @@ export async function getLeadById(id: string, client?: StoreClient): Promise<Lea
   return data ? rowToLead(data as LeadRow) : null;
 }
 
+/** Several leads by id in one read (the pipeline joins each deal to the lead it came from). */
+export async function getLeadsByIds(ids: string[], client?: StoreClient): Promise<Lead[]> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return [];
+  const supabase = await getStoreClient(client);
+  const { data, error } = await supabase.from("leads").select("*").in("id", unique);
+
+  if (error) throw error;
+  return (data as LeadRow[]).map(rowToLead);
+}
+
 export interface CreateLeadInput {
   businessName: string;
   email: string;

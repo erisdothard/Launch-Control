@@ -2,7 +2,8 @@
 
 The CRM sends from a teammate's Gmail and records the Gmail threadId. Every couple of minutes this
 reads each account's Gmail history since the last run and stores any new message on a thread the
-CRM knows about. Nothing else in the inbox is read or stored.
+CRM knows about. Nothing else in the inbox is read or stored: the CRM's full Inbox mirrors the
+Outlook mailbox (outlook_sync.py); Gmail stays lead-only because nobody on the team reads mail there.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import os
 import re
 import threading
 import time
-from email.utils import parseaddr
+from email.utils import getaddresses, parseaddr
 from typing import Any
 
 import httpx
@@ -146,15 +147,20 @@ def sync_account(store: Store, gmail: GmailClient, account: dict[str, Any]) -> i
         full = gmail.get(token, f"/messages/{message_id}", format="full").json()
         payload = full.get("payload", {})
         hdr = headers_of(payload)
-        sender = parseaddr(hdr.get("from", ""))[1].lower()
+        from_name, sender = parseaddr(hdr.get("from", ""))
+        sender = sender.lower()
         outbound = sender == account["address"]
         text = plain_text(payload)
         stored += store.insert_message({
             "lead_id": lead_id,
             "account_id": account["id"],
             "direction": "out" if outbound else "in",
+            "folder": "sent" if outbound else "inbox",
+            "conversation_id": thread_id,
             "from_address": sender,
+            "from_name": from_name.strip(),
             "to_address": parseaddr(hdr.get("to", ""))[1].lower(),
+            "cc_address": ", ".join(a.lower() for _, a in getaddresses([hdr.get("cc", "")]) if a),
             "subject": hdr.get("subject", ""),
             "body_text": text.strip() if outbound else strip_quoted_reply(text),
             "provider": "gmail",

@@ -7,7 +7,7 @@ import type { Role } from "@/lib/auth/roles";
 
 const mainTabs = [
   {
-    label: "Dashboard",
+    label: "Today",
     href: "/admin/dashboard",
     icon: (
       <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -15,6 +15,16 @@ const mainTabs = [
         <rect x="11" y="2" width="7" height="7" rx="1" />
         <rect x="2" y="11" width="7" height="7" rx="1" />
         <rect x="11" y="11" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    label: "Inbox",
+    href: "/admin/inbox",
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 5.5h14v9H3z" />
+        <path d="M3 6l7 5 7-5" />
       </svg>
     ),
   },
@@ -31,7 +41,7 @@ const mainTabs = [
     ),
   },
   {
-    label: "Deals",
+    label: "Pipeline",
     href: "/admin/deals",
     icon: (
       <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -40,36 +50,16 @@ const mainTabs = [
       </svg>
     ),
   },
-  {
-    label: "Customers",
-    href: "/admin/customers",
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="10" cy="6" r="4" />
-        <path d="M3 18c0-3.5 3-6 7-6s7 2.5 7 6" />
-      </svg>
-    ),
-  },
 ];
 
 const moreLinks = [
   {
-    label: "Inbox",
-    href: "/admin/inbox",
+    label: "Customers",
+    href: "/admin/customers",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 5.5h14v9H3z" />
-        <path d="M3 6l7 5 7-5" />
-      </svg>
-    ),
-  },
-  {
-    label: "Drafts",
-    href: "/admin/drafts",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 3L8.5 11.5" />
-        <path d="M17 3l-5 14-3.5-5.5L3 8z" />
+        <circle cx="10" cy="6" r="4" />
+        <path d="M3 18c0-3.5 3-6 7-6s7 2.5 7 6" />
       </svg>
     ),
   },

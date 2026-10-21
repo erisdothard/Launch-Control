@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       activity_log: {
@@ -145,6 +120,75 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "calendar_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_recipients: {
+        Row: {
+          body_override: string | null
+          campaign_id: string
+          created_at: string
+          email: string
+          error: string | null
+          follow_up_sent_at: string | null
+          id: string
+          lead_id: string | null
+          merge: Json
+          replied_at: string | null
+          sent_at: string | null
+          skip_reason: string | null
+          status: string
+          step: number
+          subject_override: string | null
+        }
+        Insert: {
+          body_override?: string | null
+          campaign_id: string
+          created_at?: string
+          email: string
+          error?: string | null
+          follow_up_sent_at?: string | null
+          id?: string
+          lead_id?: string | null
+          merge?: Json
+          replied_at?: string | null
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string
+          step?: number
+          subject_override?: string | null
+        }
+        Update: {
+          body_override?: string | null
+          campaign_id?: string
+          created_at?: string
+          email?: string
+          error?: string | null
+          follow_up_sent_at?: string | null
+          id?: string
+          lead_id?: string | null
+          merge?: Json
+          replied_at?: string | null
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string
+          step?: number
+          subject_override?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
@@ -278,9 +322,12 @@ export type Database = {
           display_name: string
           gmail_history_id: string | null
           id: string
+          last_error: string | null
+          last_error_at: string | null
           mailbox: string | null
           provider: string
           signature_name: string
+          signature_phone: string
           signature_title: string
           status: string
           sync_cursor: string | null
@@ -293,9 +340,12 @@ export type Database = {
           display_name?: string
           gmail_history_id?: string | null
           id?: string
+          last_error?: string | null
+          last_error_at?: string | null
           mailbox?: string | null
           provider: string
           signature_name?: string
+          signature_phone?: string
           signature_title?: string
           status?: string
           sync_cursor?: string | null
@@ -308,15 +358,92 @@ export type Database = {
           display_name?: string
           gmail_history_id?: string | null
           id?: string
+          last_error?: string | null
+          last_error_at?: string | null
           mailbox?: string | null
           provider?: string
           signature_name?: string
+          signature_phone?: string
           signature_title?: string
           status?: string
           sync_cursor?: string | null
           token_secret_id?: string | null
         }
         Relationships: []
+      }
+      email_campaigns: {
+        Row: {
+          account_id: string | null
+          attachments: Json
+          body_text: string
+          created_at: string
+          created_by: string | null
+          finished_at: string | null
+          follow_up_after_days: number | null
+          follow_up_body: string | null
+          follow_up_subject: string | null
+          id: string
+          include_signature: boolean
+          name: string
+          per_minute: number
+          scheduled_at: string | null
+          skip_contacted_days: number
+          started_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          attachments?: Json
+          body_text: string
+          created_at?: string
+          created_by?: string | null
+          finished_at?: string | null
+          follow_up_after_days?: number | null
+          follow_up_body?: string | null
+          follow_up_subject?: string | null
+          id?: string
+          include_signature?: boolean
+          name?: string
+          per_minute?: number
+          scheduled_at?: string | null
+          skip_contacted_days?: number
+          started_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          attachments?: Json
+          body_text?: string
+          created_at?: string
+          created_by?: string | null
+          finished_at?: string | null
+          follow_up_after_days?: number | null
+          follow_up_body?: string | null
+          follow_up_subject?: string | null
+          id?: string
+          include_signature?: boolean
+          name?: string
+          per_minute?: number
+          scheduled_at?: string | null
+          skip_contacted_days?: number
+          started_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_drafts: {
         Row: {
@@ -387,13 +514,19 @@ export type Database = {
       email_messages: {
         Row: {
           account_id: string | null
+          attachments: Json
           body_text: string
+          campaign_id: string | null
+          cc_address: string
+          conversation_id: string | null
           created_at: string
           direction: string
           error: string | null
+          folder: string
           from_address: string
+          from_name: string
           id: string
-          lead_id: string
+          lead_id: string | null
           message_id_header: string | null
           provider: string
           provider_message_id: string | null
@@ -406,13 +539,19 @@ export type Database = {
         }
         Insert: {
           account_id?: string | null
+          attachments?: Json
           body_text?: string
+          campaign_id?: string | null
+          cc_address?: string
+          conversation_id?: string | null
           created_at?: string
           direction: string
           error?: string | null
+          folder?: string
           from_address: string
+          from_name?: string
           id?: string
-          lead_id: string
+          lead_id?: string | null
           message_id_header?: string | null
           provider: string
           provider_message_id?: string | null
@@ -425,13 +564,19 @@ export type Database = {
         }
         Update: {
           account_id?: string | null
+          attachments?: Json
           body_text?: string
+          campaign_id?: string | null
+          cc_address?: string
+          conversation_id?: string | null
           created_at?: string
           direction?: string
           error?: string | null
+          folder?: string
           from_address?: string
+          from_name?: string
           id?: string
-          lead_id?: string
+          lead_id?: string | null
           message_id_header?: string | null
           provider?: string
           provider_message_id?: string | null
@@ -451,6 +596,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "email_messages_campaign_fk"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "email_messages_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
@@ -458,6 +610,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_suppressions: {
+        Row: {
+          created_at: string
+          email: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          reason?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          reason?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          body_text: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body_text?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          subject?: string
+          updated_at?: string
+        }
+        Update: {
+          body_text?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       lead_gen_runs: {
         Row: {
@@ -679,6 +879,33 @@ export type Database = {
           },
         ]
       }
+      email_threads: {
+        Row: {
+          business_name: string | null
+          contact_name: string | null
+          folder: string | null
+          has_attachments: boolean | null
+          last_at: string | null
+          last_direction: string | null
+          last_from_name: string | null
+          last_snippet: string | null
+          last_subject: string | null
+          lead_id: string | null
+          message_count: number | null
+          other_address: string | null
+          thread_key: string | null
+          unread: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_business_days: { Args: { d: string; n: number }; Returns: string }
@@ -863,9 +1090,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

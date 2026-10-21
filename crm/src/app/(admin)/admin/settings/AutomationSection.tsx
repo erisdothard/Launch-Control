@@ -19,10 +19,10 @@ function Toggle({
   disabled: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-6 py-4">
+    <label className="flex cursor-pointer items-start justify-between gap-6 py-5">
       <span>
-        <span className="block text-sm font-medium text-[var(--color-text)]">{label}</span>
-        <span className="mt-0.5 block text-sm text-[var(--color-text-muted)]">{hint}</span>
+        <span className="block text-base font-medium text-[var(--color-text)]">{label}</span>
+        <span className="mt-1 block max-w-2xl text-sm leading-relaxed text-[var(--color-text-muted)]">{hint}</span>
       </span>
       <button
         type="button"
@@ -31,12 +31,12 @@ function Toggle({
         aria-label={label}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
-          checked ? "bg-[var(--color-accent)]" : "bg-[var(--color-bg-secondary)]"
+        className={`relative mt-0.5 h-7 w-12 shrink-0 rounded-full transition-colors duration-150 disabled:opacity-50 ${
+          checked ? "bg-[var(--color-success)]" : "bg-[var(--color-bg-secondary)] shadow-[inset_0_0_0_1px_var(--color-border-bright)]"
         }`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${checked ? "translate-x-5" : ""}`}
+          className={`absolute top-1 left-1 h-5 w-5 rounded-full transition-transform duration-200 ease-[var(--ease-out-expo)] ${checked ? "translate-x-5 bg-[var(--color-on-accent)]" : "bg-[var(--color-steel)]"}`}
         />
       </button>
     </label>
@@ -61,15 +61,17 @@ export default function AutomationSection({ settings }: { settings: AutomationSe
   const maxFollowUps = settings.followUpDays.length;
 
   return (
-    <section id="automation" className="mt-8 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6">
-      <h2 className="font-display text-[13px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)]">Automation</h2>
-      <p className="mt-2 max-w-2xl text-sm text-[var(--color-text-muted)]">
+    <section id="automation" aria-labelledby="automation-heading" className="card p-5 sm:p-8">
+      <h2 id="automation-heading" className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--color-steel)]">
+        What the CRM does on its own
+      </h2>
+      <p className="mt-2 max-w-2xl text-base text-[var(--color-text-muted)]">
         Lead statuses move on their own: an email out marks a lead contacted, a reply marks it replied, a meeting on the
         calendar marks it meeting, and a deal carries it to proposal, won or lost. Anyone who writes back asking to stop is
         never emailed again.
       </p>
 
-      <div className="mt-4 divide-y divide-[var(--color-border)]">
+      <div className="mt-4 divide-y divide-[var(--color-border)] border-t border-[var(--color-border)]">
         <Toggle
           checked={settings.draftReplies}
           onChange={(v) => save({ draftReplies: v })}
@@ -84,10 +86,10 @@ export default function AutomationSection({ settings }: { settings: AutomationSe
           hint={`Leads who haven't answered get a short follow-up 3 business days after each email, up to ${maxFollowUps}, from the address the thread is on, stopping the moment they reply. Off: the follow-ups wait in Drafts for you to send. A lead with no answer ${settings.coldAfterDays} days after the last one is closed as gone cold.`}
           disabled={pending}
         />
-        <div className="flex items-center justify-between gap-6 py-4">
+        <div className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <span>
-            <span className="block text-sm font-medium text-[var(--color-text)]">Daily limit</span>
-            <span className="mt-0.5 block text-sm text-[var(--color-text-muted)]">
+            <span className="block text-base font-medium text-[var(--color-text)]">Daily limit</span>
+            <span className="mt-1 block text-sm text-[var(--color-text-muted)]">
               The most automatic follow-ups sent in one day, to protect the mailbox&apos;s reputation.
             </span>
           </span>
@@ -105,19 +107,19 @@ export default function AutomationSection({ settings }: { settings: AutomationSe
               value={cap}
               onChange={(e) => setCap(e.target.value)}
               aria-label="Daily limit"
-              className="w-20 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]/50"
+              className="field w-24 tabular"
             />
             <button
               type="submit"
               disabled={pending || cap === String(settings.dailySendCap)}
-              className="rounded-[2px] px-3 py-1.5 text-sm font-medium text-[var(--color-accent)] hover:bg-white/[0.05] disabled:opacity-40"
+              className="btn btn-secondary btn-sm"
             >
               Save
             </button>
           </form>
         </div>
       </div>
-      {error && <p className="mt-2 text-sm text-red-300" role="alert">{error}</p>}
+      {error && <p className="mt-2 text-sm text-[var(--color-hot)]" role="alert">{error}</p>}
     </section>
   );
 }

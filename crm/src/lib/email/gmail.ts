@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { emailConfig } from "./config";
+import type { OutboundFile } from "./outlook";
 
 export const GMAIL_SCOPES = [
   "openid",
@@ -74,12 +75,23 @@ function encodeHeader(value: string): string {
   return /^[\x20-\x7e]*$/.test(value) ? value : `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
 }
 
+/** "Name <a@b.com>" with only the name encoded, so the address stays readable to servers. */
+function encodeAddress(value: string): string {
+  const match = /^(.*)<([^>]+)>$/.exec(value.trim());
+  if (!match) return value;
+  const name = match[1].trim().replace(/^"|"$/g, "");
+  return name ? `${encodeHeader(name)} <${match[2]}>` : `<${match[2]}>`;
+}
+
 export interface GmailSend {
   from: string;
   to: string;
+  cc?: string[];
+  bcc?: string[];
   subject: string;
   text: string;
   html?: string | null;
+  attachments?: OutboundFile[];
   threadId?: string | null;
   inReplyTo?: string | null;
 }
@@ -89,26 +101,38 @@ export async function sendViaGmail(accessToken: string, msg: GmailSend) {
   const domain = msg.from.split("@")[1]?.replace(/>$/, "") || "gmail.com";
   const messageId = `<${randomUUID()}@${domain}>`;
   const headers = [
-    `From: ${encodeHeader(msg.from)}`,
+    `From: ${encodeAddress(msg.from)}`,
     `To: ${msg.to}`,
+    ...(msg.cc?.length ? [`Cc: ${msg.cc.join(", ")}`] : []),
+    // Gmail strips Bcc from what recipients see and delivers to it.
+    ...(msg.bcc?.length ? [`Bcc: ${msg.bcc.join(", ")}`] : []),
     `Subject: ${encodeHeader(msg.subject)}`,
     `Message-ID: ${messageId}`,
     "MIME-Version: 1.0",
   ];
   if (msg.inReplyTo) headers.push(`In-Reply-To: ${msg.inReplyTo}`, `References: ${msg.inReplyTo}`);
-  const encode = (value: string) => Buffer.from(value, "utf8").toString("base64").replace(/(.{76})/g, "$1\r\n");
+  const encode = (value: string | Buffer) =>
+    (typeof value === "string" ? Buffer.from(value, "utf8") : value).toString("base64").replace(/(.{76})/g, "$1\r\n");
   const part = (type: string, value: string) =>
     `Content-Type: ${type}; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${encode(value)}`;
-  let mime: string;
+  // Plain text first, HTML last: clients show the last part they can render.
+  let body: string;
   if (msg.html) {
-    // Plain text first, HTML last: clients show the last part they can render.
-    const boundary = `lc-${randomUUID()}`;
-    headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
-    mime = `--${boundary}\r\n${part("text/plain", msg.text)}\r\n--${boundary}\r\n${part("text/html", msg.html)}\r\n--${boundary}--`;
+    const alt = `lc-${randomUUID()}`;
+    body = `Content-Type: multipart/alternative; boundary="${alt}"\r\n\r\n--${alt}\r\n${part("text/plain", msg.text)}\r\n--${alt}\r\n${part("text/html", msg.html)}\r\n--${alt}--`;
   } else {
-    mime = part("text/plain", msg.text);
+    body = part("text/plain", msg.text);
   }
-  const raw = Buffer.from(msg.html ? `${headers.join("\r\n")}\r\n\r\n${mime}` : `${headers.join("\r\n")}\r\n${mime}`).toString("base64url");
+  if (msg.attachments?.length) {
+    const mixed = `lc-${randomUUID()}`;
+    const files = msg.attachments.map((a) => {
+      const name = encodeHeader(a.filename.replace(/["\r\n]/g, ""));
+      return `Content-Type: ${a.contentType}; name="${name}"\r\nContent-Disposition: attachment; filename="${name}"\r\nContent-Transfer-Encoding: base64\r\n\r\n${encode(a.content)}`;
+    });
+    body = `Content-Type: multipart/mixed; boundary="${mixed}"\r\n\r\n${[body, ...files].map((p) => `--${mixed}\r\n${p}`).join("\r\n")}\r\n--${mixed}--`;
+  }
+  // The body starts with its own Content-Type line, so it continues the top-level headers.
+  const raw = Buffer.from(`${headers.join("\r\n")}\r\n${body}`).toString("base64url");
   const sent = await gmailFetch<{ id: string; threadId: string }>(accessToken, "/messages/send", {
     method: "POST",
     body: JSON.stringify(msg.threadId ? { raw, threadId: msg.threadId } : { raw }),

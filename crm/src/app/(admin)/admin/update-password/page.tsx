@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BrandLockup, LiveryStripe } from "@/components/brand/BrandMark";
+import { BrandLockup } from "@/components/brand/BrandMark";
 
 const MIN_LENGTH = 8;
 
@@ -89,30 +89,26 @@ export default function UpdatePasswordPage() {
   }
 
   return (
-    <div className="w-full max-w-md px-6">
-      <div className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-8 relative">
-          <LiveryStripe className="absolute top-[-2px] left-8" />
-        <div className="mb-8 text-center">
-          <BrandLockup className="mb-6 justify-center" />
-          <h1 className="text-xl font-semibold text-[var(--color-steel)]">Set Your Password</h1>
-          <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">Choose a new password for your admin account</p>
+    <div className="w-full max-w-[440px] px-4 sm:px-6">
+      <BrandLockup className="mb-8 justify-center" />
+      <div className="card relative overflow-hidden px-6 py-8 sm:px-10 sm:py-10">
+        <div aria-hidden="true" className="absolute top-0 bottom-0 left-0 flex w-[5px] flex-col">
+          <span className="flex-[5] bg-[var(--color-accent)]" />
+          <span className="flex-[3] bg-[var(--color-livery-orange)]" />
+          <span className="flex-[2] bg-[var(--color-livery-red)]" />
         </div>
+        <h1 className="text-[32px] leading-[1.1] font-semibold tracking-[-0.03em] text-[var(--color-steel)]">Set your password</h1>
+        <p className="mt-2 text-base text-[var(--color-text-muted)]">Choose the password you will sign in with from now on.</p>
 
-        {status === "checking" && (
-          <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">Verifying your link...</p>
-        )}
+        {status === "checking" && <p className="mt-7 text-base text-[var(--color-text-muted)]">Checking your link...</p>}
 
         {status === "no-session" && (
-          <div className="space-y-5">
-            <div className="rounded-[2px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-              This link is invalid or has expired. Password links can only be used once, and they
-              time out after a short window.
-            </div>
-            <a
-              href="/admin/dashboard"
-              className="block w-full rounded-[2px] bg-[var(--color-accent)] px-4 py-3 text-center font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-all hover:bg-[var(--color-accent-hover)]"
-            >
-              Back to Dashboard
+          <div className="mt-7 space-y-5">
+            <p role="alert" className="well px-4 py-3 text-base text-[var(--color-hot)]">
+              This link has expired or was already used. Password links work once and only for a short time.
+            </p>
+            <a href="/admin/dashboard" className="btn btn-secondary w-full">
+              Back to the CRM
             </a>
           </div>
         )}
@@ -120,14 +116,14 @@ export default function UpdatePasswordPage() {
         {status === "ready" && (
           <>
             {error && (
-              <div className="mb-6 rounded-[2px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              <p role="alert" className="well mt-6 px-4 py-3 text-base text-[var(--color-hot)]">
                 {error}
-              </div>
+              </p>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="mt-7 space-y-5">
               <div>
-                <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]">
+                <label htmlFor="password" className="mb-1.5 block text-sm text-[var(--color-text-dim)]">
                   New password
                 </label>
                 <input
@@ -138,14 +134,14 @@ export default function UpdatePasswordPage() {
                   required
                   minLength={MIN_LENGTH}
                   autoComplete="new-password"
-                  className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] transition-colors outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
+                  className="field"
                   placeholder={`At least ${MIN_LENGTH} characters`}
                 />
               </div>
 
               <div>
-                <label htmlFor="confirm" className="mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]">
-                  Confirm password
+                <label htmlFor="confirm" className="mb-1.5 block text-sm text-[var(--color-text-dim)]">
+                  Type it again
                 </label>
                 <input
                   id="confirm"
@@ -155,17 +151,13 @@ export default function UpdatePasswordPage() {
                   required
                   minLength={MIN_LENGTH}
                   autoComplete="new-password"
-                  className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] transition-colors outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
-                  placeholder="Re-enter your password"
+                  className="field"
+                  placeholder="The same password"
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-[2px] bg-[var(--color-accent)] px-4 py-3 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-all hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "Saving..." : "Save Password"}
+              <button type="submit" disabled={loading} className="btn btn-primary mt-2 w-full">
+                {loading ? "Saving..." : "Save password"}
               </button>
             </form>
           </>

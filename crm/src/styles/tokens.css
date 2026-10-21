@@ -1,9 +1,10 @@
 /*
- * Launch Control CRM tokens. Same brand as the marketing site (web/src/styles/tokens.css):
- * near-black ground, silver display type, Jordan yellow as the one accent, the livery's orange and
- * red only as small marks (stripe, numbers, score bands), square corners, Michroma + Sora + Chivo
- * Mono. The variable names are the CRM's own so every component keeps working; the values are the
- * site's. Change a value here and in web/ together.
+ * Launch Control CRM tokens, v2 (2026-10-21). Taken from the approved Today mock
+ * (docs/review/crm-refs-2026-10-20/mock/today.html): near-black surfaces in four steps, silver
+ * display type, Jordan yellow for the ONE "act now" button per screen, orange and red only as
+ * livery marks and urgency, soft corners. Michroma for names, wordmark and buttons; Sora for
+ * everything you read; Chivo Mono only for times and machine output.
+ * The variable names are kept from v1 so every component keeps working.
  */
 @theme {
   --font-display: var(--font-michroma), "Eurostile", "Bank Gothic", Arial, sans-serif;
@@ -12,33 +13,50 @@
 }
 
 :root {
-  /* Colors (site name in brackets) */
-  --color-bg-primary: #050607; /* background */
-  --color-bg-secondary: #15181c; /* elevated: inputs, tracks, hover wells */
-  --color-bg-card: #0b0d10; /* surface */
-  --color-accent: #f0c419; /* ember: Jordan yellow */
-  --color-accent-hover: #f4f6f8; /* the site's primary button goes white on hover */
-  --color-on-accent: #050607; /* ink on yellow */
-  --color-livery-orange: #f07d1a; /* ember-hot. Never a surface */
-  --color-livery-red: #e3261d; /* ember-red. Never a surface */
-  --color-steel: #c6ccd3; /* display type, headings */
-  --color-text: #f4f6f8;
-  --color-text-muted: #a7adb4;
-  --color-text-dim: #7a8189; /* 4.9:1 on surface (AA) */
-  --color-border: #262b31;
-  --color-border-bright: #3a4048;
+  /* Surfaces, darkest to lightest */
+  --color-bg-sidebar: #060708; /* sidebar, page edge */
+  --color-bg-primary: #0a0c0e; /* page */
+  --color-bg-card: #111418; /* cards, the hero, panels */
+  --color-bg-secondary: #181c21; /* inputs, wells inside cards (drafted reply box), hover */
+  --color-bg-hover: rgba(255, 255, 255, 0.04);
+
+  /* Ink */
+  --color-text: #f1f3f5;
+  --color-text-muted: #c3c9cf; /* secondary copy: still readable for a 50+ reader */
+  --color-text-dim: #9aa2ab; /* labels, meta. 7:1 on bg-primary */
+  --color-steel: #c6ccd3; /* display headings, big figures */
+
+  /* Lines */
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-bright: rgba(255, 255, 255, 0.12);
+
+  /* Brand */
+  --color-accent: #f0c419; /* Jordan yellow: one primary action per screen */
+  --color-accent-hover: #f4f6f8;
+  --color-on-accent: #0a0b0c;
   --color-accent-border: rgba(240, 196, 25, 0.35);
-  --color-success: #8fd49a;
+  --color-livery-orange: #f07d1a; /* marks only, never a surface */
+  --color-livery-red: #e3261d; /* marks only, never a surface */
+
+  /* Meaning */
+  --color-hot: #ff8a7a; /* waiting on us, overdue */
+  --color-warm: #ffb36b; /* due today */
+  --color-success: #8fdc9a;
   --color-danger: #e3261d;
 
+  /* Shape */
+  --radius-sm: 7px; /* buttons, inputs, nav items */
+  --radius-md: 10px; /* wells */
+  --radius-lg: 12px; /* cards */
+
   /* Typography scale */
-  --text-heading: clamp(1.5rem, 1rem + 2vw, 2.5rem);
-  --text-body: clamp(1rem, 0.92rem + 0.4vw, 1.125rem);
+  --text-heading: clamp(1.75rem, 1.2rem + 2vw, 2.75rem);
+  --text-body: 15px;
   --text-label: 0.875rem;
   --tracking-signage: 0.14em;
 
   /* Motion */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 120ms;
-  --duration-normal: 300ms;
+  --duration-normal: 220ms;
 }
