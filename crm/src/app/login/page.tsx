@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLockup } from "@/components/brand/BrandMark";
+
+const DENIED_MESSAGE = "That account isn't on the Launch Control team list. Sign in with your team email, or ask Eris to add you.";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +13,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // The admin proxy sends signed-in users who aren't on the team allowlist here with ?denied=1.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("denied") !== "1") return;
+    void createClient()
+      .auth.signOut()
+      .finally(() => setError(DENIED_MESSAGE));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

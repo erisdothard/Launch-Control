@@ -42,5 +42,16 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Signed in is not enough: anyone can sign up, so only people on the crm_users allowlist get in.
+  // The login page signs them out and says why.
+  if (user && !isPublicAdminPath) {
+    const { data: allowed } = await supabase.rpc("is_crm_user");
+    if (allowed !== true) {
+      const url = new URL("/login", request.url);
+      url.searchParams.set("denied", "1");
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }

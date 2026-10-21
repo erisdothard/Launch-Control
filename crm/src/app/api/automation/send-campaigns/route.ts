@@ -1,7 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmail, type SendResult } from "@/lib/email/send";
+import { isAutoReply, isHardBounce, isSenderProblem } from "@/lib/email/deliverability";
 import { renderMerge } from "@/lib/email/merge";
 import { replySubject } from "@/lib/email/text";
 import { toAttachments, toMerge } from "@/lib/store/campaigns";
@@ -28,6 +29,8 @@ const TIME_BUDGET_MS = 45_000;
 /** A claimed send with no result after this long was interrupted; don't risk sending it twice. */
 const STUCK_MS = 10 * MINUTE_MS;
 const REPLY_WINDOW_DAYS = 90;
+/** PostgREST returns at most 1000 rows a request. */
+const PAGE = 1000;
 
 type Admin = SupabaseClient<Database>;
 
@@ -57,9 +60,21 @@ function authorized(request: NextRequest): boolean {
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
-/** A send error that means the address will never work: stop mailing it. */
-function isHardBounce(error: string): boolean {
-  return /\b55[0-3]\b|5\.1\.[0-9]|user unknown|no such user|does not exist|mailbox unavailable|recipient rejected|address rejected/i.test(error);
+/**
+ * Stops a campaign because of a problem on our side (blocked, throttled, over the daily cap), with
+ * the reason on the campaign. pause_reason arrives with migration 20261021000041; until it is
+ * applied the pause still happens, just without the note.
+ */
+async function pauseCampaign(admin: Admin, id: string, reason: string): Promise<void> {
+  const at = new Date().toISOString();
+  const withReason = { status: "paused", pause_reason: reason.slice(0, 500), updated_at: at } as Database["public"]["Tables"]["email_campaigns"]["Update"];
+  const { error } = await admin.from("email_campaigns").update(withReason).eq("id", id).in("status", ["scheduled", "sending"]);
+  if (error) await admin.from("email_campaigns").update({ status: "paused", updated_at: at }).eq("id", id).in("status", ["scheduled", "sending"]);
+}
+
+/** A failed send that says nothing about the recipient: pause rather than fail them. */
+function pausesCampaign(result: Extract<SendResult, { ok: false }>): boolean {
+  return result.code === "daily_cap" || isSenderProblem(result.error);
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -97,16 +112,29 @@ async function markReplies(admin: Admin, now: number): Promise<{ replied: number
 
   const earliest = waiting.reduce((min, r) => (r.sent_at && r.sent_at < min ? r.sent_at : min), new Date(now).toISOString());
   const addresses = [...new Set(waiting.map((r) => r.email.toLowerCase()))];
-  const inbound: { from_address: string; created_at: string; body_text: string }[] = [];
-  for (let i = 0; i < addresses.length; i += 100) {
-    const { data } = await admin
-      .from("email_messages")
-      .select("from_address, created_at, body_text")
-      .eq("direction", "in")
-      .in("from_address", addresses.slice(i, i + 100))
-      .gte("created_at", earliest)
-      .order("created_at", { ascending: true });
-    inbound.push(...(data ?? []));
+  const inbound: { from_address: string; created_at: string; body_text: string; subject: string }[] = [];
+  for (let i = 0; i < addresses.length; i += 50) {
+    // ilike, not in(): stored addresses keep whatever case the sender used. The exact match below
+    // (lowercased) discards anything the pattern's _ wildcard lets through.
+    const anyOf = addresses
+      .slice(i, i + 50)
+      .map((a) => `from_address.ilike.${JSON.stringify(a.replace(/[\\%]/g, ""))}`)
+      .join(",");
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await admin
+        .from("email_messages")
+        .select("from_address, created_at, body_text, subject")
+        .eq("direction", "in")
+        .or(anyOf)
+        .gte("created_at", earliest)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      // An out-of-office isn't them answering.
+      inbound.push(...data.filter((m) => !isAutoReply(m.subject)));
+      if (data.length < PAGE) break;
+    }
   }
 
   let replied = 0;
@@ -156,7 +184,9 @@ export async function POST(request: NextRequest) {
 
   const started = Date.now();
   const nowIso = () => new Date().toISOString();
-  const out = { sent: 0, failed: 0, skipped: 0, followUps: 0, replied: 0, optedOut: 0, finished: 0 };
+  const out = { sent: 0, failed: 0, skipped: 0, followUps: 0, replied: 0, optedOut: 0, finished: 0, paused: 0 };
+  // Where the one-click unsubscribe link in each email points: this CRM, as the worker reached it.
+  const baseUrl = process.env.CRM_PUBLIC_URL || new URL(request.url).origin;
 
   // A claim with no result (the function was killed mid-send) is marked failed, never resent:
   // a duplicate email is worse than a missing one, and the error tells Max to check Sent Items.
@@ -220,6 +250,9 @@ export async function POST(request: NextRequest) {
     if (c.scheduled_at && c.scheduled_at > nowIso()) continue;
     // A disconnected mailbox holds the campaign (nothing fails); it resumes once reconnected.
     if (!c.account_id || !activeAccounts.has(c.account_id)) continue;
+    // No recipient rows at all (still being written, or none saved): leave it alone, never "sent".
+    const { count: total } = await admin.from("campaign_recipients").select("id", { count: "exact", head: true }).eq("campaign_id", c.id);
+    if (!total) continue;
     if (c.status === "scheduled") {
       await admin.from("email_campaigns").update({ status: "sending", started_at: c.started_at ?? nowIso(), updated_at: nowIso() }).eq("id", c.id).eq("status", "scheduled");
       c.status = "sending";
@@ -259,10 +292,18 @@ export async function POST(request: NextRequest) {
           campaignId: c.id,
           includeSignature: c.include_signature !== false,
           sentBy: SENT_BY,
-        }).catch((err: unknown) => ({ ok: false as const, error: err instanceof Error ? err.message : "Send failed" }));
+          unsubscribeBaseUrl: baseUrl,
+        }).catch((err: unknown): SendResult => ({ ok: false, error: err instanceof Error ? err.message : "Send failed" }));
         if (result.ok) {
-          await admin.from("campaign_recipients").update({ status: "sent", sent_at: nowIso(), error: null }).eq("id", r.id);
+          // A warning (sent, copy not saved) is still sent: never send it again.
+          await admin.from("campaign_recipients").update({ status: "sent", sent_at: nowIso(), error: result.warning ?? null }).eq("id", r.id);
           out.sent += 1;
+        } else if (pausesCampaign(result)) {
+          // Not their fault: put them back in line untouched and stop the campaign with the reason.
+          await admin.from("campaign_recipients").update({ sent_at: null, error: null }).eq("id", r.id).eq("status", "pending");
+          await pauseCampaign(admin, c.id, result.error);
+          out.paused += 1;
+          break;
         } else {
           await admin.from("campaign_recipients").update({ status: "failed", sent_at: null, error: result.error.slice(0, 500) }).eq("id", r.id);
           if (isHardBounce(result.error)) await suppress(admin, r.email, "bounce");
@@ -276,7 +317,7 @@ export async function POST(request: NextRequest) {
       .select("id", { count: "exact", head: true })
       .eq("campaign_id", c.id)
       .eq("status", "pending");
-    if (count === 0) {
+    if (count === 0 && c.status === "sending") {
       await admin.from("email_campaigns").update({ status: "sent", finished_at: nowIso(), updated_at: nowIso() }).eq("id", c.id).eq("status", "sending");
       c.status = "sent";
       out.finished += 1;
@@ -349,9 +390,16 @@ export async function POST(request: NextRequest) {
         campaignId: c.id,
         includeSignature: c.include_signature !== false,
         sentBy: SENT_BY,
-      }).catch((err: unknown) => ({ ok: false as const, error: err instanceof Error ? err.message : "Send failed" }));
+        unsubscribeBaseUrl: baseUrl,
+      }).catch((err: unknown): SendResult => ({ ok: false, error: err instanceof Error ? err.message : "Send failed" }));
       if (result.ok) out.followUps += 1;
-      else {
+      else if (pausesCampaign(result)) {
+        // Nothing went out: undo the claim so this follow-up is sent once the mailbox can send again.
+        await admin.from("campaign_recipients").update({ follow_up_sent_at: null, step: 1 }).eq("id", r.id);
+        if (c.status === "sending") await pauseCampaign(admin, c.id, result.error);
+        out.paused += 1;
+        break;
+      } else {
         // Not retried: step stays 2 with the error, so the campaign page shows the failed follow-up.
         await admin.from("campaign_recipients").update({ follow_up_sent_at: null, error: `Follow-up failed: ${result.error}`.slice(0, 500) }).eq("id", r.id);
         out.failed += 1;

@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { fieldLabel, missingFields, usedFields } from "@/lib/email/merge";
+import { MAX_FILE_MB, MAX_TOTAL_MB } from "@/lib/email/attachments";
 import { recipientName, type Recipient } from "./audience";
 import FieldMenu from "./FieldMenu";
 import PreviewPanel from "./PreviewPanel";
@@ -216,7 +217,7 @@ export default function MessageStep(p: MessageStepProps) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[15.5px] text-[var(--color-text)]">Attachments</div>
-              <div className="text-[14px] text-[var(--color-text-dim)]">Up to 10 MB each, 20 MB in all. Everyone gets the same files.</div>
+              <div className="text-[14px] text-[var(--color-text-dim)]">Up to {MAX_FILE_MB} MB each, {MAX_TOTAL_MB} MB in all. Everyone gets the same files.</div>
             </div>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()}>
               Attach files

@@ -130,6 +130,8 @@ export interface SmtpSend {
   inReplyTo?: string | null;
   /** The answered message's own References chain plus its id; defaults to inReplyTo. */
   references?: string | null;
+  /** Extra top-level headers (List-Unsubscribe on mass email). */
+  headers?: Record<string, string>;
 }
 
 /** A file going out with an email, already read into memory. */
@@ -146,7 +148,8 @@ export async function sendViaOutlookSmtp(accessToken: string, msg: SmtpSend): Pr
     port: 587,
     secure: false,
     requireTLS: true,
-    auth: { type: "OAuth2", user: msg.mailbox, accessToken },
+    // App-only tokens are issued for the app's one mailbox, so SMTP AUTH signs in as that mailbox.
+    auth: { type: "OAuth2", user: outlookAppOnly() ? emailConfig.msAppMailbox : msg.mailbox, accessToken },
     connectionTimeout: 15_000,
     socketTimeout: 30_000,
   });
@@ -164,6 +167,7 @@ export async function sendViaOutlookSmtp(accessToken: string, msg: SmtpSend): Pr
       messageId,
       inReplyTo: msg.inReplyTo ?? undefined,
       references: msg.references ?? msg.inReplyTo ?? undefined,
+      headers: msg.headers,
     });
   } finally {
     transport.close();

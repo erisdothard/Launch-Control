@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUndoableSend } from "@/components/ui/useUndoableSend";
 import { createClient } from "@/lib/supabase/client";
 import type { EmailAccount } from "@/lib/store/messages";
-import type { EmailAttachment } from "@/lib/email/send";
+import { ATTACHMENT_BUCKET, MAX_FILE_BYTES, MAX_FILE_MB, MAX_TOTAL_ATTACHMENT_BYTES, MAX_TOTAL_MB, type EmailAttachment } from "@/lib/email/attachments";
 import { sendInboxEmailAction } from "@/app/(admin)/admin/inbox/actions";
 import { discardDraftAction, sendDraftAction } from "@/app/(admin)/admin/drafts/actions";
 import { splitQuoted } from "@/lib/email/signature";
@@ -60,9 +60,9 @@ interface Upload {
   error?: string;
 }
 
-const BUCKET = "email-attachments";
-const MAX_FILE = 15 * 1024 * 1024;
-const MAX_TOTAL = 20 * 1024 * 1024;
+const BUCKET = ATTACHMENT_BUCKET;
+const MAX_FILE = MAX_FILE_BYTES;
+const MAX_TOTAL = MAX_TOTAL_ATTACHMENT_BYTES;
 
 function readSaved(key: string | undefined): string | null {
   if (!key) return null;
@@ -120,6 +120,7 @@ export default function Composer({
   const [pickedLead, setPickedLead] = useState<{ leadId: string; email: string } | null>(null);
   const [phase, setPhase] = useState<"editing" | "held" | "sent">("editing");
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const formId = useId();
@@ -157,8 +158,8 @@ export default function Composer({
     const total = uploads.reduce((n, u) => n + u.size, 0);
     const picked = [...list];
     const tooBig = picked.find((f) => f.size > MAX_FILE);
-    if (tooBig) return setError(`"${tooBig.name}" is over 15 MB. Share a link to it instead.`);
-    if (total + picked.reduce((n, f) => n + f.size, 0) > MAX_TOTAL) return setError("Attachments can add up to 20 MB per email.");
+    if (tooBig) return setError(`"${tooBig.name}" is over ${MAX_FILE_MB} MB. Share a link to it instead.`);
+    if (total + picked.reduce((n, f) => n + f.size, 0) > MAX_TOTAL) return setError(`Attachments can add up to ${MAX_TOTAL_MB} MB per email.`);
     const supabase = createClient();
     const added: Upload[] = picked.map((f) => ({ id: crypto.randomUUID(), name: f.name, size: f.size, type: f.type || "application/octet-stream", path: null }));
     setUploads((u) => [...u, ...added]);
@@ -242,8 +243,10 @@ export default function Composer({
         }
         writeSaved(storageKey, "");
         setPhase("sent");
-        onSent?.();
         router.refresh();
+        // It went out but the CRM copy didn't save: keep this on screen so nobody sends it again.
+        if (result.warning) return setWarning(result.warning);
+        onSent?.();
       },
       () => {
         setFields(snapshot.fields);
@@ -283,7 +286,7 @@ export default function Composer({
     return (
       <div className="card flex items-center justify-between gap-4 px-6 py-5" aria-live="polite">
         <p className="text-[16px] text-[var(--color-text-muted)]">
-          {phase === "held" ? `Sending to ${fields.to.split(/[,;]/)[0]}. You can still undo.` : "Sent."}
+          {phase === "held" ? `Sending to ${fields.to.split(/[,;]/)[0]}. You can still undo.` : (warning ?? "Sent.")}
         </p>
         {phase === "sent" && mode !== "draft" && (
           <button
@@ -293,6 +296,7 @@ export default function Composer({
               setFields({ ...initial, body: "" });
               setIncludeSignature(true);
               setUploads([]);
+              setWarning(null);
               setPhase("editing");
             }}
           >

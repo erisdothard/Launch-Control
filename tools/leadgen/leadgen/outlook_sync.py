@@ -141,13 +141,26 @@ def walk_folder(graph: GraphClient, token: str, url: str) -> tuple[list[dict[str
         return messages, str(body["@odata.deltaLink"])
 
 
+def account_for(account: dict[str, Any], aliases: dict[str, str], sender: str, recipients: list[str],
+                outbound: bool) -> str:
+    """The email_accounts row a message belongs to: the alias it was sent from (outbound) or to
+    (inbound, To then Cc), so a reply defaults to the same address. Falls back to the mailbox."""
+    for addr in [sender] if outbound else recipients:
+        if addr in aliases:
+            return aliases[addr]
+    return str(account["id"])
+
+
 def to_rows(account: dict[str, Any], messages: list[dict[str, Any]], own: set[str],
-            by_thread: dict[str, str], by_email: dict[str, str]) -> list[dict[str, Any]]:
-    """One email_messages row per Graph message. lead_id is None for mail that isn't a lead's."""
+            by_thread: dict[str, str], by_email: dict[str, str],
+            aliases: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    """One email_messages row per Graph message. lead_id is None for mail that isn't a lead's.
+    `aliases` maps a lowercased address on this mailbox (itself or an alias) to its account id."""
     rows = []
     for m in messages:
         sender = _address(m.get("from"))
         recipients = _addresses(m.get("toRecipients"))
+        cc = _addresses(m.get("ccRecipients"))
         outbound = sender in own
         other = next((r for r in recipients if r not in own), "") if outbound else sender
         lead_id = by_thread.get(m.get("conversationId") or "") or by_email.get(other) or None
@@ -155,13 +168,13 @@ def to_rows(account: dict[str, Any], messages: list[dict[str, Any]], own: set[st
         received = m.get("receivedDateTime")
         rows.append({
             "lead_id": lead_id,
-            "account_id": account["id"],
+            "account_id": account_for(account, aliases or {}, sender, recipients + cc, outbound),
             "direction": "out" if outbound else "in",
             "folder": FOLDERS.get(m.get("_folder") or "", "sent" if outbound else "inbox"),
             "from_address": sender,
             "from_name": _name(m.get("from")),
             "to_address": ", ".join(recipients),
-            "cc_address": ", ".join(_addresses(m.get("ccRecipients"))),
+            "cc_address": ", ".join(cc),
             "subject": m.get("subject") or "",
             "body_text": text.strip() if outbound else reply_text(text),
             "provider": "outlook",
@@ -240,7 +253,11 @@ def sync_account(store: Store, graph: GraphClient, account: dict[str, Any], now:
     threads = sorted({m["conversationId"] for m in found if m.get("conversationId")})
     emails = {_address(m.get("from")) for m in found} | {_address(r) for m in found for r in m.get("toRecipients") or []}
     by_email = store.leads_by_emails(sorted(e for e in emails if e and e not in own))
-    rows = to_rows(account, found, own, store.leads_for_threads(threads), by_email)
+    aliases = store.mailbox_accounts(account["address"])
+    rows = to_rows(account, found, own, store.leads_for_threads(threads), by_email, aliases)
+    # Oldest first across both folders, so the lead trigger sees a conversation in the order it
+    # happened (a re-walk returns the whole Inbox before any of Sent Items).
+    rows.sort(key=lambda r: str(r["created_at"] or ""))
     known = store.known_message_ids([r["message_id_header"] for r in rows if r["message_id_header"]])
     with_files = {m["id"] for m in found if m.get("hasAttachments")}
     stored = 0

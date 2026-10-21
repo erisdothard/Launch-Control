@@ -150,11 +150,11 @@ export default async function InboxPage({ searchParams }: { searchParams: Search
         </aside>
 
         <section aria-label="Conversations" className={`${open ? "hidden lg:flex" : "flex"} min-h-0 min-w-0 flex-col`}>
-          <div className="mb-4 flex items-center gap-4 xl:hidden">
+          <div className="mb-4 flex items-center gap-3 xl:hidden">
             <Link href={inboxHref({ folder, compose: true, demo })} scroll={false} className="btn btn-primary btn-sm">
               Compose
             </Link>
-            <Link href="/admin/campaigns/new" className="btn-quiet text-[15px]">
+            <Link href="/admin/campaigns/new" className="btn btn-secondary btn-sm">
               Mass email
             </Link>
           </div>

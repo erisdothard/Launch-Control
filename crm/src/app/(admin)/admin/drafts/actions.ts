@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { sendEmail, type EmailAttachment, type SendResult } from "@/lib/email/send";
+import { sendEmail, validAttachment, type EmailAttachment, type SendResult } from "@/lib/email/send";
 import { currentCrmUserEmail } from "@/lib/email/session";
 import { claimDraft, getDraft, markDraft, updateAutomationSettings, type AutomationSettings } from "@/lib/store/drafts";
 import { getEmailAccounts, getThread } from "@/lib/store/messages";
@@ -39,9 +39,30 @@ export interface DraftEdits {
   includeSignature?: boolean;
 }
 
+const isStr = (v: unknown, max: number) => typeof v === "string" && v.length <= max;
+
+/** The edits come from the browser: check every field's type before anything is claimed. */
+function validEdits(edits: DraftEdits | undefined): boolean {
+  if (edits === undefined) return true;
+  if (typeof edits !== "object" || edits === null) return false;
+  const list = (v: unknown) => v === undefined || (Array.isArray(v) && v.length <= 50 && v.every((x) => isStr(x, 320)));
+  return (
+    isStr(edits.subject, 1000) &&
+    isStr(edits.body, 50_000) &&
+    (edits.accountId === undefined || isStr(edits.accountId, 100)) &&
+    (edits.to === undefined || isStr(edits.to, 5000)) &&
+    list(edits.cc) &&
+    list(edits.bcc) &&
+    (edits.includeSignature === undefined || typeof edits.includeSignature === "boolean") &&
+    (edits.attachments === undefined ||
+      (Array.isArray(edits.attachments) && edits.attachments.length <= 10 && edits.attachments.every((f) => typeof f === "object" && f !== null && validAttachment(f))))
+  );
+}
+
 export async function sendDraftAction(id: string, edits?: DraftEdits): Promise<SendResult> {
   const sentBy = await currentCrmUserEmail();
   if (!sentBy) return { ok: false, error: "Sign in again to send." };
+  if (!validEdits(edits)) return { ok: false, error: "Something in that draft isn't valid. Reload the page and try again." };
   const draft = await getDraft(id);
   if (!draft) return { ok: false, error: "That draft was already sent or discarded." };
   const accountId = (typeof edits?.accountId === "string" && edits.accountId) || (await accountFor(draft.leadId));
@@ -51,20 +72,27 @@ export async function sendDraftAction(id: string, edits?: DraftEdits): Promise<S
   const body = edits?.body ?? draft.body;
   // Claimed first, so the same draft can never go out twice.
   if (!(await claimDraft(id, sentBy))) return { ok: false, error: "That draft was already sent or discarded." };
-  const result = await sendEmail({
-    accountId,
-    leadId: draft.leadId,
-    to: edits?.to?.trim() || draft.to,
-    cc: edits?.cc,
-    bcc: edits?.bcc,
-    attachments: edits?.attachments,
-    subject,
-    body,
-    replyToMessageId: draft.replyToMessageId,
-    includeSignature: edits?.includeSignature !== false,
-    sentBy,
-  });
+  let result: SendResult;
+  try {
+    result = await sendEmail({
+      accountId,
+      leadId: draft.leadId,
+      to: edits?.to?.trim() || draft.to,
+      cc: edits?.cc,
+      bcc: edits?.bcc,
+      attachments: edits?.attachments,
+      subject,
+      body,
+      replyToMessageId: draft.replyToMessageId,
+      includeSignature: edits?.includeSignature !== false,
+      sentBy,
+    });
+  } catch (err) {
+    // Thrown before anything went out: back in the queue, never stuck as "sent".
+    result = { ok: false, error: err instanceof Error ? err.message : "Send failed. Try again." };
+  }
 
+  // ok with a warning still went out (only the CRM copy failed), so it counts as sent.
   if (result.ok) await markDraft(id, { status: "sent", sentBy, subject, body }).catch(() => undefined);
   // A failed send goes back in the queue with the reason and the edits, so it can be retried.
   else await markDraft(id, { status: "pending", error: result.error, subject, body });
@@ -75,8 +103,10 @@ export async function sendDraftAction(id: string, edits?: DraftEdits): Promise<S
 export async function discardDraftAction(id: string): Promise<void> {
   if (!(await currentCrmUserEmail())) throw new Error("Sign in again.");
   const draft = await getDraft(id);
-  await markDraft(id, { status: "discarded" });
-  revalidateDrafts(draft?.leadId);
+  // Only a draft still waiting: one that was just sent stays sent.
+  if (!draft) throw new Error("That draft was already sent or discarded.");
+  await markDraft(id, { status: "discarded" }, undefined, { onlyIfPending: true });
+  revalidateDrafts(draft.leadId);
 }
 
 export async function updateAutomationAction(patch: Partial<AutomationSettings>): Promise<{ ok: true } | { ok: false; error: string }> {

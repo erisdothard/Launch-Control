@@ -385,6 +385,7 @@ export type Database = {
           id: string
           include_signature: boolean
           name: string
+          pause_reason: string | null
           per_minute: number
           scheduled_at: string | null
           skip_contacted_days: number
@@ -406,6 +407,7 @@ export type Database = {
           id?: string
           include_signature?: boolean
           name?: string
+          pause_reason?: string | null
           per_minute?: number
           scheduled_at?: string | null
           skip_contacted_days?: number
@@ -427,6 +429,7 @@ export type Database = {
           id?: string
           include_signature?: boolean
           name?: string
+          pause_reason?: string | null
           per_minute?: number
           scheduled_at?: string | null
           skip_contacted_days?: number

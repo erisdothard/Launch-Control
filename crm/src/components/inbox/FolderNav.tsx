@@ -33,7 +33,7 @@ export function FolderColumn({ folder, counts, demo, composePrimary }: FolderNav
         <PenIcon />
         Compose
       </Link>
-      <Link href="/admin/campaigns/new" className="btn-quiet mb-5 self-center text-[15px]">
+      <Link href="/admin/campaigns/new" className="btn btn-secondary btn-sm mb-5 w-full">
         Mass email
       </Link>
       {ITEMS.map((item) => {

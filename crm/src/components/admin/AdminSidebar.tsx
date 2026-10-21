@@ -170,7 +170,7 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
             <span className="truncate font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)]">{companyName}</span>
           </>
         ) : (
-          <BrandLockup />
+          <BrandLockup className="text-[10.5px]" />
         )}
       </Link>
 

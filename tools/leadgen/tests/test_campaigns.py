@@ -35,22 +35,26 @@ def test_calls_the_crm_route_with_the_bearer_secret(monkeypatch: pytest.MonkeyPa
     assert out == {"sent": 3, "failed": 1, "followUps": 0}
 
 
-def test_defaults_to_the_production_crm(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_crm_url_is_required_with_no_production_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AUTOMATION_SECRET", "x")
     monkeypatch.delenv("CRM_URL", raising=False)
     http = FakeHttp()
-    campaigns.send_due_campaigns(http=http)  # type: ignore[arg-type]
-    assert http.calls[0][0] == f"{campaigns.DEFAULT_CRM_URL}/api/automation/send-campaigns"
+    with pytest.raises(RuntimeError, match="CRM_URL"):
+        campaigns.send_due_campaigns(http=http)  # type: ignore[arg-type]
+    assert http.calls == []
+    assert campaigns.start_background() is None
 
 
 def test_only_integer_counts_are_kept(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AUTOMATION_SECRET", "x")
+    monkeypatch.setenv("CRM_URL", "https://crm.example.com")
     http = FakeHttp(body={"sent": 2, "error": "nope", "flag": True})
     assert campaigns.send_due_campaigns(http=http) == {"sent": 2}  # type: ignore[arg-type]
 
 
 def test_a_crm_error_raises_but_run_once_survives_it(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AUTOMATION_SECRET", "x")
+    monkeypatch.setenv("CRM_URL", "https://crm.example.com")
     http = FakeHttp(body={"error": "unauthorized"}, status=401)
     with pytest.raises(httpx.HTTPStatusError):
         campaigns.send_due_campaigns(http=http)  # type: ignore[arg-type]

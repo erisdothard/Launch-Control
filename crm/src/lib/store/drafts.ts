@@ -100,11 +100,12 @@ export async function getPendingDraftCount(client?: StoreClient): Promise<number
 export async function markDraft(
   id: string,
   patch: { status: "pending" | "sent" | "discarded"; sentBy?: string; error?: string; subject?: string; body?: string },
-  client?: StoreClient
+  client?: StoreClient,
+  opts: { onlyIfPending?: boolean } = {}
 ): Promise<void> {
   const supabase = await getStoreClient(client);
   const now = new Date().toISOString();
-  const { error } = await supabase
+  let query = supabase
     .from("email_drafts")
     .update({
       status: patch.status,
@@ -115,6 +116,8 @@ export async function markDraft(
       ...(patch.body !== undefined && { body_text: patch.body }),
     })
     .eq("id", id);
+  if (opts.onlyIfPending) query = query.eq("status", "pending");
+  const { error } = await query;
   if (error) throw error;
 }
 

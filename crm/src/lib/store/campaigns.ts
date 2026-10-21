@@ -2,7 +2,7 @@
 // automatic follow-up to anyone who hasn't replied. The sending itself happens in
 // src/app/api/automation/send-campaigns (called every minute by the worker).
 import { getStoreClient, type StoreClient } from "./db";
-import type { Json } from "@/lib/supabase/types";
+import type { Database, Json } from "@/lib/supabase/types";
 import type { EmailAttachment } from "@/lib/email/send";
 import type { AudienceLead } from "@/components/compose/audience";
 import { getLeads } from "./leads";
@@ -305,13 +305,18 @@ async function insertRecipients(supabase: StoreClient, campaignId: string, recip
   }
 }
 
-/** Creates a campaign and its recipients. If the recipients fail to save, the campaign is removed. */
+/**
+ * Creates a campaign and its recipients. It is written as a draft and only flipped to scheduled
+ * once every recipient row is in, so the sender never sees a scheduled campaign with a partial
+ * list. If the recipients fail to save, the campaign is removed.
+ */
 export async function createCampaign(c: NewCampaign, recipients: NewRecipient[], client?: StoreClient): Promise<string> {
   const supabase = await getStoreClient(client);
-  const { data, error } = await supabase.from("email_campaigns").insert(campaignInsert(c)).select("id").single();
+  const { data, error } = await supabase.from("email_campaigns").insert({ ...campaignInsert(c), status: "draft" }).select("id").single();
   if (error) throw error;
   try {
     await insertRecipients(supabase, data.id, recipients);
+    if (c.status !== "draft") await publish(supabase, data.id, c.status);
   } catch (err) {
     await supabase.from("email_campaigns").delete().eq("id", data.id);
     throw err;
@@ -319,12 +324,20 @@ export async function createCampaign(c: NewCampaign, recipients: NewRecipient[],
   return data.id;
 }
 
-/** Rewrites a draft in place: its settings, and its recipient list from scratch. Drafts only. */
+async function publish(supabase: StoreClient, id: string, status: NewCampaign["status"]): Promise<void> {
+  const { error } = await supabase.from("email_campaigns").update({ status, updated_at: new Date().toISOString() }).eq("id", id).eq("status", "draft");
+  if (error) throw error;
+}
+
+/**
+ * Rewrites a draft in place: its settings, and its recipient list from scratch. Drafts only. It
+ * stays a draft until the new recipients are in; scheduling it is the last write.
+ */
 export async function replaceDraft(id: string, c: NewCampaign, recipients: NewRecipient[], client?: StoreClient): Promise<boolean> {
   const supabase = await getStoreClient(client);
   const { data, error } = await supabase
     .from("email_campaigns")
-    .update({ ...campaignInsert(c), updated_at: new Date().toISOString() })
+    .update({ ...campaignInsert(c), status: "draft", updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("status", "draft")
     .select("id");
@@ -333,6 +346,7 @@ export async function replaceDraft(id: string, c: NewCampaign, recipients: NewRe
   const { error: delError } = await supabase.from("campaign_recipients").delete().eq("campaign_id", id);
   if (delError) throw delError;
   await insertRecipients(supabase, id, recipients);
+  if (c.status !== "draft") await publish(supabase, id, c.status);
   return true;
 }
 
@@ -365,6 +379,11 @@ export async function controlCampaign(id: string, action: CampaignControl, clien
       .update({ status: c.started_at ? "sending" : "scheduled", updated_at: now })
       .eq("id", id);
     if (upError) throw upError;
+    // Clear why the sender paused it (column from migration 20261021000041; ignored until applied).
+    await supabase
+      .from("email_campaigns")
+      .update({ pause_reason: null } as Database["public"]["Tables"]["email_campaigns"]["Update"])
+      .eq("id", id);
     return null;
   }
   // Cancel: nothing more goes out, including follow-ups. What was sent stays sent.
