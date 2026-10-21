@@ -91,6 +91,8 @@ export const siteSchema = z.object({
       title: z.string(),
       summary: z.string(),
       href: z.string().url(),
+      /** Optional second button: a live, self-serve demo of the product. */
+      demo: linkSchema.optional(),
       year: z.string().length(4),
       /** The hero collage plus Visit site is the public-site proof; visitors can open the site. */
       shots: z.object({ hero: shotSchema, phone: shotSchema }),
@@ -239,22 +241,23 @@ const content: SiteContent = {
     phoneClock: "9:41",
     featured: {
       client: "Hyper Racer USA",
-      title: "One system: website, CRM, pipeline and outreach, connected.",
+      title: "One commercial system for website, CRM, pipeline and outreach.",
       summary:
-        "The US home of the Hyper Racer X1 runs on one system we built end to end: the public site, the CRM that takes every enquiry, the dealer and partner pipeline, and the outreach that goes out from it. We built it, and we run it with the team.",
+        "The U.S. Hyper Racer operation runs through a connected system we built around the customer journey: the public site, lead capture, CRM, sales pipeline, partner tracking and outbound outreach. We built the structure, manage the workflow and use it day to day with the team.",
       href: "https://www.hyperracerusa.com",
+      demo: { label: "Try the CRM", href: "https://demo.golaunchcontrol.com/admin/dashboard" },
       year: "2026",
       shots: {
         hero: { src: "/work/hyper-racer-home-desk-v3.webp", alt: "Hyper Racer USA home page: the X1 race car with its headline specs", width: 2560, height: 1600 },
         phone: { src: "/work/hyper-racer-home-phone-v3.webp", alt: "Hyper Racer USA home page on a phone", width: 1170, height: 2532 },
       },
       agents: {
-        title: "The agents inside the CRM",
-        body: "Every morning the agents screen out spam, fill in missing details, sort each lead by type and urgency, schedule the follow-up and write a ranked briefing. People make the calls.",
+        title: "Automation inside the CRM",
+        body: "Every morning, the system organizes new inquiries, filters noise, fills in missing information where possible, prioritizes leads and prepares a ranked follow-up list. Every email sent or received moves the lead forward and sets its next follow-up. The team moves faster without giving up control of customer communication.",
         guarantees: [
-          "No email reaches a customer without a person approving it.",
-          "Every automated decision shows its reasoning.",
-          "Nothing is deleted. Every change is logged and reversible.",
+          "Replies to customers are reviewed by a person before they go out.",
+          "Automated actions remain visible and traceable.",
+          "Lead changes and activity are logged so the team can see what happened and why.",
         ],
       },
       crm: {
@@ -262,19 +265,19 @@ const content: SiteContent = {
         screens: [
           {
             label: "Dashboard",
-            note: "Who to call today, ranked by the agents, with lead counts and pipeline value at a glance.",
+            note: "See who needs attention today, along with lead volume, active opportunities and pipeline value.",
             desk: { src: "/work/hyper-racer-crm-dashboard-desk-v3.webp", alt: "Hyper Racer command center dashboard: lead counts, pipeline value and the advisor's ranked list of who to contact", width: 2560, height: 1600 },
             phone: { src: "/work/hyper-racer-crm-dashboard-phone-v3.webp", alt: "The dashboard on a phone", width: 1170, height: 2532 },
           },
           {
             label: "Leads",
-            note: "Every enquiry with its type, priority, next step and status. Filter by product, stage or how long it has waited.",
+            note: "Every inquiry organized by source, type, priority and stage, with the next action and follow-up date set automatically from each email.",
             desk: { src: "/work/hyper-racer-crm-leads-desk-v4.webp", alt: "Leads list with product, type, organization, priority, next step and status for each lead", width: 2560, height: 1600 },
             phone: { src: "/work/hyper-racer-crm-leads-phone-v4.webp", alt: "The leads list on a phone", width: 1170, height: 2532 },
           },
           {
             label: "Pipeline",
-            note: "Deals by stage from inquiry to deposit, with the value of each column.",
+            note: "Opportunities move through the pipeline on their own as emails, replies and meetings happen, from first inquiry through quote, deposit and sale, with value visible at each stage.",
             desk: { src: "/work/hyper-racer-crm-deals-desk-v3.webp", alt: "Sales pipeline board: deals by stage from inquiry to deposit with their values", width: 2560, height: 1600 },
             phone: { src: "/work/hyper-racer-crm-deals-phone-v3.webp", alt: "The pipeline on a phone", width: 1170, height: 2532 },
           },

@@ -52,7 +52,12 @@ export function Work() {
                 {featured.title}
               </h3>
               <p className="mt-5 max-w-[56ch] text-body text-muted">{featured.summary}</p>
-              <div className="mt-8">
+              <div className="mt-8 flex flex-wrap gap-3">
+                {featured.demo && (
+                  <ButtonLink href={featured.demo.href} target="_blank" rel="noopener noreferrer" variant="primary">
+                    {featured.demo.label}
+                  </ButtonLink>
+                )}
                 <ButtonLink href={featured.href} target="_blank" rel="noopener noreferrer" variant="secondary">
                   {work.visitLabel}
                 </ButtonLink>

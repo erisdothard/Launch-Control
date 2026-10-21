@@ -5,6 +5,7 @@ import AdminSidebar from "./AdminSidebar";
 import AdminBottomNav from "./AdminBottomNav";
 import type { Role } from "@/lib/auth/roles";
 import { BrandLockup } from "@/components/brand/BrandMark";
+import { DemoCard, DemoStrip } from "./DemoWalkthrough";
 
 interface AdminShellProps {
   children: React.ReactNode;
@@ -14,9 +15,11 @@ interface AdminShellProps {
   logoUrl: string | null;
   unread: number;
   drafts: number;
+  /** The demo deployment: the walkthrough strip and card, at this step (null outside the demo). */
+  demo?: { step: number } | null;
 }
 
-export default function AdminShell({ children, role, userEmail, companyName, logoUrl, unread, drafts }: AdminShellProps) {
+export default function AdminShell({ children, role, userEmail, companyName, logoUrl, unread, drafts, demo = null }: AdminShellProps) {
   const pathname = usePathname();
   // Password screen renders centered, with no sidebar or bottom nav.
   const isAuthPage = pathname === "/admin/update-password";
@@ -37,10 +40,12 @@ export default function AdminShell({ children, role, userEmail, companyName, log
         <div className="relative z-10 border-b border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3.5 lg:hidden">
           <BrandLockup />
         </div>
+        {demo && <DemoStrip companyName={companyName} step={demo.step} />}
         <div className="relative z-10 flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
           {children}
         </div>
       </div>
+      {demo && <DemoCard step={demo.step} />}
       <AdminBottomNav role={role} userEmail={userEmail} />
     </>
   );
