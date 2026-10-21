@@ -118,6 +118,24 @@ export interface GetLeadsParams {
 
 export async function getLeads(params?: GetLeadsParams, client?: StoreClient): Promise<Lead[]> {
   const supabase = await getStoreClient(client);
+  // PostgREST caps a response at 1000 rows, so read every page; the builder is rebuilt per page.
+  const out: LeadRow[] = [];
+  for (let from = 0; ; from += LEADS_PAGE) {
+    const { data, error } = await leadsQuery(supabase, params).order("id", { ascending: true }).range(from, from + LEADS_PAGE - 1);
+    if (error) throw error;
+    out.push(...(data as LeadRow[]));
+    if (data.length < LEADS_PAGE) break;
+  }
+  const leads = out.map(rowToLead);
+  const view = params?.view;
+  if (!view || view === "all") return leads;
+  const today = params?.today ?? new Date().toISOString().slice(0, 10);
+  return leads.filter((lead) => matchesView(lead, view, today));
+}
+
+const LEADS_PAGE = 1000;
+
+function leadsQuery(supabase: Awaited<ReturnType<typeof getStoreClient>>, params?: GetLeadsParams) {
   let query = supabase.from("leads").select("*");
   query = params?.sortByScore
     ? query.order("score", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false })
@@ -147,13 +165,7 @@ export async function getLeads(params?: GetLeadsParams, client?: StoreClient): P
     }
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  const leads = (data as LeadRow[]).map(rowToLead);
-  const view = params?.view;
-  if (!view || view === "all") return leads;
-  const today = params?.today ?? new Date().toISOString().slice(0, 10);
-  return leads.filter((lead) => matchesView(lead, view, today));
+  return query;
 }
 
 /** How many leads each view holds, for the tab counts. One read of the whole table. */

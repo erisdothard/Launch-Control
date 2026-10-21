@@ -18,7 +18,7 @@ export async function primaryOutlookAccount(): Promise<OutlookAccountRef | null>
     .from("email_accounts")
     .select("id, address")
     .eq("provider", "outlook")
-    .eq("status", "active")
+    .in("status", outlookAppOnly() ? ["active", "needs_reconnect"] : ["active"])
     .is("mailbox", null)
     .limit(1)
     .maybeSingle();

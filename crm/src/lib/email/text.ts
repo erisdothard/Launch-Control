@@ -31,3 +31,9 @@ export function isEmail(value: string): boolean {
 export function replySubject(subject: string): string {
   return /^re:/i.test(subject.trim()) ? subject.trim() : `Re: ${subject.trim()}`;
 }
+
+/** "<id@host>" with any CR/LF removed, or null when it isn't in angle-bracket form (header injection guard). */
+export function messageIdHeader(value: string | null | undefined): string | null {
+  const clean = (value ?? "").replace(/[\r\n]+/g, "").trim();
+  return /^<[^<>\s]+>$/.test(clean) ? clean : null;
+}

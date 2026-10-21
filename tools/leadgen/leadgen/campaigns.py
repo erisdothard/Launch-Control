@@ -21,15 +21,17 @@ log = logging.getLogger(__name__)
 RUN_EVERY_S = 60
 # The CRM route stops starting sends after 45s and is capped at 60s; leave room for the response.
 TIMEOUT_S = 90
-DEFAULT_CRM_URL = "https://crm.golaunchcontrol.com"
 
 
 def send_due_campaigns(http: httpx.Client | None = None) -> dict[str, int]:
-    """One call to the CRM's campaign sender. Returns its counts; {} when not configured."""
+    """One call to the CRM's campaign sender. Returns its counts; {} when not configured.
+    CRM_URL is required: a missing one must fail loudly, never fall back to production."""
     secret = os.environ.get("AUTOMATION_SECRET", "").strip()
     if not secret:
         return {}
-    base = os.environ.get("CRM_URL", DEFAULT_CRM_URL).rstrip("/")
+    base = os.environ.get("CRM_URL", "").strip().rstrip("/")
+    if not base:
+        raise RuntimeError("CRM_URL is not set; the campaign sender needs the CRM's base URL")
     client = http or httpx.Client(timeout=TIMEOUT_S)
     resp = client.post(f"{base}/api/automation/send-campaigns", headers={"Authorization": f"Bearer {secret}"})
     resp.raise_for_status()
@@ -52,6 +54,9 @@ def start_background(every_s: float = RUN_EVERY_S) -> threading.Thread | None:
     """Start the once-a-minute caller. Returns None (and starts nothing) without AUTOMATION_SECRET."""
     if not os.environ.get("AUTOMATION_SECRET", "").strip():
         log.info("mass email sender off: AUTOMATION_SECRET not set")
+        return None
+    if not os.environ.get("CRM_URL", "").strip():
+        log.error("mass email sender off: CRM_URL not set")
         return None
     http = httpx.Client(timeout=TIMEOUT_S)
 

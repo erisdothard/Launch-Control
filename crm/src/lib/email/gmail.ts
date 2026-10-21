@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { emailConfig } from "./config";
 import type { OutboundFile } from "./outlook";
+import { messageIdHeader } from "./text";
 
 export const GMAIL_SCOPES = [
   "openid",
@@ -94,6 +95,8 @@ export interface GmailSend {
   attachments?: OutboundFile[];
   threadId?: string | null;
   inReplyTo?: string | null;
+  /** Extra top-level headers (List-Unsubscribe on mass email). */
+  headers?: Record<string, string>;
 }
 
 /** Sends through the user's Gmail; returns Gmail ids and the Message-ID we set. */
@@ -110,7 +113,12 @@ export async function sendViaGmail(accessToken: string, msg: GmailSend) {
     `Message-ID: ${messageId}`,
     "MIME-Version: 1.0",
   ];
-  if (msg.inReplyTo) headers.push(`In-Reply-To: ${msg.inReplyTo}`, `References: ${msg.inReplyTo}`);
+  // Only a well-formed <id@host> with no line breaks: anything else could inject headers.
+  const inReplyTo = messageIdHeader(msg.inReplyTo);
+  if (inReplyTo) headers.push(`In-Reply-To: ${inReplyTo}`, `References: ${inReplyTo}`);
+  for (const [name, value] of Object.entries(msg.headers ?? {})) {
+    if (/^[A-Za-z][A-Za-z0-9-]*$/.test(name)) headers.push(`${name}: ${value.replace(/[\r\n]+/g, " ")}`);
+  }
   const encode = (value: string | Buffer) =>
     (typeof value === "string" ? Buffer.from(value, "utf8") : value).toString("base64").replace(/(.{76})/g, "$1\r\n");
   const part = (type: string, value: string) =>

@@ -17,6 +17,8 @@ import {
   HANDOFF_KEY,
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
+  MAX_FILE_MB,
+  MAX_TOTAL_MB,
   MAX_TOTAL_ATTACHMENT_BYTES,
   type CampaignPayload,
   type ComposerAccount,
@@ -185,9 +187,9 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
     setAttachError("");
     if (attachments.length + files.length > MAX_ATTACHMENTS) return setAttachError(`Attach at most ${MAX_ATTACHMENTS} files.`);
     const tooBig = files.find((f) => f.size > MAX_ATTACHMENT_BYTES);
-    if (tooBig) return setAttachError(`${tooBig.name} is over 10 MB. Share a link to it instead.`);
+    if (tooBig) return setAttachError(`${tooBig.name} is over ${MAX_FILE_MB} MB. Share a link to it instead.`);
     const total = [...attachments.map((a) => a.size), ...files.map((f) => f.size)].reduce((a, b) => a + b, 0);
-    if (total > MAX_TOTAL_ATTACHMENT_BYTES) return setAttachError("Attachments would add up to more than 20 MB. Most mail servers refuse that.");
+    if (total > MAX_TOTAL_ATTACHMENT_BYTES) return setAttachError(`Attachments would add up to more than ${MAX_TOTAL_MB} MB. Most mail servers refuse that.`);
     setDirty(true);
     for (const f of files) {
       const path = `campaigns/${crypto.randomUUID()}/${safeName(f.name)}`;

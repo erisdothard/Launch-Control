@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { MAX_TOTAL_MB, validAttachment } from "@/lib/email/attachments";
 import { buildContext, evaluateAudience, EXCLUDE_LABELS, type Candidate } from "@/components/compose/audience";
 import {
   MAX_ATTACHMENTS,
@@ -63,12 +64,12 @@ function cleanAttachments(value: unknown): EmailAttachment[] | string {
   if (value.length > MAX_ATTACHMENTS) return `Attach at most ${MAX_ATTACHMENTS} files.`;
   const out: EmailAttachment[] = [];
   for (const a of value) {
-    const path = str(a?.path, 400);
-    // Only files this composer uploaded, in the campaigns folder of the private bucket.
-    if (!path.startsWith("campaigns/") || path.includes("..")) return "One of the attachments isn't valid. Remove it and add it again.";
-    out.push({ name: str(a?.name, 200) || "attachment", path, size: Number(a?.size) || 0, type: str(a?.type, 100) });
+    const file: EmailAttachment = { name: str(a?.name, 200) || "attachment", path: str(a?.path, 400), size: Number(a?.size) || 0, type: str(a?.type, 100) };
+    // Only files a composer uploaded to the private bucket; the same check sendEmail makes.
+    if (!validAttachment(file)) return "One of the attachments isn't valid. Remove it and add it again.";
+    out.push(file);
   }
-  if (out.reduce((n, a) => n + a.size, 0) > MAX_TOTAL_ATTACHMENT_BYTES) return "Attachments add up to more than 20 MB. Most mail servers refuse that.";
+  if (out.reduce((n, a) => n + a.size, 0) > MAX_TOTAL_ATTACHMENT_BYTES) return `Attachments add up to more than ${MAX_TOTAL_MB} MB. Most mail servers refuse that.`;
   return out;
 }
 

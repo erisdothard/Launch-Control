@@ -53,6 +53,9 @@ export default function TodayQueue({ title, items, nextUp, demo, accounts }: Tod
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  // Set synchronously, so a second Enter in the same frame sees the card is already leaving.
+  const leavingRef = useRef(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const { schedule, toast } = useUndoableSend();
 
   const queue = useMemo(() => {
@@ -74,9 +77,11 @@ export default function TodayQueue({ title, items, nextUp, demo, accounts }: Tod
       mutate();
       return;
     }
+    leavingRef.current = true;
     setLeaving(true);
     window.setTimeout(() => {
       mutate();
+      leavingRef.current = false;
       setLeaving(false);
     }, SWAP_MS);
   }, []);
@@ -92,7 +97,7 @@ export default function TodayQueue({ title, items, nextUp, demo, accounts }: Tod
   }, []);
 
   const send = useCallback(() => {
-    if (!hero?.draft || leaving) return;
+    if (!hero?.draft || leaving || leavingRef.current) return;
     const { key, draft, name, kind } = hero;
     const body = (bodies[key] ?? draft.body).trim();
     const accountId = sendAs[key] ?? defaultSenderId(senders);
@@ -118,6 +123,7 @@ export default function TodayQueue({ title, items, nextUp, demo, accounts }: Tod
         try {
           const result = await sendDraftAction(draft.id, { subject: draft.subject, body, accountId: accountId || undefined, includeSignature });
           if (!result.ok) restore(key, result.error);
+          else if (result.warning) setNotice(result.warning);
         } catch {
           restore(key, "The server didn't answer. Try again in a minute.");
         }
@@ -143,6 +149,8 @@ export default function TodayQueue({ title, items, nextUp, demo, accounts }: Tod
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
         e.preventDefault();
+        // Holding the keys down, or pressing again while the card animates out, must not send twice.
+        if (e.repeat || leavingRef.current) return;
         sendRef.current();
       }
     };
@@ -153,6 +161,11 @@ export default function TodayQueue({ title, items, nextUp, demo, accounts }: Tod
   return (
     <>
       <AdminHeader title={title} subtitle={lede(queue, nextUp)} />
+      {notice && (
+        <p role="status" className="well mb-5 px-5 py-3 text-[15px] text-[var(--color-warm)]">
+          {notice}
+        </p>
+      )}
       {hero ? (
         <>
           <HeroCard

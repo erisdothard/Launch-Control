@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import UTC, datetime
 from typing import Any
 
@@ -131,26 +132,40 @@ class Store:
 
     def leads_for_threads(self, thread_ids: list[str]) -> dict[str, str]:
         out: dict[str, str] = {}
-        for i in range(0, len(thread_ids), _CHUNK):
-            chunk = ",".join(f'"{t}"' for t in thread_ids[i : i + _CHUNK])
-            if not chunk:
+        wanted = [t for t in thread_ids if t]
+        for i in range(0, len(wanted), _CHUNK):
+            chunk = ",".join(json.dumps(t) for t in wanted[i : i + _CHUNK])
+            try:
+                rows = self._req("GET", "email_messages", params={
+                    # Mail with no lead shares threads too; only rows with a lead say whose thread it is.
+                    "provider_thread_id": f"in.({chunk})", "lead_id": "not.is.null", "select": "lead_id,provider_thread_id",
+                }).json()
+            except StoreError as exc:
+                # One unreadable chunk leaves those messages unlinked; it must not stall the sync.
+                log.warning("thread lookup skipped a chunk: %s", str(exc)[:200])
                 continue
-            rows = self._req("GET", "email_messages", params={
-                # Mail with no lead shares threads too; only rows with a lead say whose thread it is.
-                "provider_thread_id": f"in.({chunk})", "lead_id": "not.is.null", "select": "lead_id,provider_thread_id",
-            }).json()
             out.update({r["provider_thread_id"]: r["lead_id"] for r in rows})
         return out
 
     def outlook_accounts(self) -> list[dict[str, Any]]:
         """Connected Outlook mailboxes (alias rows share the mailbox's token and inbox, so skip them)."""
         return self._req("GET", "email_accounts", params={
-            "provider": "eq.outlook", "status": "eq.active", "mailbox": "is.null", "select": "id,address,sync_cursor",
+            "provider": "eq.outlook", "mailbox": "is.null", "select": "id,address,sync_cursor",
+            # App-only mode doesn't use the stored sign-in, so a stale needs_reconnect doesn't stop sync.
+            "status": "in.(active,needs_reconnect)" if os.environ.get("MS_APP_MAILBOX", "").strip() else "eq.active",
         }).json()
 
     def own_addresses(self) -> set[str]:
         rows = self._req("GET", "email_accounts", params={"select": "address"}).json()
         return {r["address"].lower() for r in rows}
+
+    def mailbox_accounts(self, mailbox: str) -> dict[str, str]:
+        """Lowercased address -> account id for an Outlook mailbox row and its alias rows."""
+        box = json.dumps(mailbox.lower())
+        rows = self._req("GET", "email_accounts", params={
+            "provider": "eq.outlook", "or": f"(address.eq.{box},mailbox.eq.{box})", "select": "id,address",
+        }).json()
+        return {r["address"].lower(): r["id"] for r in rows}
 
     def mail_refresh_token(self, account_id: str) -> str | None:
         token = self._req("POST", "rpc/mail_refresh_token", json={"p_account_id": account_id}).json()
@@ -176,8 +191,12 @@ class Store:
         out: dict[str, str] = {}
         wanted = sorted({e.lower() for e in emails if e})
         for i in range(0, len(wanted), _CHUNK):
-            chunk = ",".join(f'"{e}"' for e in wanted[i : i + _CHUNK])
-            rows = self._req("GET", "leads", params={"email": f"in.({chunk})", "select": "id,email"}).json()
+            chunk = ",".join(json.dumps(e) for e in wanted[i : i + _CHUNK])
+            try:
+                rows = self._req("GET", "leads", params={"email": f"in.({chunk})", "select": "id,email"}).json()
+            except StoreError as exc:
+                log.warning("lead email lookup skipped a chunk: %s", str(exc)[:200])
+                continue
             out.update({r["email"].lower(): r["id"] for r in rows})
         return out
 

@@ -4,7 +4,8 @@
 const SITE = "https://golaunchcontrol.com";
 // Mark beside a two-line wordmark, 750x165 transparent PNG shown at 250x55. The dark parts carry
 // a thin white edge so the logo stays legible when a mail app paints a dark background.
-const LOGO = `${SITE}/brand/launch-control-email-mark-v1.png`;
+// Served by the CRM itself (crm/public/brand), so the logo ships with the code that sends it.
+const LOGO = "https://crm.golaunchcontrol.com/brand/launch-control-email-mark-v1.png";
 // The CRM serves its own copy of the same file, so previews inside the CRM show the logo before
 // (and regardless of) the marketing-site deploy that publishes it.
 const PREVIEW_LOGO = "/brand/launch-control-email-mark-v1.png";

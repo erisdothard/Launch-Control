@@ -5,12 +5,17 @@ import { getPendingDrafts, type EmailDraft } from "./drafts";
 import { getEvents } from "./calendar";
 import { matchesView, WEBSITE_LEAD_SOURCE, type CalendarEvent, type Deal, type DealStage, type Lead } from "./types";
 import { teamTodayISO } from "@/lib/leads/followUp";
+import { emailConfig } from "@/lib/email/config";
+import { teamLocalToUtc } from "@/lib/email/merge";
 
 // The Today screen: everything waiting on Max, ranked, plus his day and the pipeline.
 // Built on the server; strings that depend on "now" are computed here once so the
 // client renders exactly what the server did (no hydration drift).
 
-export const TEAM_TIME_ZONE = "America/Chicago";
+export const TEAM_TIME_ZONE = emailConfig.teamTimeZone;
+/** PostgREST returns at most 1000 rows a request; .in() lists stay short enough for the URL. */
+const PAGE = 1000;
+const IN_CHUNK = 100;
 
 export type TodayKind = "reply" | "followup" | "new";
 export type TodayTone = "hot" | "warm" | "new";
@@ -209,16 +214,25 @@ async function lastInboundByLead(leadIds: string[], client?: StoreClient): Promi
   const out = new Map<string, Inbound>();
   if (leadIds.length === 0) return out;
   const supabase = await getStoreClient(client);
-  const { data, error } = await supabase
-    .from("email_messages")
-    .select("lead_id, body_text, created_at")
-    .in("lead_id", leadIds)
-    .eq("direction", "in")
-    .order("created_at", { ascending: false })
-    .limit(500);
-  if (error) throw error;
-  for (const row of data) {
-    if (row.lead_id && !out.has(row.lead_id)) out.set(row.lead_id, { body: row.body_text, at: row.created_at });
+  for (let i = 0; i < leadIds.length; i += IN_CHUNK) {
+    const chunk = leadIds.slice(i, i + IN_CHUNK);
+    // Newest first, so the first row seen for a lead is its latest; page on until every lead in
+    // the chunk has one or the rows run out.
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from("email_messages")
+        .select("lead_id, body_text, created_at")
+        .in("lead_id", chunk)
+        .eq("direction", "in")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      for (const row of data) {
+        if (row.lead_id && !out.has(row.lead_id)) out.set(row.lead_id, { body: row.body_text, at: row.created_at });
+      }
+      if (data.length < PAGE || chunk.every((id) => out.has(id))) break;
+    }
   }
   return out;
 }
@@ -449,14 +463,22 @@ async function replyRate(now: Date, client?: StoreClient): Promise<TodayFigures[
   // Of the people emailed in the last 30 days, how many wrote back afterwards.
   const supabase = await getStoreClient(client);
   const since = new Date(now.getTime() - 30 * DAY_MS).toISOString();
-  const { data, error } = await supabase
-    .from("email_messages")
-    .select("lead_id, direction, created_at")
-    .gte("created_at", since)
-    .not("lead_id", "is", null)
-    .order("created_at", { ascending: true })
-    .limit(5000);
-  if (error) return null;
+  // Oldest first (first email, then any reply after it), read in full: a single capped request
+  // would drop the newest messages, which are the replies.
+  const data: { lead_id: string | null; direction: string; created_at: string }[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data: page, error } = await supabase
+      .from("email_messages")
+      .select("lead_id, direction, created_at")
+      .gte("created_at", since)
+      .not("lead_id", "is", null)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) return null;
+    data.push(...page);
+    if (page.length < PAGE) break;
+  }
   const firstOut = new Map<string, string>();
   const replied = new Set<string>();
   for (const m of data) {
@@ -479,13 +501,13 @@ function toAgenda(events: CalendarEvent[], leads: Map<string, Lead>): AgendaEven
 /** The team's calendar day as a UTC [from, to) window. */
 function teamDayWindow(now: Date): { from: string; to: string } {
   const today = teamTodayISO(now, TEAM_TIME_ZONE);
-  // Offset of the team zone at this moment, e.g. -300 minutes for CDT.
-  const local = new Date(now.toLocaleString("en-US", { timeZone: TEAM_TIME_ZONE }));
-  const utc = new Date(now.toLocaleString("en-US", { timeZone: "UTC" }));
-  const offsetMs = local.getTime() - utc.getTime();
+  // Midnight to midnight in the team zone, each with its own offset (a DST day is 23 or 25 hours).
   const [y, m, d] = today.split("-").map(Number);
-  const start = Date.UTC(y, m - 1, d) - offsetMs;
-  return { from: new Date(start).toISOString(), to: new Date(start + DAY_MS).toISOString() };
+  const tomorrow = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+  const from = teamLocalToUtc(today, "00:00", TEAM_TIME_ZONE);
+  const to = teamLocalToUtc(tomorrow, "00:00", TEAM_TIME_ZONE);
+  const start = Date.UTC(y, m - 1, d);
+  return { from: from ?? new Date(start).toISOString(), to: to ?? new Date(start + DAY_MS).toISOString() };
 }
 
 export async function getToday(userEmail: string | null | undefined, client?: StoreClient): Promise<TodayData> {

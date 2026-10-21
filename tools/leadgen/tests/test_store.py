@@ -108,3 +108,20 @@ def test_backfill_patches() -> None:
     assert filled == {"email": "ross@k.com", "contact_name": "Ross Bentley", "contact_title": "Owner",
                       "signals": {"a": 1, "emails": ["ross@k.com"]}}
     assert contact_patch({"email": "x@y.com", "phone": "1", "contact_name": "Max"}, e, {}) == {}
+
+
+@respx.mock
+def test_in_lists_quote_odd_addresses_and_a_bad_chunk_does_not_stall() -> None:
+    odd = 'o"brien,jr@x.com'
+    route = respx.get(f"{REST}/leads").mock(return_value=httpx.Response(200, json=[{"id": "l1", "email": odd}]))
+    store = Store(URL, "k")
+    assert store.leads_by_emails([odd]) == {odd: "l1"}
+    # Each value is a JSON string, so the comma and quote stay inside one list item.
+    assert route.calls[0].request.url.params["email"] == f"in.({json.dumps(odd)})"
+
+    route.return_value = httpx.Response(400, json={"message": "bad filter"})
+    assert store.leads_by_emails([odd]) == {}
+
+    threads = respx.get(f"{REST}/email_messages").mock(return_value=httpx.Response(400, json={"message": "bad"}))
+    assert store.leads_for_threads(['t"1,2']) == {}
+    assert threads.calls[0].request.url.params["provider_thread_id"] == 'in.("t\\"1,2")'

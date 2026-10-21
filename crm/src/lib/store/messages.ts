@@ -1,3 +1,4 @@
+import { outlookAppOnly } from "@/lib/email/config";
 import { getStoreClient, type StoreClient } from "./db";
 
 export type MessageDirection = "out" | "in";
@@ -162,7 +163,8 @@ export async function getEmailAccounts(client?: StoreClient): Promise<EmailAccou
     signatureTitle: a.signature_title,
     signaturePhone: a.signature_phone ?? "",
     connectedBy: a.connected_by,
-    status: a.status as EmailAccount["status"],
+    // App-only Outlook doesn't depend on a user sign-in, so an old "needs_reconnect" doesn't apply.
+    status: (a.provider === "outlook" && a.status === "needs_reconnect" && outlookAppOnly() ? "active" : a.status) as EmailAccount["status"],
     mailbox: a.mailbox,
     lastError: a.last_error ?? null,
     lastErrorAt: a.last_error_at ?? null,
@@ -302,18 +304,28 @@ const inInbox = (g: Grouped) => g.rows.some((r) => r.folder === "inbox");
 // Waiting on us: their message is the last word and either nobody has opened it or it's a lead's.
 const needsReply = (g: Grouped) => inInbox(g) && g.rows[0].direction === "in" && (unreadIn(g) > 0 || g.rows.some((r) => r.lead_id));
 
+// PostgREST returns at most 1000 rows a request, so the scan reads in pages of this size.
+const SCAN_PAGE = 1000;
+
 async function scan(supabase: StoreClient, folders: MailFolder[], q: string): Promise<LightRow[]> {
-  let query = supabase.from("email_messages").select(LIGHT_COLUMNS).in("folder", folders);
   const term = cleanSearch(q);
-  if (term) {
-    const like = `"*${term}*"`;
-    query = query.or(
-      `subject.ilike.${like},from_name.ilike.${like},from_address.ilike.${like},to_address.ilike.${like},body_text.ilike.${like}`
-    );
+  const out: LightRow[] = [];
+  for (let from = 0; from < SCAN_LIMIT; from += SCAN_PAGE) {
+    // A failed send stays on its conversation (marked failed) but never makes a thread or shows in Sent.
+    let query = supabase.from("email_messages").select(LIGHT_COLUMNS).in("folder", folders).neq("status", "failed");
+    if (term) {
+      const like = `"*${term}*"`;
+      query = query.or(
+        `subject.ilike.${like},from_name.ilike.${like},from_address.ilike.${like},to_address.ilike.${like},body_text.ilike.${like}`
+      );
+    }
+    const to = Math.min(from + SCAN_PAGE, SCAN_LIMIT) - 1;
+    const { data, error } = await query.order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to);
+    if (error) throw error;
+    out.push(...(data as LightRow[]));
+    if (data.length < to - from + 1) break;
   }
-  const { data, error } = await query.order("created_at", { ascending: false }).limit(SCAN_LIMIT);
-  if (error) throw error;
-  return data as LightRow[];
+  return out;
 }
 
 function countsOf(groups: Grouped[]): InboxCounts {

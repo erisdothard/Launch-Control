@@ -50,7 +50,9 @@ export default function ReadingPane({ threadKey, messages, lead, accounts, defau
   }, [demo, unread, threadKey, router]);
 
   // Answer as whoever wrote last on this conversation (Max or Eris); new conversations start as Max.
-  const threadAccount = [...messages].reverse().find((m) => m.direction === "out" && accounts.some((a) => a.id === m.accountId))?.accountId;
+  // Reply from the address the conversation is on: the worker stamps each message with the alias
+  // it was sent from (ours) or addressed to (theirs), so the latest one decides.
+  const threadAccount = [...messages].reverse().find((m) => accounts.some((a) => a.id === m.accountId))?.accountId;
   const fromId = threadAccount ?? defaultAccountId;
 
   const initial = useMemo((): ComposerFields => {

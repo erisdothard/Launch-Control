@@ -1,6 +1,6 @@
 // Shapes the composer shares with its server actions and pages. Types and constants only, so client
 // components can import this without pulling server code into the browser bundle.
-import type { EmailAttachment } from "@/lib/email/send";
+import type { EmailAttachment } from "@/lib/email/attachments";
 import type { Candidate } from "./audience";
 
 export type { EmailAttachment };
@@ -81,10 +81,9 @@ export interface ComposerPrefill {
 export const DEFAULT_PER_MINUTE = 10;
 export const MAX_PER_MINUTE = 30;
 export const MAX_RECIPIENTS = 2000;
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
-export const MAX_TOTAL_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+// One set of limits for every composer: src/lib/email/attachments.ts.
+export { ATTACHMENT_BUCKET, MAX_FILE_BYTES as MAX_ATTACHMENT_BYTES, MAX_FILE_MB, MAX_TOTAL_ATTACHMENT_BYTES, MAX_TOTAL_MB } from "@/lib/email/attachments";
 export const MAX_ATTACHMENTS = 8;
-export const ATTACHMENT_BUCKET = "email-attachments";
 /** Lists longer than this travel from the Leads page by sessionStorage, not the URL. */
 export const URL_LEAD_LIMIT = 40;
 export const HANDOFF_KEY = "lc:mass-email-leads";

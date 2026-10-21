@@ -3,12 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendAsAccount } from "@/lib/email/send";
 import { primaryOutlookAccount } from "@/lib/email/outlookAccount";
+import { emailConfig } from "@/lib/email/config";
+import { claimDraft, markDraft } from "@/lib/store/drafts";
 
 // Sends the follow-up drafts the worker wrote (tools/leadgen/leadgen/automation.py), when the team
 // has switched automatic sending on in Settings. The worker calls this every pass with
 // AUTOMATION_SECRET; nothing else can reach it. Replies are never sent from here: a person sends those.
 const SENT_BY = "automation";
-const TEAM_TZ = "America/Chicago";
+const TEAM_TZ = emailConfig.teamTimeZone;
 
 function authorized(request: NextRequest): boolean {
   const secret = process.env.AUTOMATION_SECRET;
@@ -57,11 +59,12 @@ export async function POST(request: NextRequest) {
   const primary = await primaryOutlookAccount();
   let sent = 0;
   const failed: { id: string; error: string }[] = [];
+  const warnings: { id: string; warning: string }[] = [];
   for (const d of drafts ?? []) {
     const lead = (d as unknown as { leads: { awaiting: string | null; do_not_contact: boolean; status: string } | null }).leads;
     // Re-check at send time: they may have replied or opted out since the draft was written.
     if (!lead || lead.do_not_contact || lead.awaiting !== "them" || lead.status === "converted" || lead.status === "lost") {
-      await admin.from("email_drafts").update({ status: "discarded", updated_at: new Date().toISOString() }).eq("id", d.id);
+      await admin.from("email_drafts").update({ status: "discarded", updated_at: new Date().toISOString() }).eq("id", d.id).eq("status", "pending");
       continue;
     }
     // Stay on the mailbox the thread is on; otherwise Max's Outlook.
@@ -81,6 +84,8 @@ export async function POST(request: NextRequest) {
       failed.push({ id: d.id, error: "No active sending account." });
       continue;
     }
+    // The same claim the Inbox and Today use: if Max is sending this draft right now, skip it.
+    if (!(await claimDraft(d.id, SENT_BY, admin))) continue;
     const result = await sendAsAccount({
       leadId: d.lead_id,
       accountId,
@@ -88,15 +93,16 @@ export async function POST(request: NextRequest) {
       subject: d.subject,
       body: d.body_text,
       sentBy: SENT_BY,
-    });
-    const now = new Date().toISOString();
+    }).catch((err: unknown) => ({ ok: false as const, error: err instanceof Error ? err.message : "Send failed" }));
     if (result.ok) {
+      // Claimed as sent already. A warning means it went out but the CRM copy didn't save.
       sent += 1;
-      await admin.from("email_drafts").update({ status: "sent", sent_at: now, sent_by: SENT_BY, updated_at: now }).eq("id", d.id);
+      if (result.warning) warnings.push({ id: d.id, warning: result.warning });
     } else {
       failed.push({ id: d.id, error: result.error });
-      await admin.from("email_drafts").update({ error: result.error, updated_at: now }).eq("id", d.id);
+      // Back in the queue with the reason, for a person or the next pass.
+      await markDraft(d.id, { status: "pending", error: result.error }, admin);
     }
   }
-  return NextResponse.json({ sent, failed: failed.length });
+  return NextResponse.json({ sent, failed: failed.length, warnings: warnings.length });
 }

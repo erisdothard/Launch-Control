@@ -72,6 +72,10 @@ class FakeStore:
     def own_addresses(self) -> set[str]:
         return {"maxwell@golaunchcontrol.com", "eris@golaunchcontrol.com"}
 
+    def mailbox_accounts(self, mailbox: str) -> dict[str, str]:
+        assert mailbox == "maxwell@golaunchcontrol.com"
+        return {"maxwell@golaunchcontrol.com": "acc", "eris@golaunchcontrol.com": "acc-eris"}
+
     def leads_for_threads(self, threads: list[str]) -> dict[str, str]:
         return {"c-crm": "lead-paul"} if "c-crm" in threads else {}
 
@@ -188,3 +192,37 @@ def test_user_mode_records_microsofts_reason(monkeypatch):
 
     assert outlook_sync.access_token(Store(), Graph(), {"id": "a", "address": "x@y.z"}) is None
     assert flagged == {"a": "AADSTS50076: MFA required"}
+
+
+def test_rows_are_inserted_oldest_first_across_folders() -> None:
+    # A re-walk returns all of the Inbox before Sent Items; the lead trigger must see them in order.
+    class Graph(FakeGraph):
+        def get(self, token: str, url: str) -> FakeResp:
+            if "/inbox/" in url:
+                return FakeResp({"value": [msg("in-late", "c", "paul@sebring.com", "maxwell@golaunchcontrol.com", "b", "<l>",
+                                                receivedDateTime="2026-10-19T22:00:00Z")], "@odata.deltaLink": "d"})
+            return FakeResp({"value": [msg("out-early", "c", "maxwell@golaunchcontrol.com", "paul@sebring.com", "a", "<e>",
+                                           receivedDateTime="2026-10-19T09:00:00Z")], "@odata.deltaLink": "d"})
+
+    store = FakeStore()
+    outlook_sync.sync_account(store, Graph(), {"id": "acc", "address": "maxwell@golaunchcontrol.com", "sync_cursor": None})  # type: ignore[arg-type]
+    assert [r["provider_message_id"] for r in store.rows] == ["out-early", "in-late"]
+
+
+def test_account_id_follows_the_alias_the_message_used() -> None:
+    store, graph = FakeStore(), FakeGraph()
+    outlook_sync.sync_account(store, graph, {"id": "acc", "address": "maxwell@golaunchcontrol.com", "sync_cursor": None})  # type: ignore[arg-type]
+    by_id = {r["provider_message_id"]: r["account_id"] for r in store.rows}
+    assert by_id["in-3"] == "acc-eris"    # inbound to the eris@ alias
+    assert by_id["sent-2"] == "acc-eris"  # sent from the eris@ alias
+    assert by_id["in-1"] == "acc"         # to the mailbox itself
+
+
+def test_account_id_uses_cc_then_falls_back_to_the_mailbox() -> None:
+    aliases = {"maxwell@golaunchcontrol.com": "acc", "eris@golaunchcontrol.com": "acc-eris"}
+    own = set(aliases)
+    cc = msg("m1", "c", "x@y.com", "someone@else.com", "hi", "<1>",
+             ccRecipients=[{"emailAddress": {"address": "ERIS@golaunchcontrol.com"}}])
+    stray = msg("m2", "c", "x@y.com", "someone@else.com", "hi", "<2>")
+    rows = outlook_sync.to_rows({"id": "acc"}, [cc, stray], own, {}, {}, aliases)
+    assert [r["account_id"] for r in rows] == ["acc-eris", "acc"]
