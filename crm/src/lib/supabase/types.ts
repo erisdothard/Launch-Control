@@ -326,6 +326,7 @@ export type Database = {
           last_error_at: string | null
           mailbox: string | null
           provider: string
+          signature_lines: string
           signature_name: string
           signature_phone: string
           signature_title: string
@@ -344,6 +345,7 @@ export type Database = {
           last_error_at?: string | null
           mailbox?: string | null
           provider: string
+          signature_lines?: string
           signature_name?: string
           signature_phone?: string
           signature_title?: string
@@ -362,6 +364,7 @@ export type Database = {
           last_error_at?: string | null
           mailbox?: string | null
           provider?: string
+          signature_lines?: string
           signature_name?: string
           signature_phone?: string
           signature_title?: string
