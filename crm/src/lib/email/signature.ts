@@ -12,6 +12,9 @@ const PREVIEW_LOGO = "/brand/launch-control-email-mark-v1.png";
 const LOGO_W = 140;
 const LOGO_H = 31;
 const COMPANY = "Launch Control";
+// Client demos (NEXT_PUBLIC_DEMO_MODE=1) sign as the demo's own company: its name, no Launch Control
+// logo. NEXT_PUBLIC_DEMO_COMPANY names it on the demo deployment; the real CRM never sets either.
+const DEMO_COMPANY = process.env.NEXT_PUBLIC_DEMO_MODE === "1" ? (process.env.NEXT_PUBLIC_DEMO_COMPANY ?? "").trim() : "";
 
 export type LogoSource = "cid" | "url" | "preview";
 
@@ -63,7 +66,7 @@ export function signatureHtml({ name, title, address, phone, lines }: SignatureI
     line(escapeHtml(name.trim()), `font-size:16px;line-height:21px;font-weight:bold;color:${INK};`),
     title.trim() ? line(escapeHtml(title.trim()), `font-size:13px;line-height:19px;color:${GRAY};padding-bottom:6px;`) : "",
     line(`<a href="mailto:${mail}" style="${link}">${mail}</a>`, `font-size:13px;line-height:19px;color:${INK};`),
-    line(`<a href="${SITE}" style="${link}">LAUNCH CONTROL</a>`, `font-size:12px;line-height:19px;font-weight:bold;letter-spacing:1.5px;color:${INK};`),
+    line(DEMO_COMPANY ? escapeHtml(DEMO_COMPANY.toUpperCase()) : `<a href="${SITE}" style="${link}">LAUNCH CONTROL</a>`, `font-size:12px;line-height:19px;font-weight:bold;letter-spacing:1.5px;color:${INK};`),
     phone?.trim()
       ? line(`<a href="${telHref(phone)}" style="${link}">${escapeHtml(phone.trim())}</a>`, `font-size:13px;line-height:19px;color:${INK};`)
       : "",
@@ -71,16 +74,20 @@ export function signatureHtml({ name, title, address, phone, lines }: SignatureI
       line(escapeHtml(l), `font-size:11px;line-height:16px;color:${GRAY};${i === 0 ? "padding-top:6px;" : ""}`, true)
     ),
   ].join("");
+  const logoCell = DEMO_COMPANY
+    ? ""
+    : `<td valign="middle" style="padding:0 18px 0 0;vertical-align:middle;"><a href="${SITE}" style="text-decoration:none;"><img src="${logoSrc(source)}" width="${LOGO_W}" height="${LOGO_H}" alt="Launch Control" style="display:block;width:${LOGO_W}px;height:${LOGO_H}px;border:0;outline:none;"></a></td>`;
+  const rule = DEMO_COMPANY ? "" : "padding:2px 0 2px 18px;border-left:2px solid #6b7178;";
   return `<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;${FONT}color:${INK};">
 <tr>
-<td valign="middle" style="padding:0 18px 0 0;vertical-align:middle;"><a href="${SITE}" style="text-decoration:none;"><img src="${logoSrc(source)}" width="${LOGO_W}" height="${LOGO_H}" alt="Launch Control" style="display:block;width:${LOGO_W}px;height:${LOGO_H}px;border:0;outline:none;"></a></td>
-<td valign="middle" style="padding:2px 0 2px 18px;border-left:2px solid #6b7178;vertical-align:middle;"><table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;">${rows}</table></td>
+${logoCell}
+<td valign="middle" style="${rule}vertical-align:middle;"><table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;">${rows}</table></td>
 </tr>
 </table>`;
 }
 
 export function signatureText({ name, title, address, phone, lines }: SignatureInput): string {
-  return ["--", name.trim(), title.trim(), address, "LAUNCH CONTROL (golaunchcontrol.com)", phone?.trim() ?? "", ...smallLines(lines)]
+  return ["--", name.trim(), title.trim(), address, DEMO_COMPANY || "LAUNCH CONTROL (golaunchcontrol.com)", phone?.trim() ?? "", ...smallLines(lines)]
     .filter(Boolean)
     .join("\n");
 }
