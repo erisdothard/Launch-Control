@@ -45,6 +45,7 @@ export interface EmailAccount {
   signatureName: string; // who signs, e.g. "Maxwell Hartmann"
   signatureTitle: string;
   signaturePhone: string;
+  signatureLines: string; // small print under the signature, one per line
   connectedBy: string;
   status: "active" | "needs_reconnect" | "disabled";
   mailbox: string | null; // Outlook alias rows: the mailbox they belong to
@@ -151,7 +152,7 @@ export async function getEmailAccounts(client?: StoreClient): Promise<EmailAccou
   const supabase = await getStoreClient(client);
   const { data, error } = await supabase
     .from("email_accounts")
-    .select("id, provider, address, display_name, signature_name, signature_title, signature_phone, connected_by, status, mailbox, last_error, last_error_at")
+    .select("id, provider, address, display_name, signature_name, signature_title, signature_phone, signature_lines, connected_by, status, mailbox, last_error, last_error_at")
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data.map((a) => ({
@@ -162,6 +163,7 @@ export async function getEmailAccounts(client?: StoreClient): Promise<EmailAccou
     signatureName: a.signature_name,
     signatureTitle: a.signature_title,
     signaturePhone: a.signature_phone ?? "",
+    signatureLines: a.signature_lines ?? "",
     connectedBy: a.connected_by,
     // App-only Outlook doesn't depend on a user sign-in, so an old "needs_reconnect" doesn't apply.
     status: (a.provider === "outlook" && a.status === "needs_reconnect" && outlookAppOnly() ? "active" : a.status) as EmailAccount["status"],

@@ -9,6 +9,7 @@ export interface SenderAccount {
   signatureName: string;
   signatureTitle: string;
   signaturePhone: string;
+  signatureLines?: string;
   status: string;
   mailbox?: string | null;
 }
@@ -43,7 +44,7 @@ export function senderName(a: SenderAccount): string {
 /** The signature this address signs with, or null when no person is set on it. */
 export function signatureOf(a: SenderAccount | undefined): SignatureInput | null {
   if (!a?.signatureName.trim()) return null;
-  return { name: a.signatureName, title: a.signatureTitle, address: a.address, phone: a.signaturePhone };
+  return { name: a.signatureName, title: a.signatureTitle, address: a.address, phone: a.signaturePhone, lines: a.signatureLines };
 }
 
 export function cannotSendReason(a: SenderAccount | undefined): string | null {

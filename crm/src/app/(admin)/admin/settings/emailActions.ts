@@ -44,7 +44,8 @@ export async function setDisplayNameAction(
   displayName: string,
   signatureTitle: string,
   signatureName = "",
-  signaturePhone?: string
+  signaturePhone?: string,
+  signatureLines?: string
 ): Promise<EmailSettingsResult> {
   if (!(await currentCrmUserEmail())) return { ok: false, error: "Sign in again." };
   const phone = signaturePhone === undefined ? undefined : cleanPhone(signaturePhone);
@@ -58,6 +59,10 @@ export async function setDisplayNameAction(
       signature_name: signatureName.replace(/[<>\r\n]/g, "").trim().slice(0, 80),
       signature_title: signatureTitle.replace(/[<>\r\n]/g, "").trim().slice(0, 120),
       ...(phone === undefined ? {} : { signature_phone: phone }),
+      // Small print: at most 3 short lines, no markup.
+      ...(signatureLines === undefined
+        ? {}
+        : { signature_lines: signatureLines.replace(/[<>]/g, "").split(/\r?\n/).map((l) => l.trim().slice(0, 120)).filter(Boolean).slice(0, 3).join("\n") }),
     })
     .eq("id", accountId);
   if (error) return { ok: false, error: "Could not save." };
