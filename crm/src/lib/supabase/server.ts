@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "./types";
+import { demoDbOptions } from "@/lib/demo/mode";
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
@@ -10,6 +11,7 @@ export async function createServerSupabaseClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...demoDbOptions(),
       cookies: {
         getAll() {
           return cookieStore.getAll();
@@ -37,5 +39,5 @@ export function createServiceRoleClient() {
     return null;
   }
 
-  return createClient<Database>(url, key);
+  return createClient<Database>(url, key, demoDbOptions());
 }

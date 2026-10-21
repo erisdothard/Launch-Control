@@ -139,6 +139,9 @@ interface AdminSidebarProps {
   drafts: number;
 }
 
+// The real CRM links to the demo deployment so Max can open it in front of a client. The demo itself has no such link.
+const demoUrl = process.env.NEXT_PUBLIC_DEMO_MODE === "1" ? null : (process.env.NEXT_PUBLIC_DEMO_URL ?? null);
+
 export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, drafts }: AdminSidebarProps) {
   const pathname = usePathname();
   const search = useSearchParams();
@@ -225,6 +228,12 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
           </div>
           <p className="min-w-0 truncate text-[13px] text-[var(--color-text-muted)]">{userEmail || "Signed in"}</p>
         </div>
+        {demoUrl && (
+          <a href={demoUrl} target="_blank" rel="noopener noreferrer" className="mb-1 flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-2 text-[13px] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]">
+            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--color-accent)]" />
+            Open the client demo
+          </a>
+        )}
         <div className="flex">
           <Link href="/admin/update-password" className="flex-1 rounded-[var(--radius-sm)] px-2 py-2 text-[13px] text-[var(--color-text-dim)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]">
             Change password

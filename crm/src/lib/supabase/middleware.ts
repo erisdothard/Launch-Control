@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import { demoDbOptions, demoLogin, isDemoMode } from "@/lib/demo/mode";
 
 // The update-password page's session comes from a URL fragment
 // (#access_token=...) that only the browser can read — on the very first
@@ -15,6 +16,7 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...demoDbOptions(),
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -32,9 +34,20 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
+  let {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // The demo has no login screen: a visitor becomes the demo user on their first request, and
+  // the login page just sends them in.
+  if (isDemoMode()) {
+    if (request.nextUrl.pathname.startsWith("/login")) return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    const login = demoLogin();
+    if (!user && login) {
+      const signedIn = await supabase.auth.signInWithPassword(login);
+      user = signedIn.data.user;
+    }
+  }
 
   const isPublicAdminPath = PUBLIC_ADMIN_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
