@@ -21,7 +21,7 @@ export default async function LeadGenPage({ searchParams }: LeadGenPageProps) {
     <>
       <AdminHeader
         title="Lead Gen"
-        subtitle="Motorsport businesses found and scored against Max's targeting criteria, best fit first."
+        subtitle="Motorsport businesses the search found and scored against your targeting. Open the best ones to reach out; mark the rest not a fit."
       />
       <LeadGenClient prospects={prospects} runs={runs} facets={facets} filters={filters} />
     </>

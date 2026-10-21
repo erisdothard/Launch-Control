@@ -4,7 +4,8 @@
    lead's email to that lead (calendar_events). The database trigger then moves the lead to
    "meeting" and sets "send the proposal" for the day after.
 2. Reply drafts. When a lead's last message is theirs, write a reply for a person to review in the
-   CRM's Drafts. Nothing is sent from here.
+   CRM Inbox's Drafts. Nothing is sent from here. Mail from people who aren't leads (the Inbox
+   stores the whole mailbox) is never drafted for: every read here starts from a lead.
 3. Follow-ups. When a lead we emailed hasn't answered and its follow-up date has come, write the
    next short nudge into Drafts (the CRM sends it on its own when automatic sending is on), up to
    the configured number of nudges, then asks the CRM to send what's due. A lead still silent after
@@ -85,6 +86,11 @@ def re_subject(subject: str) -> str:
     return s if s.lower().startswith("re:") else f"Re: {s}" if s else "Following up"
 
 
+def first_address(addresses: str | None) -> str:
+    """The first of a stored "a@x.com, b@y.com" recipient list (the Inbox stores every To)."""
+    return (addresses or "").split(",")[0].strip()
+
+
 def first_name(contact: str | None) -> str:
     return (contact or "").strip().split(" ")[0]
 
@@ -102,6 +108,7 @@ def load_settings(store: Store) -> Settings:
 
 
 def thread(store: Store, lead_id: str) -> list[dict[str, Any]]:
+    """A lead's recent mail. Scoped by lead_id, so Inbox mail with no lead never reaches a draft."""
     rows = store._req("GET", "email_messages", params={
         "lead_id": f"eq.{lead_id}", "or": "(direction.eq.in,status.eq.sent)",
         "select": "id,direction,from_address,to_address,subject,body_text,created_at,account_id",
@@ -262,7 +269,7 @@ def queue_follow_ups(store: Store, writer: Writer, settings: Settings, today: da
             continue
         stored = insert_draft(store, {
             "lead_id": lead["id"], "kind": "follow_up", "follow_up_number": number,
-            "to_address": last_out["to_address"] or lead["email"], "subject": re_subject(last_out["subject"]),
+            "to_address": first_address(last_out["to_address"]) or lead["email"], "subject": re_subject(last_out["subject"]),
             "body_text": body,
         })
         if stored:
@@ -304,18 +311,12 @@ def sync_meetings(store: Store, graph: outlook_sync.GraphClient, now: datetime) 
     own = store.own_addresses()
     stored = 0
     for account in store.outlook_accounts():
-        refresh = store.mail_refresh_token(account["id"])
-        if not refresh:
+        token = outlook_sync.access_token(store, graph, account, scope="Calendars.ReadWrite")
+        if not token:
             continue
-        try:
-            tokens = graph.refresh(refresh, scope="Calendars.ReadWrite")
-        except outlook_sync.ReconnectNeeded:
-            continue  # the mail sync flags the mailbox
-        if tokens.get("refresh_token") and tokens["refresh_token"] != refresh:
-            store.save_refresh_token(account["id"], tokens["refresh_token"])
-        headers = {"Authorization": f"Bearer {tokens['access_token']}", "Prefer": 'outlook.timezone="UTC"'}
+        headers = {"Authorization": f"Bearer {token}", "Prefer": 'outlook.timezone="UTC"'}
         url: str | None = (
-            f"{outlook_sync.GRAPH}/me/calendarView?startDateTime={(now - CALENDAR_BACK).strftime('%Y-%m-%dT%H:%M:%SZ')}"
+            f"{outlook_sync.me()}/calendarView?startDateTime={(now - CALENDAR_BACK).strftime('%Y-%m-%dT%H:%M:%SZ')}"
             f"&endDateTime={(now + CALENDAR_AHEAD).strftime('%Y-%m-%dT%H:%M:%SZ')}"
             "&$select=id,subject,start,end,isAllDay,isCancelled,attendees,location&$top=100"
         )

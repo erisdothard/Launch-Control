@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import nodemailer from "nodemailer";
-import { emailConfig } from "./config";
+import { emailConfig, outlookAppOnly } from "./config";
 
 // Microsoft 365 through Microsoft Graph. The app registration ("Launch Control CRM") lives in the
 // team's own tenant and is admin-consented, so "Connect Outlook" is a single sign-in.
@@ -45,8 +45,11 @@ export interface OutlookTokens {
 }
 
 export class OutlookReconnectNeeded extends Error {
-  constructor() {
+  /** Microsoft's own reason, e.g. "AADSTS50076: ... multi-factor authentication ...". */
+  readonly reason: string;
+  constructor(reason = "") {
     super("This Outlook connection expired. Reconnect it in Settings.");
+    this.reason = reason;
   }
 }
 
@@ -63,7 +66,7 @@ async function tokenRequest(params: Record<string, string>, resource: TokenResou
     cache: "no-store",
   });
   const body = (await res.json()) as OutlookTokens & { error?: string; error_description?: string };
-  if (body.error === "invalid_grant") throw new OutlookReconnectNeeded();
+  if (body.error === "invalid_grant") throw new OutlookReconnectNeeded(body.error_description?.split("\r\n")[0] ?? "");
   if (!res.ok) throw new Error(`Microsoft token ${res.status}: ${body.error_description?.split("\r\n")[0] ?? body.error ?? "failed"}`);
   return body;
 }
@@ -77,6 +80,41 @@ export function refreshOutlook(refreshToken: string, resource: TokenResource = "
   return tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken }, resource);
 }
 
+// App-only tokens (client credentials), cached per resource until a minute before they expire.
+const appTokens = new Map<TokenResource, { token: string; expiresAt: number }>();
+
+export async function appOnlyToken(resource: TokenResource = "graph"): Promise<string> {
+  const cached = appTokens.get(resource);
+  if (cached && cached.expiresAt > Date.now()) return cached.token;
+  const res = await fetch(`${authority()}/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: emailConfig.msClientId,
+      client_secret: emailConfig.msClientSecret,
+      grant_type: "client_credentials",
+      scope: resource === "smtp" ? "https://outlook.office365.com/.default" : "https://graph.microsoft.com/.default",
+    }),
+    cache: "no-store",
+  });
+  const body = (await res.json()) as { access_token?: string; expires_in?: number; error?: string; error_description?: string };
+  if (!res.ok || !body.access_token) {
+    throw new Error(`Microsoft app sign-in failed: ${body.error_description?.split("\r\n")[0] ?? body.error ?? res.status}`);
+  }
+  appTokens.set(resource, { token: body.access_token, expiresAt: Date.now() + ((body.expires_in ?? 3600) - 60) * 1000 });
+  return body.access_token;
+}
+
+/** "/me/..." as a signed-in user; "/users/<mailbox>/..." when the app works on the mailbox itself. */
+export function graphPath(path: string): string {
+  if (!outlookAppOnly() || !/^\/me(\/|\?|$)/.test(path)) return path;
+  return `/users/${encodeURIComponent(emailConfig.msAppMailbox)}${path.slice(3)}`;
+}
+
+export function graphUrl(path: string): string {
+  return `${GRAPH}${graphPath(path)}`;
+}
+
 export interface SmtpSend {
   fromName: string;
   fromAddress: string;
@@ -85,8 +123,20 @@ export interface SmtpSend {
   subject: string;
   text: string;
   html: string | null;
-  /** RFC 5322 Message-ID of the lead's last message, so the send threads under it. */
+  cc?: string[];
+  bcc?: string[];
+  attachments?: OutboundFile[];
+  /** RFC 5322 Message-ID of the message being answered, so the send threads under it. */
   inReplyTo?: string | null;
+  /** The answered message's own References chain plus its id; defaults to inReplyTo. */
+  references?: string | null;
+}
+
+/** A file going out with an email, already read into memory. */
+export interface OutboundFile {
+  filename: string;
+  content: Buffer;
+  contentType: string;
 }
 
 /** Sends through smtp.office365.com as the mailbox; Exchange files a copy in Sent Items. */
@@ -105,12 +155,15 @@ export async function sendViaOutlookSmtp(accessToken: string, msg: SmtpSend): Pr
     await transport.sendMail({
       from: { name: msg.fromName, address: msg.fromAddress },
       to: msg.to,
+      cc: msg.cc?.length ? msg.cc : undefined,
+      bcc: msg.bcc?.length ? msg.bcc : undefined,
       subject: msg.subject,
       text: msg.text,
       html: msg.html ?? undefined,
+      attachments: msg.attachments?.map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
       messageId,
       inReplyTo: msg.inReplyTo ?? undefined,
-      references: msg.inReplyTo ?? undefined,
+      references: msg.references ?? msg.inReplyTo ?? undefined,
     });
   } finally {
     transport.close();
@@ -119,7 +172,7 @@ export async function sendViaOutlookSmtp(accessToken: string, msg: SmtpSend): Pr
 }
 
 export async function graph<T>(accessToken: string, path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${GRAPH}${path}`, {
+  const res = await fetch(graphUrl(path), {
     ...init,
     // Immutable ids: a message keeps its id when someone files it into another folder in Outlook.
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", Prefer: 'IdType="ImmutableId"', ...init?.headers },

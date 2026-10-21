@@ -20,8 +20,7 @@ const MIN_SCORE_OPTIONS = [
   { value: 80, label: "80+" },
 ];
 
-const selectClass =
-  "rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30";
+const selectClass = "field !w-auto min-w-0 sm:min-w-44";
 
 function formatDate(iso: string) {
   return <LocalDate iso={iso} options={{ month: "short", day: "numeric", year: "numeric" }} />;
@@ -46,62 +45,48 @@ function safeHref(url: string | null): string | null {
   }
 }
 
-const RUN_STATUS_CLASS: Record<LeadGenRun["status"], string> = {
-  completed: "bg-emerald-400/10 text-emerald-300",
-  failed: "bg-red-400/10 text-red-300",
-  cancelled: "bg-white/[0.06] text-[var(--color-text-muted)]",
-  queued: "bg-amber-400/10 text-amber-300",
-  running: "bg-amber-400/10 text-amber-300",
+const RUN_STATUS_TEXT: Record<LeadGenRun["status"], { label: string; className: string }> = {
+  completed: { label: "Finished", className: "text-[var(--color-success)]" },
+  failed: { label: "Stopped with an error", className: "text-[var(--color-hot)]" },
+  cancelled: { label: "Cancelled", className: "text-[var(--color-text-dim)]" },
+  queued: { label: "Waiting", className: "text-[var(--color-warm)]" },
+  running: { label: "Running", className: "text-[var(--color-warm)]" },
 };
 
-// The last finished search; the one in progress is shown by FindLeadsPanel.
+// The last finished search, as one plain sentence; the one in progress is shown by FindLeadsPanel.
 function RunStrip({ runs }: { runs: LeadGenRun[] }) {
   const latest = runs.find((r) => r.status !== "queued" && r.status !== "running");
   if (!latest) return null;
-
-  const steps = [
-    { label: "Found", value: latest.found },
-    { label: "Enriched", value: latest.enriched },
-    { label: "Kept", value: latest.kept },
-    { label: "Excluded", value: latest.excluded },
-  ];
+  const status = RUN_STATUS_TEXT[latest.status];
 
   return (
-    <div className="mb-6 flex flex-col gap-4 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0 flex-1">
-        <p className="label-mono text-[var(--color-text-dim)]">Last search</p>
-        <p className="mt-1 text-sm text-[var(--color-text)]">
-          {formatDate(latest.startedAt)}
-          <span className={`ml-2 rounded-[2px] px-2 py-0.5 text-xs font-medium ${RUN_STATUS_CLASS[latest.status]}`}>
-            {latest.status}
-          </span>
-        </p>
-        {latest.error && <p className="mt-1 line-clamp-2 break-all text-xs text-red-400" title={latest.error}>{latest.error}</p>}
-      </div>
-      <ol className="flex items-center gap-2 sm:gap-3">
-        {steps.map((step, i) => (
-          <li key={step.label} className="flex items-center gap-2 sm:gap-3">
-            <div className="text-center">
-              <p className="text-xl font-semibold tabular-nums text-[var(--color-text)]">{step.value}</p>
-              <p className="text-[11px] text-[var(--color-text-dim)]">{step.label}</p>
-            </div>
-            {i < steps.length - 2 && <span className="text-[var(--color-text-dim)]">→</span>}
-            {i === steps.length - 2 && <span className="mx-1 h-8 w-px bg-[var(--color-border)]" />}
-          </li>
-        ))}
-      </ol>
+    <div className="mb-8 -mt-3 flex flex-col gap-1 text-sm text-[var(--color-text-muted)] sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2">
+      <span>
+        Last search {formatDate(latest.startedAt)}: <span className={`font-medium ${status.className}`}>{status.label}</span>.
+      </span>
+      <span className="tabular">
+        Found <b className="font-medium text-[var(--color-text)]">{latest.found}</b>, checked{" "}
+        <b className="font-medium text-[var(--color-text)]">{latest.enriched}</b>, kept <b className="font-medium text-[var(--color-text)]">{latest.kept}</b>{" "}
+        and left out <b className="font-medium text-[var(--color-text)]">{latest.excluded}</b>.
+      </span>
+      {latest.error && (
+        <span className="line-clamp-2 break-all text-[var(--color-hot)] sm:basis-full" title={latest.error}>
+          {latest.error}
+        </span>
+      )}
     </div>
   );
 }
 
-function ScoreChip({ score }: { score: number | null }) {
+// Score as a figure, not a coloured tile. Only "Hot" carries colour (yellow = act now).
+function ScoreFigure({ score }: { score: number | null }) {
   const band = scoreBand(score);
   return (
-    <div
-      className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-[2px] ${band?.className ?? "bg-white/[0.06] text-[var(--color-text-dim)]"}`}
-    >
-      <span className="text-lg font-semibold leading-none tabular-nums">{score ?? "–"}</span>
-      <span className="mt-1 label-mono opacity-80">{band?.label ?? "n/a"}</span>
+    <div className="w-14 shrink-0 text-right">
+      <p className="text-[26px] leading-none font-light tracking-[-0.02em] text-[var(--color-steel)] tabular">{score ?? "–"}</p>
+      <p className={`mt-1.5 text-sm ${band?.label === "Hot" ? "font-medium text-[var(--color-accent)]" : "text-[var(--color-text-dim)]"}`}>
+        {band?.label ?? "No score"}
+      </p>
     </div>
   );
 }
@@ -114,36 +99,41 @@ function ProspectRow({ lead, onNotAFit, pending }: { lead: Lead; onNotAFit: () =
   const mapsUrl = safeHref(readSignals(p?.signals ?? null).mapsUrl);
 
   return (
-    <li className="border-b border-[var(--color-border)] last:border-0">
-      <div className="flex items-start gap-4 px-4 py-4 sm:px-5">
-        <ScoreChip score={p?.score ?? null} />
+    <li className="relative border-b border-[var(--color-border)] last:border-0">
+      {(p?.score ?? 0) >= 80 && <span aria-hidden="true" className="absolute top-5 bottom-5 left-0 w-1 rounded-r-sm bg-[var(--color-accent)]" />}
+      <div className="flex items-start gap-4 px-4 py-5 sm:gap-5 sm:px-6">
+        <ScoreFigure score={p?.score ?? null} />
 
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="min-w-0 flex-1 text-left"
+          className="group min-w-0 flex-1 text-left"
         >
-          <p className="truncate font-medium text-[var(--color-text)]">{lead.businessName}</p>
-          <p className="mt-0.5 truncate text-xs text-[var(--color-text-dim)]">
+          <p className="truncate text-base font-semibold text-[var(--color-text)] group-hover:text-white">{lead.businessName}</p>
+          <p className="mt-0.5 truncate text-sm text-[var(--color-text-dim)]">
             {[p?.segment, location].filter(Boolean).join(" · ") || "Unclassified"}
           </p>
-          {p?.scoreReason && <p className="mt-1.5 line-clamp-2 text-sm text-[var(--color-text-muted)]">{p.scoreReason}</p>}
+          {p?.scoreReason && <p className="mt-2 line-clamp-2 text-[15px] leading-relaxed text-[var(--color-text-muted)]">{p.scoreReason}</p>}
+          <span className="mt-2.5 flex items-center justify-between sm:hidden">
+            <StatusBadge status={lead.status} />
+            <span className="text-sm text-[var(--color-text-dim)]">{open ? "Hide details" : "Details"}</span>
+          </span>
         </button>
 
-        <div className="hidden w-56 shrink-0 text-sm md:block">
-          <p className="truncate text-[var(--color-text)]">{p?.contactName || "—"}</p>
-          {p?.contactTitle && <p className="truncate text-xs text-[var(--color-text-dim)]">{p.contactTitle}</p>}
-          <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">{lead.email || lead.phone || "No contact found"}</p>
+        <div className="hidden w-60 shrink-0 text-sm lg:block">
+          <p className="truncate text-[15px] text-[var(--color-text)]">{p?.contactName || "No named contact"}</p>
+          {p?.contactTitle && <p className="truncate text-[var(--color-text-dim)]">{p.contactTitle}</p>}
+          <p className="mt-1 truncate text-[var(--color-text-muted)]">{lead.email || lead.phone || "No email or phone found"}</p>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-2">
+        <div className="hidden shrink-0 flex-col items-end gap-2 sm:flex">
           <StatusBadge status={lead.status} />
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Hide details" : "Show details"}
-            className="rounded-[2px] p-1 text-[var(--color-text-dim)] hover:bg-white/[0.05]"
+            className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-dim)] transition-colors duration-150 hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text)]"
           >
             <svg
               width="16"
@@ -162,39 +152,39 @@ function ProspectRow({ lead, onNotAFit, pending }: { lead: Lead; onNotAFit: () =
       </div>
 
       {open && (
-        <div className="space-y-5 bg-[var(--color-bg-secondary)]/60 px-4 pb-5 pt-4 sm:px-5 sm:pl-[92px]">
-          <div className="grid gap-4 md:hidden">
-            <div className="text-sm">
+        <div className="space-y-5 px-4 pb-6 sm:pr-6 sm:pl-[100px]">
+          <div className="grid gap-4 lg:hidden">
+            <div className="text-[15px]">
               <p className="text-[var(--color-text)]">{p?.contactName || "No named contact"}</p>
-              {p?.contactTitle && <p className="text-xs text-[var(--color-text-dim)]">{p.contactTitle}</p>}
+              {p?.contactTitle && <p className="text-sm text-[var(--color-text-dim)]">{p.contactTitle}</p>}
             </div>
           </div>
 
           {p?.outreachHook && (
-            <div>
-              <p className="label-mono text-[var(--color-text-dim)]">Opening angle</p>
-              <p className="mt-1 text-sm text-[var(--color-text)]">{p.outreachHook}</p>
+            <div className="well px-5 py-4">
+              <p className="text-sm text-[var(--color-text-dim)]">Opening angle</p>
+              <p className="mt-1 text-base leading-relaxed text-[var(--color-text)]">{p.outreachHook}</p>
             </div>
           )}
 
-          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-[15px]">
             {lead.email && (
-              <a href={`mailto:${lead.email}`} className="text-[var(--color-accent)] hover:underline">
+              <a href={`mailto:${lead.email}`} className="text-[var(--color-text)] underline decoration-[var(--color-border-bright)] underline-offset-4 hover:decoration-[var(--color-steel)]">
                 {lead.email}
               </a>
             )}
             {lead.phone && (
-              <a href={`tel:${lead.phone}`} className="text-[var(--color-text-muted)] hover:underline">
+              <a href={`tel:${lead.phone}`} className="text-[var(--color-text-muted)] underline-offset-4 hover:text-[var(--color-text)] hover:underline">
                 {lead.phone}
               </a>
             )}
             {website && (
-              <a href={website} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-muted)] hover:underline">
+              <a href={website} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-muted)] underline-offset-4 hover:text-[var(--color-text)] hover:underline">
                 {hostname(website)} ↗
               </a>
             )}
             {mapsUrl && (
-              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-muted)] hover:underline">
+              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-muted)] underline-offset-4 hover:text-[var(--color-text)] hover:underline">
                 Google Maps ↗
               </a>
             )}
@@ -203,21 +193,13 @@ function ProspectRow({ lead, onNotAFit, pending }: { lead: Lead; onNotAFit: () =
           <SignalChips lead={lead} />
           <FactorBars lead={lead} />
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={pending || lead.status === "lost"}
-              onClick={onNotAFit}
-              className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3.5 py-2 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:bg-white/[0.05] disabled:opacity-50"
-            >
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href={`/admin/leads/${lead.id}`} className="btn btn-secondary btn-sm">
+              Open lead
+            </Link>
+            <button type="button" disabled={pending || lead.status === "lost"} onClick={onNotAFit} className="btn-quiet text-[15px] disabled:opacity-50">
               Not a fit
             </button>
-            <Link
-              href={`/admin/leads/${lead.id}`}
-              className="rounded-[2px] px-3.5 py-2 text-sm font-medium text-[var(--color-text-muted)] hover:bg-white/[0.05]"
-            >
-              Open lead →
-            </Link>
           </div>
         </div>
       )}
@@ -262,17 +244,18 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
     });
   }
 
+  const hasFilters = Boolean(filters.segment || filters.state || filters.status || filters.minScore || searchParams.get("has"));
   const hot = prospects.filter((l) => (l.prospect?.score ?? 0) >= 80).length;
   const withContact = prospects.filter((l) => l.prospect?.contactName && (l.email || l.phone)).length;
   const exportHref = `/admin/lead-gen/export${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
   return (
     <div>
-      <FindLeadsPanel active={runs.find((r) => r.status === "queued" || r.status === "running") ?? null} />
+      <FindLeadsPanel active={runs.find((r) => r.status === "queued" || r.status === "running") ?? null} startOpen={prospects.length === 0 && !hasFilters} />
       <RunStrip runs={runs} />
 
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <select
             aria-label="Segment"
             value={filters.segment ?? ""}
@@ -312,7 +295,7 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
               </option>
             ))}
           </select>
-          <div className="flex rounded-[2px] bg-[var(--color-bg-card)] p-0.5 ring-1 ring-[var(--color-border)]" role="group" aria-label="Minimum score">
+          <div className="col-span-2 flex h-11 items-center rounded-[var(--radius-sm)] bg-[var(--color-bg-secondary)] p-1" role="group" aria-label="Minimum score">
             {MIN_SCORE_OPTIONS.map((opt) => {
               const active = (filters.minScore ?? 0) === opt.value;
               return (
@@ -321,8 +304,8 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
                   type="button"
                   aria-pressed={active}
                   onClick={() => pushParam("min", opt.value ? String(opt.value) : undefined)}
-                  className={`rounded-[2px] px-3 py-1.5 text-xs font-medium transition-colors ${
-                    active ? "bg-[var(--color-text)] text-[var(--color-on-accent)]" : "text-[var(--color-text-muted)] hover:bg-white/[0.05]"
+                  className={`h-full flex-1 rounded-[5px] px-3 text-sm tabular transition-colors duration-150 ${
+                    active ? "bg-[var(--color-steel)] font-medium text-[var(--color-on-accent)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
                   }`}
                 >
                   {opt.label}
@@ -333,7 +316,7 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
         </div>
         <a
           href={exportHref}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:border-[var(--color-border-bright)]"
+          className="btn btn-secondary shrink-0"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M8 2v8M5 7l3 3 3-3M3 13h10" />
@@ -342,18 +325,25 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
         </a>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-6">
         <ContactFilterChips />
       </div>
 
-      <p className="mb-3 text-sm text-[var(--color-text-muted)]">
-        <span className="font-medium text-[var(--color-text)]">{prospects.length}</span> prospects ·{" "}
-        <span className="font-medium text-[var(--color-text)]">{hot}</span> hot ·{" "}
-        <span className="font-medium text-[var(--color-text)]">{withContact}</span> with a named contact
-      </p>
-      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-[17px] font-semibold text-[var(--color-text)]">Best fit first</h2>
+        <p className="text-sm text-[var(--color-text-muted)] tabular">
+          <span className="font-medium text-[var(--color-text)]">{prospects.length}</span> prospects ·{" "}
+          <span className="font-medium text-[var(--color-accent)]">{hot}</span> hot ·{" "}
+          <span className="font-medium text-[var(--color-text)]">{withContact}</span> with a named contact
+        </p>
+      </div>
+      {error && (
+        <p role="alert" className="mb-3 text-sm text-[var(--color-hot)]">
+          {error}
+        </p>
+      )}
 
-      <ul className="overflow-hidden rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+      <ul className="card overflow-hidden">
         {prospects.map((lead) => (
           <ProspectRow
             key={lead.id}
@@ -363,7 +353,7 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
           />
         ))}
         {prospects.length === 0 && (
-          <li className="px-5 py-12 text-center text-sm text-[var(--color-text-dim)]">No prospects match these filters.</li>
+          <li className="px-6 py-12 text-base text-[var(--color-text-muted)]">No prospects match these filters. Clear one or two to see more.</li>
         )}
       </ul>
     </div>

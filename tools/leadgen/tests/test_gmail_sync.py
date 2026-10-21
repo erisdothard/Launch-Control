@@ -80,4 +80,5 @@ def test_sync_stores_replies_on_known_threads_only() -> None:
     assert row["lead_id"] == "lead-1" and row["direction"] == "in"
     assert row["from_address"] == "paul@sebring.com"
     assert row["body_text"] == "Yes, let's talk."
+    assert row["folder"] == "inbox" and row["conversation_id"] == "t-known"
     assert store.history == "200"

@@ -25,22 +25,30 @@ export default function CompanyInfoForm({ company }: CompanyInfoFormProps) {
   }
 
   return (
-    <form action={formAction} className="max-w-xl space-y-6 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6">
+    <form action={formAction} aria-labelledby="company-heading" className="card p-5 sm:p-8">
+      <h2 id="company-heading" className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--color-steel)]">
+        Company
+      </h2>
+      <p className="mt-2 max-w-2xl text-base text-[var(--color-text-muted)]">The name and logo in the sidebar, and the contact details the CRM keeps on file.</p>
       {state.error && (
-        <div className="rounded-[2px] border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">{state.error}</div>
+        <p role="alert" className="well mt-5 px-4 py-3 text-base text-[var(--color-hot)]">
+          {state.error}
+        </p>
       )}
       {state.success && (
-        <div className="rounded-[2px] border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-300">
-          Saved — this is what shows in the sidebar now.
-        </div>
+        <p role="status" className="well mt-5 px-4 py-3 text-base text-[var(--color-success)]">
+          Saved. The sidebar shows the new details now.
+        </p>
       )}
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-[var(--color-text-muted)]">Logo</label>
+      <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
+
+      <div className="md:col-span-2">
+        <p className="mb-2 block text-sm text-[var(--color-text-dim)]">Logo</p>
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[2px] bg-[var(--color-bg-secondary)]">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)]">
             {logoPreview ? (
-              <Image src={logoPreview} alt="Logo preview" width={56} height={56} className="h-full w-full object-cover" unoptimized />
+              <Image src={logoPreview} alt="Logo preview" width={56} height={56} className="h-full w-full object-contain" unoptimized />
             ) : (
               <span className="text-lg font-semibold text-[var(--color-text-dim)]">
                 {company.name ? company.name[0].toUpperCase() : "?"}
@@ -52,14 +60,14 @@ export default function CompanyInfoForm({ company }: CompanyInfoFormProps) {
             name="logo"
             accept="image/png,image/jpeg,image/webp,image/svg+xml"
             onChange={handleLogoChange}
-            className="text-sm text-[var(--color-text-muted)] file:mr-3 file:rounded-[2px] file:border-0 file:bg-[var(--color-bg-secondary)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[var(--color-text)] hover:file:bg-black/[0.06]"
+            className="min-w-0 text-sm text-[var(--color-text-muted)] file:mr-3 file:h-11 file:cursor-pointer file:rounded-[var(--radius-sm)] file:border-0 file:bg-[var(--color-bg-secondary)] file:px-4 file:text-sm file:font-medium file:text-[var(--color-text)] hover:file:bg-[var(--color-bg-hover)]"
           />
         </div>
-        <p className="mt-1.5 text-xs text-[var(--color-text-dim)]">PNG, JPEG, WebP, or SVG. Up to 2MB.</p>
+        <p className="mt-2 text-sm text-[var(--color-text-dim)]">PNG, JPEG, WebP or SVG, up to 2MB.</p>
       </div>
 
       <div>
-        <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]">
+        <label htmlFor="name" className="mb-1.5 block text-sm text-[var(--color-text-dim)]">
           Company name
         </label>
         <input
@@ -68,12 +76,12 @@ export default function CompanyInfoForm({ company }: CompanyInfoFormProps) {
           type="text"
           required
           defaultValue={company.name}
-          className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
+          className="field"
         />
       </div>
 
       <div>
-        <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]">
+        <label htmlFor="email" className="mb-1.5 block text-sm text-[var(--color-text-dim)]">
           Contact email
         </label>
         <input
@@ -82,12 +90,12 @@ export default function CompanyInfoForm({ company }: CompanyInfoFormProps) {
           type="email"
           defaultValue={company.email}
           placeholder="hello@yourcompany.com"
-          className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
+          className="field"
         />
       </div>
 
       <div>
-        <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]">
+        <label htmlFor="phone" className="mb-1.5 block text-sm text-[var(--color-text-dim)]">
           Phone
         </label>
         <input
@@ -96,12 +104,12 @@ export default function CompanyInfoForm({ company }: CompanyInfoFormProps) {
           type="tel"
           defaultValue={company.phone}
           placeholder="(555) 555-0100"
-          className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
+          className="field"
         />
       </div>
 
       <div>
-        <label htmlFor="address" className="mb-1.5 block text-sm font-medium text-[var(--color-text-muted)]">
+        <label htmlFor="address" className="mb-1.5 block text-sm text-[var(--color-text-dim)]">
           Address
         </label>
         <input
@@ -110,16 +118,14 @@ export default function CompanyInfoForm({ company }: CompanyInfoFormProps) {
           type="text"
           defaultValue={company.address}
           placeholder="123 Main St, Nashville, TN"
-          className="w-full rounded-[2px] border border-transparent bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50 focus:ring-1 focus:ring-[var(--color-accent)]/30"
+          className="field"
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-[2px] bg-[var(--color-accent)] px-5 py-2.5 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-all hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {pending ? "Saving..." : "Save changes"}
+      </div>
+
+      <button type="submit" disabled={pending} className="btn btn-secondary mt-6">
+        {pending ? "Saving..." : "Save company details"}
       </button>
     </form>
   );

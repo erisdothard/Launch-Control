@@ -23,25 +23,32 @@ class FakeResp:
         return None
 
 
-def msg(mid: str, conv: str, sender: str, to: str, body: str, header: str) -> dict[str, Any]:
+def msg(mid: str, conv: str, sender: str, to: str, body: str, header: str, **extra: Any) -> dict[str, Any]:
     return {"id": mid, "conversationId": conv, "internetMessageId": header, "subject": "Re: hello",
-            "from": {"emailAddress": {"address": sender}}, "toRecipients": [{"emailAddress": {"address": to}}],
-            "body": {"content": body}, "receivedDateTime": "2026-10-19T20:00:00Z", "isDraft": False}
+            "from": {"emailAddress": {"address": sender, "name": extra.pop("name", sender)}},
+            "toRecipients": [{"emailAddress": {"address": to}}],
+            "body": {"content": body}, "receivedDateTime": "2026-10-19T20:00:00Z", "isDraft": False, **extra}
 
 
 class FakeGraph:
     def __init__(self) -> None:
         self.urls: list[str] = []
 
-    def refresh(self, refresh: str) -> dict[str, Any]:
+    def refresh(self, refresh: str, scope: str = "Mail.ReadWrite") -> dict[str, Any]:
         return {"access_token": "tok", "refresh_token": "rotated"}
 
     def get(self, token: str, url: str) -> FakeResp:
         self.urls.append(url)
+        if "/attachments" in url:
+            return FakeResp({"value": [
+                {"id": "att-1", "name": "menu.pdf", "size": 2048, "contentType": "application/pdf", "isInline": False},
+                {"id": "att-2", "name": "logo.png", "size": 90, "contentType": "image/png", "isInline": True},
+            ]})
         if "/inbox/" in url:
             return FakeResp({"value": [
                 msg("in-1", "c-crm", "paul@sebring.com", "maxwell@golaunchcontrol.com", "Yes!\n\nFrom: Max\nSent: x", "<a@s>"),
-                msg("in-2", "c-x", "newsletter@spam.com", "maxwell@golaunchcontrol.com", "buy", "<b@s>"),
+                msg("in-2", "c-x", "newsletter@shop.com", "maxwell@golaunchcontrol.com", "buy", "<b@s>", name="Shop News",
+                    isRead=True, hasAttachments=True, ccRecipients=[{"emailAddress": {"address": "Eris@golaunchcontrol.com"}}]),
                 msg("in-3", "c-new", "doug@zfever.com", "eris@golaunchcontrol.com", "Call me", "<c@s>"),
             ], "@odata.deltaLink": "inbox-delta-2"})
         return FakeResp({"value": [
@@ -89,25 +96,95 @@ class FakeStore:
         raise AssertionError("not expected")
 
 
-def test_sync_stores_only_lead_mail_and_skips_crm_sends() -> None:
+def test_sync_stores_every_message_and_skips_crm_sends() -> None:
     store, graph = FakeStore(), FakeGraph()
     account = {"id": "acc", "address": "maxwell@golaunchcontrol.com", "sync_cursor": None}
     n = outlook_sync.sync_account(store, graph, account, now=datetime(2026, 10, 19, tzinfo=UTC))  # type: ignore[arg-type]
 
     by_id = {r["provider_message_id"]: r for r in store.rows}
-    assert n == 3 and set(by_id) == {"in-1", "in-3", "sent-2"}
+    assert n == 4 and set(by_id) == {"in-1", "in-2", "in-3", "sent-2"}
     assert store.attached == ("<crm@lc>", "sent-1", "c-crm")
     assert by_id["in-1"]["lead_id"] == "lead-paul" and by_id["in-1"]["body_text"] == "Yes!"
     assert by_id["in-3"]["direction"] == "in" and by_id["in-3"]["lead_id"] == "lead-doug"
     assert by_id["sent-2"]["direction"] == "out" and by_id["sent-2"]["lead_id"] == "lead-doug"
-    assert json.loads(store.cursor or "{}") == {"inbox": "inbox-delta-2", "sentitems": "sent-delta-2"}
+    assert json.loads(store.cursor or "{}") == {"v": 2, "inbox": "inbox-delta-2", "sentitems": "sent-delta-2"}
     assert store.saved_token == "rotated"
-    assert "receivedDateTime+ge+2026-10-05T00:00:00Z" in graph.urls[0]
+    assert "receivedDateTime+ge+2026-09-19T00:00:00Z" in graph.urls[0]
+
+
+def test_mail_that_isnt_a_leads_is_stored_with_no_lead() -> None:
+    store, graph = FakeStore(), FakeGraph()
+    outlook_sync.sync_account(store, graph, {"id": "acc", "address": "maxwell@golaunchcontrol.com", "sync_cursor": None})  # type: ignore[arg-type]
+    row = next(r for r in store.rows if r["provider_message_id"] == "in-2")
+    assert row["lead_id"] is None
+    assert row["folder"] == "inbox" and row["conversation_id"] == "c-x"
+    assert row["from_name"] == "Shop News" and row["cc_address"] == "eris@golaunchcontrol.com"
+    # Read in Outlook already, so it doesn't arrive unread; lead mail always does.
+    assert row["read_at"] == "2026-10-19T20:00:00Z"
+    assert next(r for r in store.rows if r["provider_message_id"] == "in-1")["read_at"] is None
+    # Real attachments only: the inline signature image is skipped, bytes are never fetched.
+    assert row["attachments"] == [{"name": "menu.pdf", "size": 2048, "type": "application/pdf", "provider_id": "att-1"}]
+    assert sum("/attachments" in u for u in graph.urls) == 1
+
+
+def test_sent_items_land_in_the_sent_folder_with_every_recipient() -> None:
+    rows = outlook_sync.to_rows(
+        {"id": "acc"},
+        [{**msg("s", "c", "maxwell@golaunchcontrol.com", "a@x.com", "hi", "<h>"), "_folder": "sentitems",
+          "toRecipients": [{"emailAddress": {"address": "a@x.com"}}, {"emailAddress": {"address": "b@y.com"}}]}],
+        {"maxwell@golaunchcontrol.com"}, {}, {},
+    )
+    assert rows[0]["folder"] == "sent" and rows[0]["direction"] == "out"
+    assert rows[0]["to_address"] == "a@x.com, b@y.com" and rows[0]["from_name"] == ""
+
+
+def test_old_cursors_are_dropped_once_so_the_lookback_is_walked_again() -> None:
+    store, graph = FakeStore(), FakeGraph()
+    account = {"id": "acc", "address": "maxwell@golaunchcontrol.com",
+               "sync_cursor": json.dumps({"inbox": "https://graph/inbox/d1", "sentitems": "https://graph/sent/d1"})}
+    outlook_sync.sync_account(store, graph, account, now=datetime(2026, 10, 19, tzinfo=UTC))  # type: ignore[arg-type]
+    assert "receivedDateTime+ge+" in graph.urls[0]
 
 
 def test_sync_resumes_from_saved_delta_links() -> None:
     store, graph = FakeStore(), FakeGraph()
     account = {"id": "acc", "address": "maxwell@golaunchcontrol.com",
-               "sync_cursor": json.dumps({"inbox": "https://graph/inbox/d1", "sentitems": "https://graph/sent/d1"})}
+               "sync_cursor": json.dumps({"v": 2, "inbox": "https://graph/inbox/d1", "sentitems": "https://graph/sent/d1"})}
     outlook_sync.sync_account(store, graph, account)  # type: ignore[arg-type]
-    assert graph.urls == ["https://graph/inbox/d1", "https://graph/sent/d1"]
+    assert [u for u in graph.urls if "/attachments" not in u] == ["https://graph/inbox/d1", "https://graph/sent/d1"]
+
+
+def test_app_only_mode_reads_the_mailbox_as_the_app(monkeypatch):
+    # App-only: no stored sign-in is touched; Graph paths address the mailbox, not /me.
+    monkeypatch.setenv("MS_APP_MAILBOX", "Maxwell@GoLaunchControl.com")
+    assert outlook_sync.me() == f"{outlook_sync.GRAPH}/users/maxwell@golaunchcontrol.com"
+
+    class Graph:
+        def app_token(self):
+            return "app-token"
+
+    class Store:
+        def mail_refresh_token(self, _id):
+            raise AssertionError("app-only mode must not read the user's refresh token")
+
+    assert outlook_sync.access_token(Store(), Graph(), {"id": "a", "address": "maxwell@golaunchcontrol.com"}) == "app-token"
+
+
+def test_user_mode_records_microsofts_reason(monkeypatch):
+    monkeypatch.delenv("MS_APP_MAILBOX", raising=False)
+    assert outlook_sync.me() == f"{outlook_sync.GRAPH}/me"
+    flagged = {}
+
+    class Graph:
+        def refresh(self, _rt, scope="Mail.ReadWrite"):
+            raise outlook_sync.ReconnectNeeded("AADSTS50076: MFA required")
+
+    class Store:
+        def mail_refresh_token(self, _id):
+            return "rt"
+
+        def mark_mailbox_reconnect(self, account_id, reason=""):
+            flagged[account_id] = reason
+
+    assert outlook_sync.access_token(Store(), Graph(), {"id": "a", "address": "x@y.z"}) is None
+    assert flagged == {"a": "AADSTS50076: MFA required"}

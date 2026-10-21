@@ -16,11 +16,13 @@ import { cancelLeadsRunAction, findLeadsAction } from "./actions";
 // While a search is queued or running, re-read the page this often so stage and new leads appear.
 const POLL_MS = 8000;
 
+// Chosen options read as filled steel, not yellow: yellow is kept for the one button that starts the search.
 const chipBase =
-  "rounded-[2px] border px-2.5 py-1.5 text-xs transition-colors duration-[var(--duration-fast)] disabled:cursor-not-allowed disabled:opacity-50";
+  "min-h-10 rounded-[var(--radius-sm)] px-3.5 py-2 text-sm transition-colors duration-[var(--duration-fast)] disabled:cursor-not-allowed disabled:opacity-50";
 const chipOff =
-  "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-bright)] hover:text-[var(--color-text)]";
-const chipOn = "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]";
+  "bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)] hover:shadow-[inset_0_0_0_1px_var(--color-border-bright)]";
+const chipOn = "bg-[var(--color-steel)] font-medium text-[var(--color-on-accent)]";
+const legendClass = "mb-2.5 text-sm text-[var(--color-text-dim)]";
 
 function toggle(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -59,14 +61,14 @@ function ActiveRun({ run }: { run: LeadGenRun }) {
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--color-accent)]" />
         </span>
         <div>
-          <p className="font-medium text-[var(--color-text)]" aria-live="polite">
+          <p className="text-base font-medium text-[var(--color-text)]" aria-live="polite">
             {stage}
           </p>
-          <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
+          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
             {scope} · started {minutesSince(run.startedAt)}
             {run.requestedBy ? ` by ${run.requestedBy}` : ""}
           </p>
-          <p className="mt-1 text-xs text-[var(--color-text-dim)]">
+          <p className="mt-1 text-sm text-[var(--color-text-dim)]">
             You can leave this page. New leads show up below as they are saved.
           </p>
         </div>
@@ -75,7 +77,7 @@ function ActiveRun({ run }: { run: LeadGenRun }) {
         type="button"
         disabled={pending}
         onClick={() => startTransition(() => cancelLeadsRunAction(run.id))}
-        className="shrink-0 rounded-[2px] border border-[var(--color-border-bright)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-livery-red)] hover:text-[var(--color-livery-red)] disabled:opacity-50"
+        className="btn btn-secondary btn-sm shrink-0 hover:!text-[var(--color-hot)]"
       >
         {pending ? "Cancelling..." : "Cancel search"}
       </button>
@@ -102,10 +104,10 @@ function StartForm() {
   return (
     <div className="space-y-5">
       <fieldset>
-        <legend className="label-mono mb-2 text-[var(--color-text-dim)]">
-          States <span className="normal-case tracking-normal">{states.length ? `(${states.length})` : "(all)"}</span>
+        <legend className={legendClass}>
+          States <span className="text-[var(--color-text-dim)]">{states.length ? `(${states.length})` : "(all)"}</span>
         </legend>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {LEADGEN_STATES.map((st) => (
             <button
               key={st}
@@ -113,7 +115,7 @@ function StartForm() {
               aria-pressed={states.includes(st)}
               disabled={pending}
               onClick={() => setStates((list) => toggle(list, st))}
-              className={`${chipBase} w-11 font-mono ${states.includes(st) ? chipOn : chipOff}`}
+              className={`${chipBase} w-14 tabular ${states.includes(st) ? chipOn : chipOff}`}
             >
               {st}
             </button>
@@ -122,10 +124,10 @@ function StartForm() {
       </fieldset>
 
       <fieldset>
-        <legend className="label-mono mb-2 text-[var(--color-text-dim)]">
-          Business types <span className="normal-case tracking-normal">{segments.length ? `(${segments.length})` : "(all)"}</span>
+        <legend className={legendClass}>
+          Business types <span className="text-[var(--color-text-dim)]">{segments.length ? `(${segments.length})` : "(all)"}</span>
         </legend>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {LEADGEN_SEGMENTS.map((seg) => (
             <button
               key={seg.key}
@@ -142,10 +144,10 @@ function StartForm() {
       </fieldset>
 
       <fieldset>
-        <legend className="label-mono mb-2 text-[var(--color-text-dim)]">
-          Contact details <span className="normal-case tracking-normal">{require.length ? "" : "(keep all)"}</span>
+        <legend className={legendClass}>
+          Contact details <span className="text-[var(--color-text-dim)]">{require.length ? "" : "(keep all)"}</span>
         </legend>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {LEADGEN_REQUIRE.map((r) => (
             <button
               key={r.key}
@@ -163,8 +165,8 @@ function StartForm() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <fieldset>
-          <legend className="label-mono mb-2 text-[var(--color-text-dim)]">Size</legend>
-          <div className="flex flex-wrap gap-1.5">
+          <legend className={legendClass}>Size</legend>
+          <div className="flex flex-wrap gap-2">
             {LEADGEN_SIZES.map((s) => (
               <button
                 key={s.key}
@@ -174,8 +176,8 @@ function StartForm() {
                 onClick={() => setSize(s.key)}
                 className={`${chipBase} text-left ${size === s.key ? chipOn : chipOff}`}
               >
-                <span className="block text-sm font-medium">{s.label}</span>
-                <span className="block text-[11px] opacity-80">{s.detail}</span>
+                <span className="block text-[15px] font-medium">{s.label}</span>
+                <span className="mt-0.5 block text-sm opacity-80">{s.detail}</span>
               </button>
             ))}
           </div>
@@ -184,13 +186,13 @@ function StartForm() {
           type="button"
           onClick={submit}
           disabled={pending}
-          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-[2px] bg-[var(--color-accent)] px-6 font-display text-[12px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-primary shrink-0"
         >
           {pending ? "Starting..." : "Find leads"}
         </button>
       </div>
       {error && (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="text-sm text-[var(--color-hot)]">
           {error}
         </p>
       )}
@@ -198,21 +200,47 @@ function StartForm() {
   );
 }
 
-export default function FindLeadsPanel({ active }: { active: LeadGenRun | null }) {
+// Collapsed by default once there are prospects, so the list stays the main thing on the page.
+export default function FindLeadsPanel({ active, startOpen }: { active: LeadGenRun | null; startOpen: boolean }) {
+  const [open, setOpen] = useState(startOpen);
   return (
-    <section
-      aria-labelledby="find-leads-heading"
-      className="relative mb-6 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 sm:p-6"
-    >
-      <div aria-hidden="true" className="absolute top-[-1px] left-5 flex h-[3px] w-24 sm:left-6">
+    <section aria-labelledby="find-leads-heading" className="card relative mb-8 overflow-hidden">
+      <div aria-hidden="true" className="absolute top-0 bottom-0 left-0 flex w-[5px] flex-col">
         <span className="flex-[5] bg-[var(--color-accent)]" />
         <span className="flex-[3] bg-[var(--color-livery-orange)]" />
         <span className="flex-[2] bg-[var(--color-livery-red)]" />
       </div>
-      <h2 id="find-leads-heading" className="label-mono mb-4 text-[var(--color-steel)]">
-        Find leads
-      </h2>
-      {active ? <ActiveRun run={active} /> : <StartForm />}
+      <div className="px-5 py-5 sm:pr-7 sm:pl-8">
+        {active ? (
+          <>
+            <h2 id="find-leads-heading" className="mb-3 text-[17px] font-semibold text-[var(--color-text)]">
+              Searching for leads
+            </h2>
+            <ActiveRun run={active} />
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 id="find-leads-heading" className="text-[17px] font-semibold text-[var(--color-text)]">
+                  Find more leads
+                </h2>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                  Pick where to look and what kind of business. The search runs on its own and new leads land in the list below.
+                </p>
+              </div>
+              <button type="button" aria-expanded={open} aria-controls="find-leads-form" onClick={() => setOpen((v) => !v)} className={`btn shrink-0 ${open ? "btn-secondary" : "btn-primary"}`}>
+                {open ? "Close" : "New search"}
+              </button>
+            </div>
+            {open && (
+              <div id="find-leads-form" className="mt-6 border-t border-[var(--color-border)] pt-6">
+                <StartForm />
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </section>
   );
 }

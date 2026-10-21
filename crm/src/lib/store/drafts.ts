@@ -1,7 +1,8 @@
 import { getStoreClient, type StoreClient } from "./db";
 
 // Emails the worker wrote for a person to look over (tools/leadgen/leadgen/automation.py):
-// a reply to every message a lead sends, and follow-ups when automatic sending is off.
+// a reply to every message a lead sends, and follow-ups when automatic sending is off. They show
+// in the Inbox under Drafts.
 export type DraftKind = "reply" | "follow_up";
 
 export interface EmailDraft {
@@ -17,6 +18,8 @@ export interface EmailDraft {
   createdAt: string;
   /** Why the last send attempt failed, when it did. */
   error: string | null;
+  /** The message a reply draft answers (email_messages id); the send threads under it. */
+  replyToMessageId: string | null;
   /** What they wrote, for reply drafts, so the reviewer sees what is being answered. */
   replyingTo: { subject: string; body: string; at: string } | null;
 }
@@ -39,6 +42,7 @@ interface DraftRow {
   body_text: string;
   created_at: string;
   error: string | null;
+  reply_to_message_id: string | null;
   leads: { business_name: string; contact_name: string | null } | null;
   email_messages: { subject: string; body_text: string; created_at: string } | null;
 }
@@ -56,6 +60,7 @@ function rowToDraft(row: DraftRow): EmailDraft {
     body: row.body_text,
     createdAt: row.created_at,
     error: row.error,
+    replyToMessageId: row.reply_to_message_id,
     replyingTo: row.email_messages
       ? { subject: row.email_messages.subject, body: row.email_messages.body_text, at: row.email_messages.created_at }
       : null,
@@ -63,7 +68,7 @@ function rowToDraft(row: DraftRow): EmailDraft {
 }
 
 const DRAFT_SELECT =
-  "id, lead_id, kind, follow_up_number, to_address, subject, body_text, created_at, error, leads(business_name, contact_name), email_messages(subject, body_text, created_at)";
+  "id, lead_id, kind, follow_up_number, to_address, subject, body_text, created_at, error, reply_to_message_id, leads(business_name, contact_name), email_messages(subject, body_text, created_at)";
 
 /** Pending drafts, replies first (someone is waiting on those), then oldest first. */
 export async function getPendingDrafts(client?: StoreClient): Promise<EmailDraft[]> {
@@ -140,4 +145,21 @@ export async function updateAutomationSettings(patch: Partial<AutomationSettings
     })
     .eq("id", true);
   if (error) throw error;
+}
+
+/**
+ * Takes a pending draft for sending: flips it to "sent" only if it is still pending, so two clicks,
+ * two tabs or the follow-up sender can't send it twice. False when someone else got there first.
+ */
+export async function claimDraft(id: string, sentBy: string, client?: StoreClient): Promise<boolean> {
+  const supabase = await getStoreClient(client);
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("email_drafts")
+    .update({ status: "sent", sent_at: now, sent_by: sentBy, updated_at: now })
+    .eq("id", id)
+    .eq("status", "pending")
+    .select("id");
+  if (error) throw error;
+  return (data ?? []).length > 0;
 }

@@ -1,47 +1,64 @@
 "use client";
 
-// "deal" stages genericized to a universal sales pipeline (Hyper Racer's had
-// car-build-specific stages: deposit/build-order/in-production/shipping).
-// The "event" variant was dropped — events aren't part of this shell.
-// Translucent tints with light text, for the dark Launch Control ground.
+// v2: a soft pill with a dot. Colour only where it means something (tokens.css):
+// hot = they replied and it's our move, success = won/customer, steel = in play, dim = closed.
+// (warm stays reserved for "due today" and lives on dates, not statuses.)
+// Everything else stays neutral so a list of badges never turns into confetti.
 type BadgeVariant = "lead" | "deal";
+type Tone = "neutral" | "steel" | "hot" | "warm" | "success" | "closed";
 
 interface StatusBadgeProps {
   status: string;
   variant?: BadgeVariant;
 }
 
-const leadColors: Record<string, string> = {
-  new: "bg-[var(--color-steel)]/10 text-[var(--color-steel)]",
-  contacted: "bg-amber-400/10 text-amber-300",
-  replied: "bg-teal-400/10 text-teal-300",
-  meeting: "bg-sky-400/10 text-sky-300",
-  proposal: "bg-purple-400/10 text-purple-300",
-  negotiation: "bg-[var(--color-livery-orange)]/15 text-[var(--color-livery-orange)]",
-  converted: "bg-emerald-400/10 text-emerald-300",
-  lost: "bg-red-400/10 text-red-300",
+interface BadgeMeta {
+  label: string;
+  tone: Tone;
+}
+
+const LEAD: Record<string, BadgeMeta> = {
+  new: { label: "New", tone: "neutral" },
+  contacted: { label: "Contacted", tone: "neutral" },
+  replied: { label: "Replied", tone: "hot" },
+  meeting: { label: "Meeting set", tone: "steel" },
+  proposal: { label: "Proposal out", tone: "steel" },
+  negotiation: { label: "Negotiating", tone: "steel" },
+  converted: { label: "Customer", tone: "success" },
+  lost: { label: "Closed", tone: "closed" },
 };
 
-const dealColors: Record<string, string> = {
-  inquiry: "bg-[var(--color-steel)]/10 text-[var(--color-steel)]",
-  proposal: "bg-purple-400/10 text-purple-300",
-  negotiation: "bg-amber-400/10 text-amber-300",
-  won: "bg-emerald-400/10 text-emerald-300",
-  lost: "bg-red-400/10 text-red-300",
+const DEAL: Record<string, BadgeMeta> = {
+  inquiry: { label: "Inquiry", tone: "neutral" },
+  proposal: { label: "Proposal out", tone: "steel" },
+  negotiation: { label: "Negotiating", tone: "steel" },
+  won: { label: "Won", tone: "success" },
+  lost: { label: "Lost", tone: "closed" },
 };
 
-const colorMaps: Record<BadgeVariant, Record<string, string>> = {
-  lead: leadColors,
-  deal: dealColors,
+const TONE: Record<Tone, { pill: string; dot: string }> = {
+  neutral: { pill: "bg-white/[0.06] text-[var(--color-text-muted)]", dot: "bg-[var(--color-text-dim)]" },
+  steel: { pill: "bg-[var(--color-steel)]/[0.12] text-[var(--color-text)]", dot: "bg-[var(--color-steel)]" },
+  hot: { pill: "bg-[var(--color-hot)]/[0.12] text-[var(--color-hot)]", dot: "bg-[var(--color-hot)]" },
+  warm: { pill: "bg-[var(--color-warm)]/[0.12] text-[var(--color-warm)]", dot: "bg-[var(--color-warm)]" },
+  success: { pill: "bg-[var(--color-success)]/[0.12] text-[var(--color-success)]", dot: "bg-[var(--color-success)]" },
+  closed: { pill: "bg-white/[0.04] text-[var(--color-text-dim)]", dot: "bg-white/25" },
 };
+
+/** The plain-English label for a status, for places that need the words without the pill. */
+export function statusLabel(status: string, variant: BadgeVariant = "lead"): string {
+  const map = variant === "deal" ? DEAL : LEAD;
+  return map[status]?.label ?? status.replace(/[-_]/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
 
 export default function StatusBadge({ status, variant = "lead" }: StatusBadgeProps) {
-  const colors = colorMaps[variant][status] ?? "bg-white/[0.06] text-[var(--color-text-muted)]";
-  const displayLabel = status.replace(/-/g, " ");
+  const map = variant === "deal" ? DEAL : LEAD;
+  const tone = TONE[map[status]?.tone ?? "neutral"];
 
   return (
-    <span className={`inline-flex items-center rounded-[2px] px-2 py-0.5 text-xs font-medium capitalize ${colors}`}>
-      {displayLabel}
+    <span className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full py-1 pr-3 pl-2.5 text-sm leading-none font-medium ${tone.pill}`}>
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+      {statusLabel(status, variant)}
     </span>
   );
 }

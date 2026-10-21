@@ -36,6 +36,19 @@ export async function getDeals(client?: StoreClient): Promise<Deal[]> {
   return (data as DealRow[]).map(rowToDeal);
 }
 
+/** The deals opened from one lead, newest first. Read-only; the lead record shows their value. */
+export async function getDealsForLead(leadId: string, client?: StoreClient): Promise<Deal[]> {
+  const supabase = await getStoreClient(client);
+  const { data, error } = await supabase
+    .from("deals")
+    .select("*")
+    .eq("from_lead_id", leadId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data as DealRow[]).map(rowToDeal);
+}
+
 export interface CreateDealInput {
   businessName: string;
   value: number;

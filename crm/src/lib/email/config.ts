@@ -10,12 +10,17 @@ export const emailConfig = {
   msClientId: process.env.MS_CLIENT_ID ?? "",
   msClientSecret: process.env.MS_CLIENT_SECRET ?? "",
   msTenantId: process.env.MS_TENANT_ID ?? "",
+  // App-only mode: the CRM signs in as its own app registration (client credentials) and works on
+  // this one mailbox. No user sign-in, so no refresh token for Microsoft's MFA rules to revoke.
+  msAppMailbox: (process.env.MS_APP_MAILBOX ?? "").trim().toLowerCase(),
   // The zone all-day calendar events are pinned to when they're copied to Outlook.
   teamTimeZone: process.env.TEAM_TIME_ZONE ?? "America/Chicago",
 };
 
 export const resendEnabled = () => Boolean(emailConfig.resendKey);
 export const outlookEnabled = () => Boolean(emailConfig.msClientId && emailConfig.msClientSecret && emailConfig.msTenantId);
+/** Whether Outlook runs as the app itself (client credentials) instead of a signed-in user. */
+export const outlookAppOnly = () => outlookEnabled() && Boolean(emailConfig.msAppMailbox);
 export const gmailEnabled = () => Boolean(emailConfig.googleClientId && emailConfig.googleClientSecret);
 
 // Replies to a business-address email go to lead+<lead id>@<reply domain>, so the inbound

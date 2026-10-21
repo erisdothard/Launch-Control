@@ -56,7 +56,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
   return (
     <>
-      <AdminHeader title="Calendar" subtitle="Meetings, follow-ups and tasks for the whole team." />
+      <AdminHeader title="Calendar" subtitle="Meetings, follow-ups and tasks in one place. Pick a day to see it, or add a meeting to it." />
       <CalendarClient
         year={year}
         month={month}

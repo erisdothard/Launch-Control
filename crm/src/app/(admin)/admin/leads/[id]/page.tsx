@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import AdminHeader from "@/components/admin/AdminHeader";
 import { getLeadById } from "@/lib/store/leads";
+import { getDealsForLead } from "@/lib/store/deals";
 import { getActivityLog } from "@/lib/store/activity";
 import LeadDetailClient from "./LeadDetailClient";
 import MessagesPanel from "./MessagesPanel";
@@ -8,40 +8,36 @@ import { getEmailAccounts, getThread } from "@/lib/store/messages";
 import { getUpcomingEventsForLead } from "@/lib/store/calendar";
 import { teamTodayISO } from "@/lib/leads/followUp";
 import { getPendingDrafts } from "@/lib/store/drafts";
-import Link from "next/link";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const lead = await getLeadById(id);
   if (!lead) notFound();
 
-  const [allActivity, messages, accounts, meetings, drafts] = await Promise.all([
+  const [allActivity, messages, accounts, meetings, drafts, deals] = await Promise.all([
     getActivityLog(200),
     getThread(id),
     getEmailAccounts(),
     getUpcomingEventsForLead(id),
     getPendingDrafts(),
+    getDealsForLead(id),
   ]);
   const draft = drafts.find((d) => d.leadId === id);
   const leadActivity = allActivity.filter((a) => a.entityType === "lead" && a.entityId === id);
+  // The deal the hero shows: the newest one still alive, else the newest at all (a won/lost record).
+  const deal = deals.find((d) => d.stage !== "lost") ?? deals[0] ?? null;
+  const lastIn = [...messages].reverse().find((m) => m.direction === "in");
 
   return (
-    <>
-      <AdminHeader title={lead.businessName} subtitle={`Added ${new Date(lead.createdAt).toLocaleDateString()}`} />
-      {draft && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[2px] border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/[0.06] px-5 py-3">
-          <p className="text-sm text-[var(--color-text)]">
-            {draft.kind === "reply" ? "A reply to their last message is drafted and waiting." : `Follow-up ${draft.followUpNumber ?? ""} is drafted and waiting.`}
-          </p>
-          <Link
-            href="/admin/drafts"
-            className="rounded-[2px] bg-[var(--color-accent)] px-3.5 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
-          >
-            Review in Drafts
-          </Link>
-        </div>
-      )}
-      <div className="mb-6">
+    <LeadDetailClient
+      lead={lead}
+      deal={deal}
+      draft={draft ? { kind: draft.kind, followUpNumber: draft.followUpNumber, body: draft.body } : null}
+      lastFromThem={lastIn ? { body: lastIn.bodyText, at: lastIn.createdAt } : null}
+      activity={leadActivity}
+      meetings={meetings}
+      today={teamTodayISO()}
+      messages={
         <MessagesPanel
           leadId={lead.id}
           leadEmail={lead.email}
@@ -50,8 +46,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           messages={messages}
           accounts={accounts}
         />
-      </div>
-      <LeadDetailClient lead={lead} activity={leadActivity} meetings={meetings} today={teamTodayISO()} />
-    </>
+      }
+    />
   );
 }

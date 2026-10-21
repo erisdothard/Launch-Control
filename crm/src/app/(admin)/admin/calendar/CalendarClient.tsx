@@ -36,15 +36,16 @@ interface CalendarClientProps {
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const KIND_STYLE = {
-  event: "border-l-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-text)]",
-  followup: "border-l-[var(--color-livery-orange)] bg-[var(--color-livery-orange)]/10 text-[var(--color-text)]",
-  task: "border-l-[var(--color-steel)] bg-white/[0.05] text-[var(--color-text-muted)]",
+// Kind is a small coloured bar, never a filled surface: yellow meeting, orange follow-up, steel task.
+const KIND_BAR = {
+  event: "bg-[var(--color-accent)]",
+  followup: "bg-[var(--color-livery-orange)]",
+  task: "bg-[var(--color-steel)]",
 } as const;
 const KIND_LABEL = { followup: "Follow-up", task: "Task" } as const;
 
-const inputClass =
-  "w-full rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50";
+const inputClass = "field";
+const labelClass = "mb-1.5 block text-sm text-[var(--color-text-dim)]";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const isoDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -57,6 +58,11 @@ function addDays(day: string, n: number): string {
 
 function timeLabel(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+/** "2:00" or "2:30" for the month grid: the hour is enough when the column is narrow. */
+function shortTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M$/, "");
 }
 
 /** Local days an event covers (an all-day event stored as local midnight to local midnight). */
@@ -149,37 +155,40 @@ function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead
   }
 
   return (
-    <div className="space-y-3">
-      <input autoFocus value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Call with Fever Racing" maxLength={200} className={inputClass} aria-label="Title" />
-      <div className="grid grid-cols-2 gap-2">
-        <label className="col-span-2 flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-          <input type="checkbox" checked={form.allDay} onChange={(e) => set("allDay", e.target.checked)} className="accent-[var(--color-accent)]" />
+    <div className="space-y-4">
+      <label className="block">
+        <span className={labelClass}>What is it</span>
+        <input autoFocus value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Call with Fever Racing" maxLength={200} className={inputClass} />
+      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="col-span-2 flex min-h-11 cursor-pointer items-center gap-3 text-base text-[var(--color-text-muted)]">
+          <input type="checkbox" checked={form.allDay} onChange={(e) => set("allDay", e.target.checked)} className="h-5 w-5 accent-[var(--color-steel)]" />
           All day
         </label>
         <label className={form.allDay ? "" : "col-span-2"}>
-          <span className="mb-1 block text-xs text-[var(--color-text-muted)]">{form.allDay ? "From" : "Date"}</span>
+          <span className={labelClass}>{form.allDay ? "From" : "Date"}</span>
           <input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} className={inputClass} />
         </label>
         {form.allDay ? (
           <label>
-            <span className="mb-1 block text-xs text-[var(--color-text-muted)]">To</span>
+            <span className={labelClass}>To</span>
             <input type="date" value={form.endDate} min={form.date} onChange={(e) => set("endDate", e.target.value)} className={inputClass} />
           </label>
         ) : (
           <>
             <label>
-              <span className="mb-1 block text-xs text-[var(--color-text-muted)]">Start</span>
+              <span className={labelClass}>Start</span>
               <input type="time" value={form.start} onChange={(e) => set("start", e.target.value)} className={inputClass} />
             </label>
             <label>
-              <span className="mb-1 block text-xs text-[var(--color-text-muted)]">End</span>
+              <span className={labelClass}>End</span>
               <input type="time" value={form.end} onChange={(e) => set("end", e.target.value)} className={inputClass} />
             </label>
           </>
         )}
       </div>
       <label className="block">
-        <span className="mb-1 block text-xs text-[var(--color-text-muted)]">Lead (optional)</span>
+        <span className={labelClass}>Lead, if it is about one</span>
         <select value={form.leadId} onChange={(e) => set("leadId", e.target.value)} className={inputClass}>
           <option value="">None</option>
           {leads.map((l) => (
@@ -189,27 +198,28 @@ function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead
           ))}
         </select>
       </label>
-      <input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Location or call link" maxLength={300} className={inputClass} aria-label="Location" />
-      <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Notes" rows={3} className={inputClass} aria-label="Notes" />
+      <label className="block">
+        <span className={labelClass}>Where</span>
+        <input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Address or call link" maxLength={300} className={inputClass} />
+      </label>
+      <label className="block">
+        <span className={labelClass}>Notes</span>
+        <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} className={`${inputClass} resize-y`} />
+      </label>
       {error && (
-        <p role="alert" className="text-xs text-red-400">
+        <p role="alert" className="text-sm text-[var(--color-hot)]">
           {error}
         </p>
       )}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={save}
-          disabled={pending || !form.title.trim()}
-          className="rounded-[2px] bg-[var(--color-accent)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-40"
-        >
-          {pending ? "Saving..." : "Save"}
+      <div className="flex items-center gap-4 pt-1">
+        <button type="button" onClick={save} disabled={pending || !form.title.trim()} className="btn btn-primary">
+          {pending ? "Saving..." : form.id ? "Save" : "Add to calendar"}
         </button>
-        <button type="button" onClick={() => onDone()} className="px-3 py-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+        <button type="button" onClick={() => onDone()} className="btn-quiet">
           Cancel
         </button>
         {form.id && (
-          <button type="button" onClick={remove} disabled={pending} className="ml-auto px-2 py-2 text-xs text-[var(--color-text-dim)] hover:text-[var(--color-livery-red)]">
+          <button type="button" onClick={remove} disabled={pending} className="btn-quiet ml-auto text-sm hover:!text-[var(--color-hot)]">
             Delete
           </button>
         )}
@@ -254,29 +264,37 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
     return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   })();
 
-  if (!mounted) return <div aria-busy="true" className="min-h-[36rem] rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)]" />;
+  if (!mounted) return <div aria-busy="true" className="card min-h-[36rem]" />;
+
+  const navClass =
+    "flex h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] px-3 text-base text-[var(--color-text-muted)] transition-colors duration-150 hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text)]";
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_22rem]">
-      <section aria-label={title} className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)]">
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3 sm:px-5">
-          <h2 className="font-display text-sm uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)]">{title}</h2>
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
+      <section aria-label={title} className="card overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <h2 className="text-lg font-semibold whitespace-nowrap tracking-[-0.02em] text-[var(--color-steel)] sm:text-[22px]">{title}</h2>
           <div className="flex items-center gap-1">
-            <Link href={`/admin/calendar?m=${prev}`} aria-label="Previous month" className="rounded-[2px] px-2.5 py-1.5 text-[var(--color-text-muted)] hover:bg-white/[0.05] hover:text-[var(--color-text)]">
-              ←
+            <Link href={`/admin/calendar?m=${prev}`} aria-label="Previous month" className={navClass}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M11 4L6 9l5 5" />
+              </svg>
             </Link>
-            <Link href="/admin/calendar" className="rounded-[2px] px-2.5 py-1.5 text-xs text-[var(--color-text-muted)] hover:bg-white/[0.05] hover:text-[var(--color-text)]">
+            <Link href="/admin/calendar" className={navClass}>
               Today
             </Link>
-            <Link href={`/admin/calendar?m=${next}`} aria-label="Next month" className="rounded-[2px] px-2.5 py-1.5 text-[var(--color-text-muted)] hover:bg-white/[0.05] hover:text-[var(--color-text)]">
-              →
+            <Link href={`/admin/calendar?m=${next}`} aria-label="Next month" className={navClass}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M7 4l5 5-5 5" />
+              </svg>
             </Link>
           </div>
         </div>
-        <div className="grid grid-cols-7 border-b border-[var(--color-border)]">
+        <div className="grid grid-cols-7 border-y border-[var(--color-border)]">
           {WEEKDAYS.map((w) => (
-            <div key={w} className="label-mono px-2 py-2 text-center text-[var(--color-text-dim)]">
-              {w}
+            <div key={w} className="py-2.5 text-center text-sm text-[var(--color-text-dim)]">
+              <span className="sm:hidden">{w[0]}</span>
+              <span className="hidden sm:inline">{w}</span>
             </div>
           ))}
         </div>
@@ -285,6 +303,7 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
             const items = byDay.get(cell);
             const count = (items?.events.length ?? 0) + (items?.dated.length ?? 0);
             const isSelected = cell === selected;
+            const isToday = cell === today;
             return (
               <button
                 key={cell}
@@ -295,36 +314,40 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
                 }}
                 aria-pressed={isSelected}
                 aria-label={`${cell}${count ? `, ${count} items` : ""}`}
-                className={`relative flex min-h-16 flex-col items-stretch gap-1 border-r border-b border-[var(--color-border)] p-1.5 text-left transition-colors [&:nth-child(7n)]:border-r-0 sm:min-h-28 ${
-                  isSelected ? "bg-[var(--color-accent)]/[0.07]" : "hover:bg-white/[0.03]"
+                className={`relative flex min-h-16 flex-col items-stretch gap-1.5 border-r border-b border-[var(--color-border)] p-1.5 text-left transition-colors duration-150 [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0 sm:min-h-[7.5rem] sm:p-2 ${
+                  isSelected ? "bg-[var(--color-bg-secondary)] shadow-[inset_0_0_0_1px_var(--color-border-bright)]" : "hover:bg-[var(--color-bg-hover)]"
                 } ${inMonth(cell) ? "" : "opacity-40"}`}
               >
                 <span
-                  className={`self-start rounded-[2px] px-1.5 font-mono text-xs tabular-nums ${
-                    cell === today ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]" : "text-[var(--color-text-muted)]"
+                  className={`flex h-7 w-7 items-center justify-center self-start rounded-full text-sm tabular ${
+                    isToday ? "bg-[var(--color-steel)] font-semibold text-[var(--color-on-accent)]" : isSelected ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
                   }`}
                 >
                   {Number(cell.slice(8))}
                 </span>
-                <span className="hidden flex-col gap-0.5 sm:flex">
+                <span className="hidden flex-col gap-1 sm:flex">
                   {items?.events.slice(0, 3).map((e) => (
-                    <span key={e.id} className={`truncate border-l-2 px-1 text-[11px] ${KIND_STYLE.event}`}>
-                      {!e.allDay && <span className="text-[var(--color-text-dim)]">{timeLabel(e.startsAt)} </span>}
-                      {e.title}
+                    <span key={e.id} className="flex min-w-0 gap-1.5 text-sm leading-tight text-[var(--color-text)]">
+                      <span aria-hidden="true" className={`w-[3px] shrink-0 self-stretch rounded-full ${KIND_BAR.event}`} />
+                      <span className="min-w-0">
+                        {!e.allDay && <span className="block font-mono text-[13px] text-[var(--color-text-dim)]">{shortTime(e.startsAt)}</span>}
+                        <span className="block truncate">{e.title}</span>
+                      </span>
                     </span>
                   ))}
                   {items?.dated.slice(0, Math.max(0, 3 - items.events.length)).map((d) => (
-                    <span key={d.key} className={`truncate border-l-2 px-1 text-[11px] ${KIND_STYLE[d.kind]}`}>
-                      {d.title}
+                    <span key={d.key} className="flex min-w-0 items-center gap-1.5 text-sm leading-tight text-[var(--color-text-muted)]">
+                      <span aria-hidden="true" className={`h-3.5 w-[3px] shrink-0 rounded-full ${KIND_BAR[d.kind]}`} />
+                      <span className="truncate">{d.title}</span>
                     </span>
                   ))}
-                  {count > 3 && <span className="px-1 text-[10px] text-[var(--color-text-dim)]">+{count - 3} more</span>}
+                  {count > 3 && <span className="pl-[9px] text-sm text-[var(--color-text-dim)]">{count - 3} more</span>}
                 </span>
                 {count > 0 && (
-                  <span className="flex gap-0.5 sm:hidden" aria-hidden="true">
-                    {items?.events.length ? <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" /> : null}
-                    {items?.dated.some((d) => d.kind === "followup") ? <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-livery-orange)]" /> : null}
-                    {items?.dated.some((d) => d.kind === "task") ? <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-steel)]" /> : null}
+                  <span className="flex gap-1 pl-1 sm:hidden" aria-hidden="true">
+                    {items?.events.length ? <span className={`h-1.5 w-1.5 rounded-full ${KIND_BAR.event}`} /> : null}
+                    {items?.dated.some((d) => d.kind === "followup") ? <span className={`h-1.5 w-1.5 rounded-full ${KIND_BAR.followup}`} /> : null}
+                    {items?.dated.some((d) => d.kind === "task") ? <span className={`h-1.5 w-1.5 rounded-full ${KIND_BAR.task}`} /> : null}
                   </span>
                 )}
               </button>
@@ -333,85 +356,102 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
         </div>
       </section>
 
-      <aside aria-labelledby="day-heading" className="rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 id="day-heading" className="text-sm font-semibold text-[var(--color-text)]">
-            {selectedLabel}
+      <aside aria-labelledby="day-heading" className="xl:pt-1">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 id="day-heading" className="text-[17px] font-semibold text-[var(--color-text)]">
+            {selected === today ? `Today, ${selectedLabel.split(", ").slice(1).join(", ")}` : selectedLabel}
           </h2>
           {!draft && (
-            <button
-              type="button"
-              onClick={() => setDraft(newDraft(selected, null))}
-              className="rounded-[2px] bg-[var(--color-accent)] px-3 py-1.5 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
-            >
-              + Event
+            <button type="button" onClick={() => setDraft(newDraft(selected, null))} className="btn btn-primary btn-sm">
+              Add event
             </button>
           )}
         </div>
 
         {notice && (
-          <p role="status" className="mb-4 rounded-[2px] border border-[var(--color-livery-orange)]/40 bg-[var(--color-livery-orange)]/10 px-3 py-2 text-xs text-[var(--color-text)]">
+          <p role="status" className="well mb-4 px-4 py-3 text-sm text-[var(--color-warm)]">
             {notice}
           </p>
         )}
         {draft ? (
-          <EventForm
-            key={draft.id ?? `new-${draft.date}`}
-            draft={draft}
-            leads={leads}
-            onDone={(warning) => {
-              setDraft(null);
-              setNotice(warning ?? null);
-            }}
-          />
+          <div className="card p-5">
+            <p className="mb-4 text-base font-semibold text-[var(--color-text)]">{draft.id ? "Edit event" : "New event"}</p>
+            <EventForm
+              key={draft.id ?? `new-${draft.date}`}
+              draft={draft}
+              leads={leads}
+              onDone={(warning) => {
+                setDraft(null);
+                setNotice(warning ?? null);
+              }}
+            />
+          </div>
         ) : day.events.length + day.dated.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-dim)]">Nothing on this day.</p>
+          <p className="border-t border-[var(--color-border)] py-5 text-base text-[var(--color-text-muted)]">Nothing on this day.</p>
         ) : (
-          <ul className="space-y-2">
-            {day.events.map((e) => (
-              <li key={e.id}>
-                {e.outlookLink ? (
-                  <a href={e.outlookLink} target="_blank" rel="noopener noreferrer" className={`block border-l-2 px-3 py-2 hover:brightness-125 ${KIND_STYLE.event}`}>
-                    <p className="text-sm font-medium">{e.title}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">{e.allDay ? "All day" : `${timeLabel(e.startsAt)} – ${timeLabel(e.endsAt)}`}</p>
-                    {e.location && <p className="truncate text-xs text-[var(--color-text-dim)]">{e.location}</p>}
-                    <p className="text-[11px] text-[var(--color-text-dim)]">From Outlook · open to edit</p>
-                  </a>
-                ) : (
-                <button type="button" onClick={() => setDraft(draftFromEvent(e))} className={`w-full border-l-2 px-3 py-2 text-left hover:brightness-125 ${KIND_STYLE.event}`}>
-                  <p className="text-sm font-medium">{e.title}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    {e.allDay ? "All day" : `${timeLabel(e.startsAt)} – ${timeLabel(e.endsAt)}`}
-                    {e.leadId && leadName.get(e.leadId) ? ` · ${leadName.get(e.leadId)}` : ""}
-                  </p>
-                  {e.location && <p className="truncate text-xs text-[var(--color-text-dim)]">{e.location}</p>}
-                  <p className="text-[11px] text-[var(--color-text-dim)]">Added by {e.createdBy}</p>
-                </button>
-                )}
-              </li>
-            ))}
+          <ul className="border-t border-[var(--color-border)]">
+            {day.events.map((e) => {
+              const when = e.allDay ? "All day" : timeLabel(e.startsAt);
+              const inner = (
+                <>
+                  <span aria-hidden="true" className={`w-[3px] self-stretch rounded-full ${KIND_BAR.event}`} />
+                  <span className={`pt-px text-sm text-[var(--color-text-dim)] tabular ${e.allDay ? "" : "font-mono"}`}>{when}</span>
+                  <span className="min-w-0">
+                    <span className="block text-base font-medium text-[var(--color-text)] group-hover:text-white">{e.title}</span>
+                    <span className="mt-0.5 block text-sm text-[var(--color-text-muted)]">
+                      {e.allDay ? "Meeting" : `Until ${timeLabel(e.endsAt)}`}
+                      {e.leadId && leadName.get(e.leadId) ? ` · ${leadName.get(e.leadId)}` : ""}
+                    </span>
+                    {e.location && <span className="mt-0.5 block truncate text-sm text-[var(--color-text-dim)]">{e.location}</span>}
+                    <span className="mt-0.5 block text-sm text-[var(--color-text-dim)]">
+                      {e.outlookLink ? "From Outlook, opens there to edit" : `Added by ${e.createdBy}`}
+                    </span>
+                  </span>
+                </>
+              );
+              const rowClass =
+                "group grid w-full grid-cols-[3px_4.75rem_minmax(0,1fr)] gap-x-3 border-b border-[var(--color-border)] py-3.5 text-left transition-colors duration-150 hover:bg-[var(--color-bg-hover)]";
+              return (
+                <li key={e.id}>
+                  {e.outlookLink ? (
+                    <a href={e.outlookLink} target="_blank" rel="noopener noreferrer" className={rowClass}>
+                      {inner}
+                    </a>
+                  ) : (
+                    <button type="button" onClick={() => setDraft(draftFromEvent(e))} className={rowClass}>
+                      {inner}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
             {day.dated.map((d) => (
               <li key={d.key}>
-                <Link href={d.href} className={`block border-l-2 px-3 py-2 hover:brightness-125 ${KIND_STYLE[d.kind]}`}>
-                  <p className="text-sm font-medium">{d.title}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    {KIND_LABEL[d.kind]} · {d.detail}
-                  </p>
+                <Link
+                  href={d.href}
+                  className="group grid grid-cols-[3px_4.75rem_minmax(0,1fr)] gap-x-3 border-b border-[var(--color-border)] py-3.5 transition-colors duration-150 hover:bg-[var(--color-bg-hover)]"
+                >
+                  <span aria-hidden="true" className={`w-[3px] self-stretch rounded-full ${KIND_BAR[d.kind]}`} />
+                  <span className="pt-px text-sm text-[var(--color-text-dim)]">{KIND_LABEL[d.kind]}</span>
+                  <span className="min-w-0">
+                    <span className="block text-base font-medium text-[var(--color-text)] group-hover:text-white">{d.title}</span>
+                    <span className="mt-0.5 block text-sm text-[var(--color-text-muted)]">{d.detail}</span>
+                  </span>
                 </Link>
               </li>
             ))}
           </ul>
         )}
 
-        <div className="mt-6 flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--color-border)] pt-4 text-[11px] text-[var(--color-text-dim)]">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 bg-[var(--color-accent)]" /> Meeting
+        <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1 text-sm text-[var(--color-text-dim)]">
+          <span className="flex items-center gap-2">
+            <span className={`h-3.5 w-[3px] rounded-full ${KIND_BAR.event}`} /> Meeting
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 bg-[var(--color-livery-orange)]" /> Follow-up
+          <span className="flex items-center gap-2">
+            <span className={`h-3.5 w-[3px] rounded-full ${KIND_BAR.followup}`} /> Follow-up
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 bg-[var(--color-steel)]" /> Task
+          <span className="flex items-center gap-2">
+            <span className={`h-3.5 w-[3px] rounded-full ${KIND_BAR.task}`} /> Task
           </span>
         </div>
       </aside>

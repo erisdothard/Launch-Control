@@ -136,7 +136,8 @@ class Store:
             if not chunk:
                 continue
             rows = self._req("GET", "email_messages", params={
-                "provider_thread_id": f"in.({chunk})", "select": "lead_id,provider_thread_id",
+                # Mail with no lead shares threads too; only rows with a lead say whose thread it is.
+                "provider_thread_id": f"in.({chunk})", "lead_id": "not.is.null", "select": "lead_id,provider_thread_id",
             }).json()
             out.update({r["provider_thread_id"]: r["lead_id"] for r in rows})
         return out
@@ -162,12 +163,13 @@ class Store:
         self._req("PATCH", "email_accounts", params={"id": f"eq.{account_id}"}, prefer="return=minimal",
                   json={"sync_cursor": cursor})
 
-    def mark_mailbox_reconnect(self, account_id: str) -> None:
-        """Flag the mailbox and every alias row sharing its token."""
+    def mark_mailbox_reconnect(self, account_id: str, reason: str = "") -> None:
+        """Flag the mailbox and every alias row sharing its token, with Microsoft's reason."""
         row = self._req("GET", "email_accounts", params={"id": f"eq.{account_id}", "select": "token_secret_id"}).json()
         secret = row[0]["token_secret_id"] if row else None
         params = {"token_secret_id": f"eq.{secret}"} if secret else {"id": f"eq.{account_id}"}
-        self._req("PATCH", "email_accounts", params=params, prefer="return=minimal", json={"status": "needs_reconnect"})
+        flag = {"status": "needs_reconnect", "last_error": reason or None, "last_error_at": datetime.now(UTC).isoformat()}
+        self._req("PATCH", "email_accounts", params=params, prefer="return=minimal", json=flag)
 
     def leads_by_emails(self, emails: list[str]) -> dict[str, str]:
         """Lowercased lead email -> lead id, for the given addresses."""

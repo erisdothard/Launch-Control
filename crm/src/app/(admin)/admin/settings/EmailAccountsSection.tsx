@@ -1,11 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import LocalDate from "@/components/admin/LocalDate";
+import { SignaturePreview } from "@/components/inbox/SendAs";
+import { senderOptions } from "@/components/inbox/sender";
 import type { EmailAccount } from "@/lib/store/messages";
 import { addBusinessAddressAction, removeEmailAccountAction, setDisplayNameAction } from "./emailActions";
 
 interface EmailAccountsSectionProps {
   accounts: EmailAccount[];
+  /** Signature phone per account id (email_accounts.signature_phone). */
+  phones: Record<string, string>;
   sendingDomain: string;
   resendReady: boolean;
   gmailReady: boolean;
@@ -36,79 +41,179 @@ const GMAIL_RESULT: Record<string, { text: string; good: boolean }> = {
   failed: { text: "Gmail connection failed. Try again.", good: false },
 };
 
-const inputClass =
-  "rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-dim)] outline-none focus:border-[var(--color-accent)]/50";
+interface SignatureDraft {
+  name: string;
+  title: string;
+  phone: string;
+}
 
-function AccountRow({ account }: { account: EmailAccount }) {
+const labelClass = "mb-1.5 block text-sm text-[var(--color-text-dim)]";
+
+/** A provider error ("AADSTS50076: ...") in words Max can act on. */
+function plainReason(raw: string): string {
+  if (/AADSTS5007[69]|multi-?factor|\bMFA\b/i.test(raw)) return "Microsoft requires multi-factor sign-in";
+  if (/invalid_grant|AADSTS700082|AADSTS70008|refresh token.*expired|expired/i.test(raw)) return "the sign-in expired";
+  if (/AADSTS65001|consent/i.test(raw)) return "Microsoft wants permission granted again";
+  if (/AADSTS50126|password/i.test(raw)) return "the password changed";
+  if (/AADSTS50057|disabled/i.test(raw)) return "the Microsoft account is turned off";
+  if (/5\.7\.\d+|SmtpClientAuthentication|authentication unsuccessful/i.test(raw)) return "Microsoft refused the sign-in for sending";
+  return raw.replace(/\s*\(found [^)]*\)\s*$/, "").replace(/^AADSTS\d+:\s*/, "").trim().slice(0, 140) || "Microsoft refused the connection";
+}
+
+const DAY: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+
+/** Working, or when it stopped and why, plus the one thing to do about it. */
+function AccountStatus({ account }: { account: EmailAccount }) {
+  const reconnect = account.provider === "outlook" ? "/api/outlook/connect" : "/api/gmail/connect";
+  if (account.status === "active") {
+    return (
+      <p className="text-[15px] text-[var(--color-text-muted)]">
+        <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[var(--color-success)] align-middle" aria-hidden="true" />
+        Sending and syncing
+        {account.lastError && account.lastErrorAt && (
+          <span className="text-[var(--color-text-dim)]">
+            {" "}
+            · last problem <LocalDate iso={account.lastErrorAt} options={DAY} />: {plainReason(account.lastError)}
+          </span>
+        )}
+      </p>
+    );
+  }
+  return (
+    <div className="well flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-[15px] text-[var(--color-hot)]">
+        <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[var(--color-hot)] align-middle" aria-hidden="true" />
+        {account.lastErrorAt ? (
+          <>
+            Stopped working <LocalDate iso={account.lastErrorAt} options={DAY} />
+          </>
+        ) : (
+          "Stopped working"
+        )}
+        {account.lastError ? `: ${plainReason(account.lastError)}.` : "."}{" "}
+        <span className="text-[var(--color-text-muted)]">Nothing sends as this address until it&apos;s reconnected.</span>
+      </p>
+      {account.provider !== "resend" && (
+        <a href={reconnect} className="btn btn-secondary btn-sm shrink-0 self-start sm:self-auto">
+          Reconnect
+        </a>
+      )}
+    </div>
+  );
+}
+
+function AccountRow({ account, phone: savedPhone }: { account: EmailAccount; phone: string }) {
   const [name, setName] = useState(account.displayName);
   const [signer, setSigner] = useState(account.signatureName);
   const [title, setTitle] = useState(account.signatureTitle);
-  const dirty = name !== account.displayName || signer !== account.signatureName || title !== account.signatureTitle;
+  const [phone, setPhone] = useState(savedPhone);
+  const dirty = name !== account.displayName || signer !== account.signatureName || title !== account.signatureTitle || phone !== savedPhone;
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
-  function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
+  function run(fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) {
     setError(null);
+    setSaved(false);
     startTransition(async () => {
       const result = await fn();
       if (!result.ok) setError(result.error ?? "Failed");
+      else after?.();
     });
   }
 
+  function edit(set: (v: string) => void) {
+    return (value: string) => {
+      set(value);
+      setSaved(false);
+    };
+  }
+
+  // The preview is drawn from what's typed, so it changes with every keystroke.
+  const draft: SignatureDraft = { name: signer, title, phone };
+  const id = account.id;
   return (
-    <li className="flex flex-col gap-3 border-b border-[var(--color-border)] py-4 last:border-0 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
-        <p className="truncate font-medium text-[var(--color-text)]">{account.address}</p>
-        <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
-          {PROVIDER_LABEL[account.provider]}
-          {account.mailbox ? ` alias on ${account.mailbox}` : ""} · added by {account.connectedBy}
-          {account.status === "needs_reconnect" && <span className="text-[var(--color-livery-red)]"> · needs reconnecting</span>}
+    <li className="border-b border-[var(--color-border)] py-7 first:pt-3 last:border-0 last:pb-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <div className="min-w-0">
+          <p className="truncate text-[17px] font-semibold text-[var(--color-text)]">
+            {account.signatureName.trim() ? `${account.signatureName}'s signature` : account.address}
+          </p>
+          <p className="mt-0.5 text-[15px] break-words text-[var(--color-text-muted)]">
+            {account.address}
+            {account.mailbox ? ` · an alias on ${account.mailbox}` : account.provider === "outlook" ? " · the Outlook mailbox" : ""}
+          </p>
+        </div>
+        <p className="text-sm text-[var(--color-text-dim)]">
+          {PROVIDER_LABEL[account.provider]} · added by {account.connectedBy}
         </p>
-        {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          aria-label={`From name for ${account.address}`}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="From name, e.g. Launch Control"
-          className={`${inputClass} w-44`}
-          disabled={pending}
-        />
-        <input
-          aria-label={`Signature name for ${account.address}`}
-          value={signer}
-          onChange={(e) => setSigner(e.target.value)}
-          placeholder="Signed by, e.g. Maxwell Hartmann"
-          className={`${inputClass} w-52`}
-          disabled={pending}
-        />
-        <input
-          aria-label={`Signature title for ${account.address}`}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title in signature"
-          className={`${inputClass} w-56`}
-          disabled={pending}
-        />
+      <div className="mt-3">
+        <AccountStatus account={account} />
+      </div>
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,0.85fr)_minmax(0,1fr)]">
+        <label className="block" htmlFor={`signer-${id}`}>
+          <span className={labelClass}>Signed by</span>
+          <input id={`signer-${id}`} value={signer} onChange={(e) => edit(setSigner)(e.target.value)} placeholder="Maxwell Hartmann" className="field" disabled={pending} />
+        </label>
+        <label className="block" htmlFor={`title-${id}`}>
+          <span className={labelClass}>Title</span>
+          <input id={`title-${id}`} value={title} onChange={(e) => edit(setTitle)(e.target.value)} placeholder="Business Development" className="field" disabled={pending} />
+        </label>
+        <label className="block" htmlFor={`phone-${id}`}>
+          <span className={labelClass}>Phone (optional)</span>
+          <input
+            id={`phone-${id}`}
+            type="tel"
+            inputMode="tel"
+            autoComplete="off"
+            value={phone}
+            onChange={(e) => edit(setPhone)(e.target.value)}
+            placeholder="No phone line"
+            className="field tabular"
+            disabled={pending}
+          />
+        </label>
+        <label className="block" htmlFor={`from-${id}`}>
+          <span className={labelClass}>From name in their inbox</span>
+          <input id={`from-${id}`} value={name} onChange={(e) => edit(setName)(e.target.value)} placeholder="Launch Control" className="field" disabled={pending} />
+        </label>
+      </div>
+      <div className="mt-5">
+        <p className="mb-2 text-sm text-[var(--color-text-dim)]">
+          {draft.name.trim() ? `Under every email sent as ${account.address}` : "Add who signs it to see the signature"}
+        </p>
+        {draft.name.trim() && (
+          <SignaturePreview
+            account={{ ...account, signatureName: draft.name, signatureTitle: draft.title, signaturePhone: draft.phone }}
+            label={`Signature preview for ${account.address}`}
+          />
+        )}
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-4">
         <button
           type="button"
           disabled={pending || !dirty}
-          onClick={() => run(() => setDisplayNameAction(account.id, name, title, signer))}
-          className="rounded-[2px] border border-[var(--color-border-bright)] px-3 py-2 text-xs text-[var(--color-text)] disabled:opacity-40"
+          onClick={() => run(() => setDisplayNameAction(account.id, name, title, signer, phone), () => setSaved(true))}
+          className="btn btn-secondary btn-sm"
         >
-          Save
+          {pending ? "Saving..." : "Save"}
         </button>
-        {account.status === "needs_reconnect" && (
-          <a href={account.provider === "outlook" ? "/api/outlook/connect" : "/api/gmail/connect"} className="rounded-[2px] border border-[var(--color-accent)] px-3 py-2 text-xs text-[var(--color-accent)]">
-            Reconnect
-          </a>
+        {saved && !dirty && (
+          <span role="status" className="text-sm text-[var(--color-success)]">
+            Saved
+          </span>
+        )}
+        {error && (
+          <span role="alert" className="text-sm text-[var(--color-hot)]">
+            {error}
+          </span>
         )}
         <button
           type="button"
           disabled={pending}
           onClick={() => run(() => removeEmailAccountAction(account.id))}
-          className="px-2 py-2 text-xs text-[var(--color-text-dim)] hover:text-[var(--color-livery-red)]"
+          className="btn-quiet ml-auto text-sm hover:!text-[var(--color-hot)]"
         >
           Remove
         </button>
@@ -119,6 +224,7 @@ function AccountRow({ account }: { account: EmailAccount }) {
 
 export default function EmailAccountsSection({
   accounts,
+  phones,
   sendingDomain,
   resendReady,
   gmailReady,
@@ -130,7 +236,9 @@ export default function EmailAccountsSection({
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const visible = accounts.filter((a) => a.status !== "disabled");
+  // Max's mailbox first, then the aliases on it, as in every Send as switch.
+  const people = senderOptions(accounts);
+  const visible = [...people, ...accounts.filter((a) => a.status !== "disabled" && !people.includes(a))];
   const notice = outlookResult ? OUTLOOK_RESULT[outlookResult] : gmailResult ? GMAIL_RESULT[gmailResult] : null;
   const outlookConnected = visible.some((a) => a.provider === "outlook" && !a.mailbox && a.status === "active");
 
@@ -147,77 +255,92 @@ export default function EmailAccountsSection({
   }
 
   return (
-    <section id="email-accounts" aria-labelledby="email-heading" className="mt-6 rounded-[2px] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 sm:p-6">
-      <h2 id="email-heading" className="label-mono text-[var(--color-steel)]">
-        Email
+    <section id="email-accounts" aria-labelledby="email-heading" className="card p-5 sm:p-8">
+      <h2 id="email-heading" className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--color-steel)]">
+        Email and signature
       </h2>
-      <p className="mt-1 text-sm text-[var(--color-text-muted)]">Addresses the team can send from on a lead&apos;s Messages panel.</p>
+      <p className="mt-2 max-w-2xl text-base text-[var(--color-text-muted)]">
+        Each address below is one person. When you write an email, Send as picks who it&apos;s from, and that person&apos;s signature goes under
+        the message automatically (switch Add signature off to leave it out). The From name stays Launch Control for everyone.
+      </p>
 
       {notice && (
-        <p role="status" className={`mt-4 text-sm ${notice.good ? "text-emerald-300" : "text-red-400"}`}>
+        <p role="status" className={`well mt-5 px-4 py-3 text-base ${notice.good ? "text-[var(--color-success)]" : "text-[var(--color-hot)]"}`}>
           {notice.text}
         </p>
       )}
 
-      {visible.length > 0 && <ul className="mt-4">{visible.map((a) => <AccountRow key={a.id} account={a} />)}</ul>}
-
-      {outlookReady && (
-        <div className="mt-6">
-          <p className="text-sm font-medium text-[var(--color-text)]">Microsoft 365 (Outlook)</p>
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-            Sign in as the shared mailbox. Its aliases are added too, mail goes out from the real mailbox (it shows in Outlook&apos;s Sent
-            folder) and CRM meetings appear on its calendar.
-          </p>
-          <a
-            href="/api/outlook/connect"
-            className="mt-3 inline-flex items-center rounded-[2px] bg-[var(--color-accent)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
-          >
-            {outlookConnected ? "Reconnect Outlook" : "Connect Outlook"}
-          </a>
-        </div>
+      {visible.length > 0 ? (
+        <ul className="mt-4">
+          {visible.map((a) => (
+            <AccountRow key={a.id} account={a} phone={phones[a.id] ?? a.signaturePhone} />
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-6 text-base text-[var(--color-text-muted)]">No addresses yet. Connect Outlook below to start sending.</p>
       )}
 
-      {(resendReady || gmailReady) && (
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div>
-          <p className="text-sm font-medium text-[var(--color-text)]">Business address</p>
-          {resendReady ? (
-            <>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <div className="flex items-center">
-                  <input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="max" className={`${inputClass} w-28`} disabled={pending} />
-                  <span className="px-2 text-sm text-[var(--color-text-muted)]">@{sendingDomain}</span>
-                </div>
-                <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Max Hartmann" className={`${inputClass} w-44`} disabled={pending} />
-                <button
-                  type="button"
-                  onClick={add}
-                  disabled={pending || !local.trim()}
-                  className="rounded-[2px] bg-[var(--color-accent)] px-4 py-2 font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-on-accent)] disabled:opacity-50"
-                >
-                  Add
-                </button>
+      {(outlookReady || resendReady || gmailReady) && (
+        <div className="mt-10 border-t border-[var(--color-border)] pt-8">
+          <h3 className="text-base font-semibold text-[var(--color-text)]">Connect another address</h3>
+          <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {outlookReady && (
+              <div className="well p-5">
+                <p className="text-base font-medium text-[var(--color-text)]">Microsoft 365 (Outlook)</p>
+                <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">
+                  Sign in as the shared mailbox. Its aliases are added too, mail goes out from the real mailbox (it shows in Outlook&apos;s Sent
+                  folder) and CRM meetings appear on its calendar.
+                </p>
+                <a href="/api/outlook/connect" className="btn btn-secondary btn-sm mt-4">
+                  {outlookConnected ? "Reconnect Outlook" : "Connect Outlook"}
+                </a>
               </div>
-              {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
-            </>
-          ) : (
-            <p className="mt-1 text-sm text-[var(--color-text-dim)]">Waiting on the domain&apos;s email setup.</p>
-          )}
+            )}
+            {resendReady || gmailReady ? (
+              <>
+                <div className="well p-5">
+                  <p className="text-base font-medium text-[var(--color-text)]">Business address</p>
+                  {resendReady ? (
+                    <>
+                      <div className="mt-3 flex items-center gap-2">
+                        <input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="max" aria-label="Address name" className="field" disabled={pending} />
+                        <span className="shrink-0 text-sm text-[var(--color-text-muted)]">@{sendingDomain}</span>
+                      </div>
+                      <input
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="From name, e.g. Launch Control"
+                        aria-label="From name for the new address"
+                        className="field mt-2"
+                        disabled={pending}
+                      />
+                      <button type="button" onClick={add} disabled={pending || !local.trim()} className="btn btn-secondary btn-sm mt-3">
+                        Add address
+                      </button>
+                      {error && (
+                        <p role="alert" className="mt-2 text-sm text-[var(--color-hot)]">
+                          {error}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="mt-1.5 text-sm text-[var(--color-text-dim)]">Waiting on the domain&apos;s email setup.</p>
+                  )}
+                </div>
+                <div className="well p-5">
+                  <p className="text-base font-medium text-[var(--color-text)]">Gmail</p>
+                  {gmailReady ? (
+                    <a href="/api/gmail/connect" className="btn btn-secondary btn-sm mt-4">
+                      Connect your Gmail
+                    </a>
+                  ) : (
+                    <p className="mt-1.5 text-sm text-[var(--color-text-dim)]">Waiting on the Google sign-in setup.</p>
+                  )}
+                </div>
+              </>
+            ) : null}
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-medium text-[var(--color-text)]">Gmail</p>
-          {gmailReady ? (
-            <a
-              href="/api/gmail/connect"
-              className="mt-2 inline-flex items-center rounded-[2px] border border-[var(--color-border-bright)] px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-            >
-              Connect your Gmail
-            </a>
-          ) : (
-            <p className="mt-1 text-sm text-[var(--color-text-dim)]">Waiting on the Google sign-in setup.</p>
-          )}
-        </div>
-      </div>
       )}
     </section>
   );
