@@ -37,6 +37,7 @@
   --color-accent-border: rgba(240, 196, 25, 0.35);
   --color-livery-orange: #f07d1a; /* marks only, never a surface */
   --color-livery-red: #e3261d; /* marks only, never a surface */
+  --color-livery-green: #2bb24c; /* logo stripe segment 1 (green zone), marks only */
 
   /* Meaning */
   --color-hot: #ff8a7a; /* waiting on us, overdue */

@@ -16,6 +16,7 @@ const FALLBACK: Record<string, string> = {
   "--color-ember": "#f0c419",
   "--color-ember-hot": "#f07d1a",
   "--color-ember-red": "#e3261d",
+  "--color-livery-green": "#2bb24c",
   "--color-white-hot": "#ffffff",
   "--color-info": "#9ec5e8",
   "--color-danger": "#e3261d",

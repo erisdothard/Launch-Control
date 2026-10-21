@@ -19,6 +19,7 @@
   --color-ember: #f0c419; /* THE accent: Jordan yellow. Start ring, links, the Book panel, heat */
   --color-ember-hot: #f07d1a; /* Jordan orange: livery stripe, heat ramp stage 2. Never a surface */
   --color-ember-red: #e3261d; /* Jordan red: livery stripe, heat ramp stage 3. Never a surface */
+  --color-livery-green: #2bb24c; /* Logo stripe segment 1 (green zone of the rev band). Marks only, never a surface */
   --color-white-hot: #ffffff; /* unused by the page since the gate went; kept for the lab */
   --color-success: #8fd49a;
   --color-warning: #f0c419;
