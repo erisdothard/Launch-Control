@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Control CRM — Today (mock)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Sora:wght@300;400;500;600;700&family=Chivo+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #060708;
+    --bg-1: #0a0c0e;
+    --bg-2: #111418;
+    --bg-3: #181c21;
+    --line: rgba(255,255,255,0.07);
+    --line-2: rgba(255,255,255,0.12);
+    --ink: #f1f3f5;
+    --ink-2: #c3c9cf;
+    --ink-3: #9aa2ab;
+    --steel: #c6ccd3;
+    --yellow: #f0c419;
+    --orange: #f07d1a;
+    --red: #e3261d;
+    --hot: #ff8a7a;
+    --warm: #ffb36b;
+    --green: #8fdc9a;
+    --display: "Michroma", "Eurostile", sans-serif;
+    --body: "Sora", system-ui, sans-serif;
+    --mono: "Chivo Mono", ui-monospace, monospace;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg-1); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow: hidden; }
+  .app { display: grid; grid-template-columns: 236px 1fr; height: 100vh; }
+
+  .side { background: var(--bg-0); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 20px 12px 14px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 2px 10px 20px; }
+  .brand span { white-space: nowrap; font-family: var(--display); font-size: 10px; letter-spacing: .14em; color: var(--steel); }
+  .search { display: flex; align-items: center; gap: 10px; margin: 0 4px 18px; padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink-3); font-size: 14px; }
+  .search kbd { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-3); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 5px; }
+  .nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin: 1px 4px; border-radius: 7px; color: var(--ink-2); text-decoration: none; font-size: 15px; position: relative; }
+  .nav a.on { background: var(--bg-2); color: var(--ink); }
+  .nav a.on::before { content: ""; position: absolute; left: -16px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 2px 2px 0; background: var(--steel); }
+  .nav a .count { margin-left: auto; font-family: var(--mono); font-size: 13px; color: var(--ink-3); }
+  .nav a .count.alert { color: #fff; background: var(--red); border-radius: 10px; padding: 0 7px; font-size: 12.5px; }
+  .sect { margin: 24px 16px 6px; font-size: 13px; color: var(--ink-3); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 14px 10px 2px; border-top: 1px solid var(--line); }
+  .av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; flex: none; }
+  .me .who { font-size: 14.5px; } .me .role { font-size: 13px; color: var(--ink-3); }
+
+  .main { overflow-y: auto; overflow-x: hidden; }
+  .wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 44px; max-width: 1204px; padding: 36px 40px 48px; }
+  .stripe { display: flex; height: 4px; width: 132px; margin-bottom: 20px; }
+  .stripe i:nth-child(1){flex:5;background:var(--yellow)} .stripe i:nth-child(2){flex:3;background:var(--orange)} .stripe i:nth-child(3){flex:2;background:var(--red)}
+  h1 { margin: 0; font-weight: 600; font-size: 44px; letter-spacing: -0.03em; line-height: 1.05; color: var(--steel); }
+  .lede { margin: 12px 0 0; font-size: 18px; color: var(--ink-2); max-width: 640px; }
+  .lede b { color: var(--ink); font-weight: 600; }
+
+  .hero { position: relative; margin-top: 28px; background: var(--bg-2); border-radius: 12px; overflow: hidden; }
+  .hero .rail { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; display: flex; flex-direction: column; }
+  .hero .rail i:nth-child(1){flex:5;background:var(--yellow)} .hero .rail i:nth-child(2){flex:3;background:var(--orange)} .hero .rail i:nth-child(3){flex:2;background:var(--red)}
+  .hero .in { padding: 22px 28px 24px 34px; }
+  .eyebrow { display: flex; align-items: center; gap: 12px; font-size: 14.5px; color: var(--ink-2); }
+  .eyebrow .first { color: var(--yellow); font-weight: 600; }
+  .eyebrow .n { font-family: var(--mono); font-size: 14px; color: var(--ink-2); }
+  .eyebrow .late { margin-left: auto; color: var(--hot); font-weight: 500; }
+  .person { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
+  .rec { font-family: var(--display); font-size: 20px; letter-spacing: .03em; color: var(--ink); line-height: 1.3; }
+  .co { font-size: 15px; color: var(--ink-2); margin-top: 2px; }
+  .person .amt { margin-left: auto; text-align: right; }
+  .person .amt b { display: block; font-weight: 300; font-size: 30px; letter-spacing: -0.02em; color: var(--steel); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .person .amt span { font-size: 14px; color: var(--ink-3); }
+  .quote { margin: 18px 0 0; padding: 2px 0 2px 18px; border-left: 2px solid var(--line-2); font-size: 16.5px; color: var(--ink); line-height: 1.55; }
+  .quote small { display: block; margin-top: 4px; font-size: 14px; color: var(--ink-2); }
+  .why { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 14px; font-size: 14.5px; color: var(--ink-2); }
+  .why span { display: inline-flex; align-items: center; gap: 8px; }
+  .why span::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--ink-3); }
+  .draft { margin-top: 18px; background: var(--bg-3); border-radius: 10px; padding: 14px 18px; }
+  .draft .lab { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-3); margin-bottom: 6px; }
+  .draft p { margin: 0; font-size: 16px; line-height: 1.6; color: var(--ink); }
+  .acts { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; border: 0; border-radius: 7px; height: 46px; padding: 0 22px; cursor: pointer; white-space: nowrap; }
+  .btn.pri { background: var(--yellow); color: #0a0b0c; }
+  .btn.sec { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-2); }
+  .quiet { font-size: 15px; color: var(--ink-2); padding: 0 8px; }
+  .acts .hint { margin-left: auto; font-family: var(--mono); font-size: 14px; color: var(--ink-2); }
+
+  .qhead { display: flex; align-items: baseline; justify-content: space-between; margin: 34px 0 4px; }
+  h2 { margin: 0; font-size: 17px; font-weight: 600; color: var(--ink); }
+  .filters { display: flex; gap: 18px; font-size: 14.5px; color: var(--ink-3); }
+  .filters b { color: var(--ink); font-weight: 500; }
+  .q { list-style: none; margin: 0; padding: 0; }
+  .item { display: grid; grid-template-columns: 4px 36px minmax(0,1fr) 88px 188px; gap: 0 16px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .item .bar { align-self: stretch; border-radius: 2px; }
+  .item .name { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .item .name span { color: var(--ink-3); font-weight: 400; }
+  .item .what { margin-top: 3px; font-size: 15px; color: var(--ink-2); line-height: 1.45; }
+  .item .meta { display: flex; gap: 16px; margin-top: 6px; font-size: 14px; color: var(--ink-3); }
+  .item .val { font-family: var(--mono); font-size: 15px; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+  .item .btn { width: 188px; padding: 0; }
+  .t-hot { color: var(--hot); font-weight: 500; } .t-warm { color: var(--warm); font-weight: 500; }
+
+  .side-r { padding-top: 24px; }
+  .block + .block { margin-top: 34px; }
+  .block h2 { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: baseline; }
+  .block h2 a { font-size: 14px; font-weight: 400; color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--line-2); }
+  .agenda { list-style: none; margin: 0; padding: 0; }
+  .agenda li { display: grid; grid-template-columns: 54px 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .agenda .tm { font-family: var(--mono); font-size: 14px; color: var(--ink-3); padding-top: 1px; }
+  .agenda .ti { font-size: 15px; color: var(--ink); }
+  .agenda .wh { font-size: 14px; color: var(--ink-2); margin-top: 1px; }
+  .agenda li.past .ti { color: var(--ink-3); }
+  .agenda li.next .tm { color: var(--ink); }
+  .agenda li.nowline { display: flex; align-items: center; gap: 10px; padding: 6px 0; border: 0; }
+  .agenda li.nowline i { flex: 1; height: 1px; background: var(--ink); opacity: .55; }
+  .agenda li.nowline span { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+  .fig { padding: 14px 0; border-top: 1px solid var(--line); }
+  .fig .k { font-size: 14px; color: var(--ink-3); }
+  .fig .v { font-weight: 300; font-size: 30px; letter-spacing: -0.03em; color: var(--steel); line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .fig .s { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-3); margin-top: 4px; }
+  .up { color: var(--green); }
+
+  .item { align-items: start; }
+  .item .bar { align-self: stretch; }
+  .item .av { margin-top: 1px; }
+  .item .val, .item .btn { align-self: center; }
+  .item .val { font-family: var(--body); font-weight: 400; color: var(--ink-2); }
+  .item .btn { cursor: pointer; }
+  .item:hover .name { color: #fff; }
+  .btn.sec:hover { box-shadow: inset 0 0 0 1px var(--steel); }
+  .btn.pri:hover { background: #f4f6f8; }
+  .btn:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+  .quiet { cursor: pointer; text-decoration: none; border-bottom: 1px solid transparent; }
+  .quiet:hover { border-bottom-color: var(--line-2); color: var(--ink); }
+  .draft p[contenteditable="true"] { outline: 1px solid var(--line-2); outline-offset: 8px; border-radius: 2px; }
+  .draft.points p { font-size: 15.5px; }
+  .note { margin: 18px 0 0; font-size: 16.5px; color: var(--ink); line-height: 1.55; }
+
+  /* Motion: the done card lifts away, the next one rises in */
+  .hero { transition: opacity 220ms var(--ease), transform 220ms var(--ease); }
+  .hero.out { opacity: 0; transform: translateY(-10px); }
+  .hero.in-start { opacity: 0; transform: translateY(14px); transition: none; }
+  .item.leave { opacity: 0; transition: opacity 160ms; }
+  @media (prefers-reduced-motion: reduce) { .hero, .item { transition: none !important; } }
+
+  .clear { padding: 40px 34px; }
+  .clear .big { font-family: var(--display); font-size: 18px; letter-spacing: .04em; color: var(--steel); }
+  .clear p { margin: 10px 0 0; font-size: 16px; color: var(--ink-2); }
+
+  /* Pipeline by stage */
+  .stack { display: flex; gap: 3px; height: 10px; margin: 12px 0 10px; }
+  .stack i { border-radius: 2px; }
+  .stages { list-style: none; margin: 0; padding: 0; }
+  .stages li { display: flex; align-items: center; gap: 10px; padding: 3px 0; font-size: 14px; color: var(--ink-2); }
+  .stages li b { margin-left: auto; font-weight: 400; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .stages .sw { width: 10px; height: 10px; border-radius: 2px; }
+
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); opacity: 0; display: flex; align-items: center; gap: 18px; background: var(--bg-3); box-shadow: inset 0 0 0 1px var(--line-2), 0 12px 40px rgba(0,0,0,.5); border-radius: 10px; padding: 13px 16px 13px 20px; font-size: 15px; color: var(--ink); transition: opacity 200ms, transform 200ms var(--ease); pointer-events: none; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .toast button { background: none; border: 0; color: var(--yellow); font: 600 15px var(--body); cursor: pointer; padding: 4px 6px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 3h12v4H7v8h10v4H3z" fill="#c6ccd3"/><rect x="9" y="9" width="4" height="4" fill="#f0c419"/><rect x="14" y="9" width="3" height="4" fill="#f07d1a"/><rect x="18" y="9" width="2" height="4" fill="#e3261d"/></svg>
+      <span>LAUNCH CONTROL</span>
+    </div>
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+      Search<kbd>⌘K</kbd>
+    </div>
+    <nav class="nav">
+      <a class="on" href="#"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 9h4l2-5 3 10 2-5h3"/></svg>Today<span class="count alert" id="badge">5</span></a>
+      <a href="#"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6" r="2.5"/><path d="M2 15c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4"/><circle cx="13" cy="7" r="2"/><path d="M12.5 11c2 0 3.5 1.2 3.5 3.5"/></svg>Leads<span class="count">48</span></a>
+      <a href="#"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14h3V9H2zM7.5 14h3V5h-3zM13 14h3V2h-3z"/></svg>Pipeline<span class="count">$214k</span></a>
+      <a href="#"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><path d="M12 12l4 4"/></svg>Lead Gen<span class="count">139</span></a>
+      <a href="#"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="3.5" width="13" height="12" rx="2"/><path d="M2.5 7.5h13M6 2v3M12 2v3"/></svg>Calendar</a>
+    </nav>
+    <div class="sect">Saved views</div>
+    <nav class="nav">
+      <a href="#"><i class="dot" style="background:#f0c419"></i>Hot prospects<span class="count">8</span></a>
+      <a href="#"><i class="dot" style="background:#f07d1a"></i>Proposals out<span class="count">4</span></a>
+      <a href="#"><i class="dot" style="background:#9aa2ab"></i>Waiting on them<span class="count">11</span></a>
+      <a href="#"><i class="dot" style="background:#8fdc9a"></i>Customers<span class="count">6</span></a>
+    </nav>
+    <div class="me">
+      <div class="av" style="background:#22262c;color:#c6ccd3">MH</div>
+      <div><div class="who">Max Hartmann</div><div class="role">Launch Control</div></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="wrap">
+      <section>
+        <div class="stripe"><i></i><i></i><i></i></div>
+        <h1>Good morning, Max.</h1>
+        <p class="lede" id="lede"></p>
+        <article class="hero" id="hero" aria-live="polite"></article>
+        <div id="rest">
+          <div class="qhead"><h2 id="restTitle"></h2><div class="filters" id="filters"></div></div>
+          <ul class="q" id="queue"></ul>
+        </div>
+      </section>
+
+      <aside class="side-r">
+        <div class="block">
+          <h2>Your day <a href="#">Calendar</a></h2>
+          <ul class="agenda">
+            <li class="past"><span class="tm">9:00</span><div><div class="ti">Team sync</div><div class="wh">Max, Eris</div></div></li>
+            <li class="nowline"><span>10:42</span><i></i></li>
+            <li class="next"><span class="tm">1:00</span><div><div class="ti">Intro · Apex Track Days</div><div class="wh">Kevin Osei · Google Meet</div></div></li>
+            <li><span class="tm">4:30</span><div><div class="ti">Proposal · Ridge Motorsport</div><div class="wh">Dana Reyes · Zoom</div></div></li>
+          </ul>
+        </div>
+        <div class="block">
+          <h2>Pipeline</h2>
+          <div class="fig">
+            <div class="k">Open deals</div>
+            <div class="v">$214,500</div>
+            <div class="stack" aria-hidden="true"><i style="flex:96000;background:#c6ccd3"></i><i style="flex:78000;background:#7b838c"></i><i style="flex:40500;background:#454c54"></i></div>
+            <ul class="stages">
+              <li><i class="sw" style="background:#c6ccd3"></i>Proposal out<b>$96,000</b></li>
+              <li><i class="sw" style="background:#7b838c"></i>In talks<b>$78,000</b></li>
+              <li><i class="sw" style="background:#454c54"></i>New<b>$40,500</b></li>
+            </ul>
+            <div class="s"><span class="up">+$38,000 this week</span></div>
+          </div>
+          <div class="fig">
+            <div class="k">Won this quarter</div>
+            <div class="v">$62,000</div>
+            <div class="s">3 of 11 proposals</div>
+          </div>
+          <div class="fig">
+            <div class="k">Reply rate, last 30 days</div>
+            <div class="v">24%</div>
+            <div class="s">Cold email averages about 8%</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="undo">Undo</button></div>
+</div>
+
+<script>
+// Demo data only. Invented people and companies.
+const PEOPLE = [
+  { id: "dana", init: "DR", av: ["#2a1d14", "#ffb36b"], name: "Dana Reyes", co: "Ridge Motorsport", role: "Head of Events · Decision-maker",
+    bar: "var(--red)", kind: "reply", val: 48000, wait: "Waiting 19 hours", late: true, start: "Start with Dana; her call is Thursday.",
+    quote: "Looks great. Can you price it for three cars, not two? We'd want it live before the March opener.",
+    said: "Dana, yesterday 3:14pm · Opened the proposal 6 times · Call Thursday 2:00pm",
+    draft: "Hi Dana, three cars works. The package moves to $48,000 and still goes live before the March opener. I've updated the proposal and we can walk through it Thursday.",
+    act: "Send reply", done: "Reply sent to Dana Reyes",
+    what: "Asked to price it for three cars before the March opener.", meta: ["Waiting 19 hours", "Reply drafted"] },
+  { id: "kevin", init: "KO", av: ["#1b2230", "#a9c0e3"], name: "Kevin Osei", co: "Apex Track Days", role: "Owner · Intro call today",
+    bar: "var(--red)", kind: "reply", val: 22500, wait: "Waiting 3 hours", late: true, start: "Start with Kevin; your call is at 1:00.",
+    quote: "Confirmed for 1:00. Who else should join from your side?",
+    said: "Kevin, today 7:40am · Call today 1:00pm on Google Meet",
+    draft: "Hi Kevin, it'll be me and Eris, who builds the systems. Looking forward to it at 1:00.",
+    act: "Send reply", done: "Reply sent to Kevin Osei",
+    what: "Confirmed today's 1:00 call and asked who else should join.", meta: ["Waiting 3 hours", "Reply drafted"] },
+  { id: "sofia", init: "SL", av: ["#1d2420", "#a9dcb3"], name: "Sofia Laurent", co: "Coastline Karting", role: "General Manager",
+    bar: "var(--orange)", kind: "followup", val: 16000, wait: "Follow-up due today", late: false, start: "Start with Sofia; the follow-up is due today.",
+    note: "Opened the proposal 4 times since Friday and hasn't replied. This is the second follow-up.",
+    said: "Proposal sent Friday · Last opened this morning",
+    draft: "Hi Sofia, saw you've had a look at the proposal. Happy to walk through any of it on a quick call this week. Does Thursday work?",
+    act: "Send follow-up", done: "Follow-up sent to Sofia Laurent",
+    what: "Opened the proposal 4 times since Friday, no reply. Second follow-up is due today.", meta: ["Follow-up due today", "Follow-up drafted"] },
+  { id: "marcus", init: "MB", av: ["#262019", "#e0cda8"], name: "Marcus Bell", co: "Bell Race Prep", role: "Owner",
+    bar: "var(--orange)", kind: "followup", val: 12000, wait: "Follow-up due today", late: false, start: "Start with Marcus; he asked for a call after Sunday.",
+    note: "Said to check back after the season finale. That was Sunday.",
+    said: "(310) 555-0192 · Best before noon",
+    points: true, draft: "Ask how the finale went. Confirm the off-season is still when he wants the booking system built. Offer the Thursday slot for a walkthrough.",
+    act: "Call (310) 555-0192", done: "Call logged with Marcus Bell",
+    what: "Said to check back after the season finale. That was Sunday.", meta: ["Follow-up due today", "(310) 555-0192"] },
+  { id: "jen", init: "JT", av: ["#22262c", "#c6ccd3"], name: "Jen Takahashi", co: "Summit Driving Club", role: "New website inquiry",
+    bar: "var(--yellow)", kind: "new", val: null, wait: "Came in 7:58am", late: false, start: "Start with Jen; she came in this morning.",
+    quote: "Need a site and bookings before spring. Budget $10–30k.",
+    said: "Website form, today 7:58am",
+    draft: "Hi Jen, thanks for reaching out. Spring is very doable. Could we grab 20 minutes this week so I can see what you have now?",
+    act: "Send email", done: "Email sent to Jen Takahashi",
+    what: "New website inquiry: “Need a site and bookings before spring.” Budget $10–30k.", meta: ["Website, 7:58am"] },
+];
+const SHORT = { "Send reply": "Reply", "Send follow-up": "Send follow-up", "Send email": "Email" };
+const WORDS = ["No one", "One person", "Two people", "Three people", "Four people", "Five people"];
+const NUM = ["zero", "one", "two", "three", "four", "five"];
+const money = (n) => n == null ? "—" : "$" + n.toLocaleString("en-US");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+let queue = PEOPLE.slice();
+const undoStack = [];
+const $ = (id) => document.getElementById(id);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function heroHTML(p, total) {
+  const ctx = p.quote
+    ? `<div class="quote">“${esc(p.quote)}”<small>${esc(p.said)}</small></div>`
+    : `<div class="quote">${esc(p.note)}<small>${esc(p.said)}</small></div>`;
+  return `<div class="rail"><i></i><i></i><i></i></div><div class="in">
+    <div class="eyebrow"><span class="n">1 of ${total}</span><span class="first">Do this first</span><span class="late" style="${p.late ? "" : "color:var(--warm)"}">${esc(p.wait)}</span></div>
+    <div class="person"><div class="av" style="width:52px;height:52px;background:${p.av[0]};color:${p.av[1]};font-size:16px">${p.init}</div>
+      <div><div class="rec">${esc(p.name.toUpperCase())}</div><div class="co">${esc(p.role)} · ${esc(p.co)}</div></div>
+      <div class="amt"><b>${money(p.val)}</b><span>${p.val ? "Deal value" : "Not quoted yet"}</span></div></div>
+    ${ctx}
+    <div class="draft${p.points ? " points" : ""}"><div class="lab"><svg width="13" height="13" viewBox="0 0 12 12" fill="#9aa2ab"><path d="M6 0l1.4 4.6L12 6l-4.6 1.4L6 12 4.6 7.4 0 6l4.6-1.4z"/></svg>${p.points ? "Talking points, drafted" : "Your " + (p.kind === "followup" ? "follow-up" : p.kind === "new" ? "email" : "reply") + ", drafted"}</div><p id="draftText">${esc(p.draft)}</p></div>
+    <div class="acts"><button class="btn pri" id="go">${esc(p.act)}</button>${p.points ? "" : '<button class="btn sec" id="edit">Edit</button>'}<a class="quiet" href="#">Open ${esc(p.name.split(" ")[0])}'s record</a><span class="hint">${p.points ? "" : "⌘↵ to send"}</span></div></div>`;
+}
+
+function render() {
+  const n = queue.length;
+  $("badge").textContent = n; $("badge").style.display = n ? "" : "none";
+  const hero = $("hero");
+  if (!n) {
+    $("lede").innerHTML = "<b>No one is waiting on you.</b> Next up is the 1:00 call with Kevin Osei.";
+    hero.innerHTML = '<div class="rail"><i></i><i></i><i></i></div><div class="clear"><div class="big">YOU\'RE CLEAR</div><p>Everything that needed you today is done. New replies will show up here.</p></div>';
+    $("rest").style.display = "none";
+    return;
+  }
+  const p = queue[0], rest = queue.slice(1);
+  const drafted = queue.filter((q) => !q.points).length;
+  $("lede").innerHTML = `<b>${WORDS[n]} ${n === 1 ? "is" : "are"} waiting on you.</b> ${drafted ? `${NUM[drafted][0].toUpperCase() + NUM[drafted].slice(1)} ${drafted === 1 ? "reply is" : "replies are"} drafted. ` : ""}${esc(p.start)}`;
+  hero.innerHTML = heroHTML(p, n);
+  $("rest").style.display = rest.length ? "" : "none";
+  $("restTitle").textContent = `The other ${rest.length}`;
+  const c = (k) => rest.filter((r) => r.kind === k).length;
+  $("filters").innerHTML = `<b>All ${rest.length}</b>` + [["reply", "Replies"], ["followup", "Follow-ups"], ["new", "New"]].filter(([k]) => c(k)).map(([k, l]) => `<span>${l} ${c(k)}</span>`).join("");
+  $("queue").innerHTML = rest.map((r) => `<li class="item" data-id="${r.id}"><i class="bar" style="background:${r.bar}"></i>
+    <div class="av" style="background:${r.av[0]};color:${r.av[1]}">${r.init}</div>
+    <div><div class="name">${esc(r.name)} <span>· ${esc(r.co)}</span></div><div class="what">${esc(r.what)}</div>
+    <div class="meta">${r.meta.map((m, i) => `<span class="${i === 0 ? (r.late ? "t-hot" : r.kind === "followup" ? "t-warm" : "") : ""}">${esc(m)}</span>`).join("")}</div></div>
+    <div class="val">${money(r.val)}</div><button class="btn sec" data-open="${r.id}">${esc(r.points ? "Call" : SHORT[r.act])}</button></li>`).join("");
+  $("go").onclick = complete;
+  const ed = $("edit");
+  if (ed) ed.onclick = () => {
+    const t = $("draftText"), on = t.isContentEditable;
+    t.contentEditable = on ? "false" : "true"; ed.textContent = on ? "Edit" : "Done";
+    if (!on) { t.focus(); getSelection().selectAllChildren(t); getSelection().collapseToEnd(); }
+  };
+}
+
+function swap(mutate) {
+  const hero = $("hero");
+  if (reduce) { mutate(); render(); return; }
+  hero.classList.add("out");
+  setTimeout(() => {
+    mutate(); render();
+    hero.classList.remove("out"); hero.classList.add("in-start");
+    requestAnimationFrame(() => requestAnimationFrame(() => hero.classList.remove("in-start")));
+  }, 220);
+}
+
+let toastTimer;
+function toast(msg) {
+  $("toastMsg").textContent = msg; $("toast").classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").classList.remove("show"), 5000);
+}
+
+function complete() {
+  if (!queue.length) return;
+  const p = queue[0];
+  const t = $("draftText"); if (t) p.draft = t.textContent;
+  undoStack.push(queue.slice());
+  swap(() => { queue = queue.slice(1); });
+  toast(p.done);
+}
+
+$("undo").onclick = () => {
+  if (!undoStack.length) return;
+  const prev = undoStack.pop();
+  $("toast").classList.remove("show");
+  swap(() => { queue = prev; });
+};
+
+// Clicking a row's button brings that person to the top.
+$("queue").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-open]"); if (!b) return;
+  const id = b.dataset.open;
+  b.closest(".item").classList.add("leave");
+  swap(() => { const i = queue.findIndex((q) => q.id === id); queue = [queue[i], ...queue.filter((_, j) => j !== i)]; });
+});
+
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); complete(); }
+});
+
+render();
+</script>
+</body>
+</html>
