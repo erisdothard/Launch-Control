@@ -8,3 +8,10 @@ const LIVERY_TEXT = ["text-ember", "text-ember-hot", "text-ember-red"] as const;
 export function liveryText(index: number): (typeof LIVERY_TEXT)[number] {
   return LIVERY_TEXT[index % LIVERY_TEXT.length];
 }
+
+/* The same three colours as grounds, for small marks (ticks, rules) that take the sequence. */
+const LIVERY_BG = ["bg-ember", "bg-ember-hot", "bg-ember-red"] as const;
+
+export function liveryBg(index: number): (typeof LIVERY_BG)[number] {
+  return LIVERY_BG[index % LIVERY_BG.length];
+}

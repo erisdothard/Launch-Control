@@ -14,7 +14,7 @@
   --color-border: #262b31;
   --color-text: #f4f6f8;
   --color-steel: #c6ccd3; /* display type, the engine's metal */
-  --color-muted: #a7adb4;
+  --color-muted: #b6bcc3; /* body copy on the dark panels; lifted 2026-10-22 for readability (Max) */
   --color-subtle: #7a8189; /* 4.94:1 on surface, 4.52:1 on elevated, 5.15:1 on background (AA) */
   --color-ember: #f0c419; /* THE accent: Jordan yellow. Start ring, links, the Book panel, heat */
   --color-ember-hot: #f07d1a; /* Jordan orange: livery stripe, heat ramp stage 2. Never a surface */
@@ -32,8 +32,8 @@
   --font-body: var(--font-sora), Arial, sans-serif;
   --font-mono: var(--font-chivo-mono), Menlo, monospace;
 
-  --text-caption: 0.8125rem;
-  --text-body: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-caption: 0.875rem;
+  --text-body: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
   --text-lead: clamp(1.1rem, 1rem + 0.5vw, 1.375rem);
   --text-title: clamp(1.25rem, 1rem + 1.1vw, 1.9rem);
   --text-caption-3d: clamp(1.25rem, 0.9rem + 1.5vw, 2.2rem);

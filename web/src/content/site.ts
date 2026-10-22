@@ -2,10 +2,11 @@
   The ONE content file. Every word on the site comes from here.
   Components must not contain literal copy.
 
-  Positioning on record (Max Hartmann, "Company Branding" 2026-10-02 and "Site revisions"
-  2026-10-08): Launch Control builds and operates business development systems. Brand, website,
-  CRM, lead generation, outreach and automation, then we help run it. Hyper Racer USA is the
-  prototype. Not a marketing agency.
+  Positioning on record (Max Hartmann, "Company Branding" 2026-10-02, "Site revisions" 2026-10-08
+  and "Next customer-facing matter" 2026-10-21): Launch Control is a commercial development company
+  that builds its own technology. Commercial results first (find customers, convert opportunities,
+  make growth repeatable), then the systems: website, CRM, outreach, automation. Hyper Racer USA is
+  the prototype. Plain words for non-technical owners; no AI-speak. Not a marketing agency.
 
   Copy rules (DESIGN.md voice): plain, confident, mechanical. Verbs first. No buzzwords. No em-dashes.
   Numbers only when real. Client data never appears here: project images are the clients' PUBLIC
@@ -86,6 +87,8 @@ export const siteSchema = z.object({
     viewer: z.object({ previous: z.string(), next: z.string() }),
     /** Clock shown in the drawn iPhone status bar. Apple's keynote time, so it reads as a device, not a screenshot. */
     phoneClock: z.string(),
+    /** Label over the side-scrolling strip of the other builds. */
+    moreLabel: z.string(),
     featured: z.object({
       client: z.string(),
       title: z.string(),
@@ -123,6 +126,13 @@ export const siteSchema = z.object({
       )
       .min(1)
       .max(3),
+  }),
+  /** How an engagement runs: four stages in a row. Concise and visual, not a new chapter. */
+  process: z.object({
+    id: z.literal("process"),
+    title: z.string(),
+    intro: z.string(),
+    steps: z.array(z.object({ id: z.string(), title: z.string(), body: z.string() })).length(4),
   }),
   build: z.object({
     id: z.literal("build"),
@@ -197,7 +207,7 @@ const content: SiteContent = {
   seo: {
     title: "Launch Control. Business development systems, built and run.",
     description:
-      "Launch Control builds the commercial system behind a business: brand, website, CRM, lead generation, outreach and automation. Then we help run it.",
+      "Launch Control helps businesses find new customers, convert opportunities into revenue, and build the systems that make growth repeatable: market development, outreach, websites, CRM and automation.",
     url: "https://launch-control-flame.vercel.app",
     ogHeadline: "We build the whole engine. Then we launch it.",
   },
@@ -211,7 +221,7 @@ const content: SiteContent = {
   hero: {
     eyebrow: ["Brand", "Website", "CRM", "Lead generation", "Outreach"],
     title: "We build the whole engine. Then we launch it.",
-    body: "We build the commercial system behind the business: brand, website, CRM, lead generation, outreach and automation. Then we help run it.",
+    body: "We help businesses find new customers, convert opportunities into revenue, and build the systems that make growth repeatable. From market development and outreach to websites, CRM and automation, we build the infrastructure and help put it to work.",
     primaryCta: { label: "Book a launch", href: "#book" },
     secondaryCta: { label: "See the work", href: "#work" },
     webglOffNotice: "3D is off on this device. The site works without it.",
@@ -239,11 +249,12 @@ const content: SiteContent = {
     visitLabel: "Visit site",
     viewer: { previous: "Previous screen", next: "Next screen" },
     phoneClock: "9:41",
+    moreLabel: "More builds",
     featured: {
       client: "Hyper Racer USA",
-      title: "One commercial system for website, CRM, pipeline and outreach.",
+      title: "One system: website, CRM, pipeline and outreach, connected.",
       summary:
-        "The U.S. Hyper Racer operation runs through a connected system we built around the customer journey: the public site, lead capture, CRM, sales pipeline, partner tracking and outbound outreach. We built the structure, manage the workflow and use it day to day with the team.",
+        "We helped establish Hyper Racer's U.S. commercial infrastructure, connecting its website, customer inquiries, dealer and partner development, and sales pipeline into one organized system. Beyond building the technology, we've supported outreach, qualification, follow-up, and U.S. market development.",
       href: "https://www.hyperracerusa.com",
       demo: { label: "Try the CRM", href: "https://demo.golaunchcontrol.com/admin/dashboard" },
       year: "2026",
@@ -252,8 +263,8 @@ const content: SiteContent = {
         phone: { src: "/work/hyper-racer-home-phone-v3.webp", alt: "Hyper Racer USA home page on a phone", width: 1170, height: 2532 },
       },
       agents: {
-        title: "Automation inside the CRM",
-        body: "Every morning, the system organizes new inquiries, filters noise, fills in missing information where possible, prioritizes leads and prepares a ranked follow-up list. Every email sent or received moves the lead forward and sets its next follow-up. The team moves faster without giving up control of customer communication.",
+        title: "Automation that works with your team, not around it.",
+        body: "Our systems help organize customer information, research opportunities, prepare follow-ups, and keep the sales process moving. Automation handles repetitive tasks while your team stays in control of important decisions and customer relationships.",
         guarantees: [
           "Replies to customers are reviewed by a person before they go out.",
           "Automated actions remain visible and traceable.",
@@ -303,6 +314,29 @@ const content: SiteContent = {
             note: "Driving and on-duty time against the daily and weekly limits, with one-tap status changes.", phone: { src: "/work/dispatchrelay-hos-phone-v4.webp", alt: "Hours of service: driving, on-duty and weekly limits with status buttons", width: 1290, height: 2796 } },
         ],
       },
+      {
+        client: "Launch Control CRM",
+        title: "The CRM behind the work, open as a live demo.",
+        summary:
+          "Leads, pipeline, follow-ups and email in one place, with the automation described above running inside it. Loaded with invented demo data so you can click through it yourself.",
+        href: "https://demo.golaunchcontrol.com/admin/dashboard",
+        year: "2026",
+        shots: {
+          hero: { src: "/work/hyper-racer-crm-dashboard-desk-v3.webp", alt: "The CRM dashboard: lead counts, pipeline value and a ranked list of who to contact", width: 2560, height: 1600 },
+          phone: { src: "/work/hyper-racer-crm-dashboard-phone-v3.webp", alt: "The CRM dashboard on a phone", width: 1170, height: 2532 },
+        },
+      },
+    ],
+  },
+  process: {
+    id: "process",
+    title: "How we work",
+    intro: "Four stages, one team from the first conversation to the results.",
+    steps: [
+      { id: "discover", title: "Discover", body: "Understand the business, its customers, existing processes, and growth opportunities." },
+      { id: "build", title: "Build", body: "Develop the website, CRM, pipeline, outreach processes, and other systems needed." },
+      { id: "launch", title: "Launch", body: "Put the infrastructure into operation and begin executing the commercial strategy." },
+      { id: "develop", title: "Develop", body: "Refine the process, track results, pursue opportunities, and support ongoing growth." },
     ],
   },
   build: {
@@ -314,49 +348,50 @@ const content: SiteContent = {
       {
         id: "leads",
         title: "Lead generation",
-        body: "We find the customers, partners, dealers, distributors, sponsors or investors your business needs, whichever the business runs on.",
+        body: "We identify and qualify the customers, partners, and commercial opportunities that matter most to your business.",
       },
       {
         id: "outbound",
         title: "Outbound business development",
-        body: "Decision makers identified, prospect lists built, outreach written and sent, follow-ups managed, opportunities qualified. We get the conversations started.",
+        body: "We initiate conversations, develop relationships, manage follow-up, and turn qualified interest into measurable business opportunities.",
       },
       {
         id: "crm",
         title: "CRM and sales infrastructure",
-        body: "Your own version of the CRM we built for Hyper Racer: lead database, pipeline, follow-up tracking, contact history, inbound forms and reporting. Nothing lost in a spreadsheet, an inbox or someone's memory.",
+        body: "Custom-built systems that organize customer information, track opportunities, streamline follow-up, and give your team visibility across the entire sales process.",
       },
       {
         id: "positioning",
         title: "Positioning and messaging",
-        body: "How you explain what you do, who you should be targeting, and the message that actually gets those people interested.",
+        body: "We clarify what makes your business valuable, who it serves, and how to communicate that value to the right audience.",
       },
       {
         id: "web",
-        title: "Website and digital presence",
-        body: "The website, landing pages, lead forms and sales material the outreach points to.",
+        title: "Websites and digital presence",
+        body: "Purpose-built websites and digital experiences designed to attract customers and connect directly to your commercial operations.",
       },
       {
         id: "growth",
-        title: "Growth strategy",
-        body: "Where the real opportunities are, then we go after them with you. Not a strategy document handed over on the way out.",
+        title: "Commercial growth strategy",
+        body: "We identify opportunities, develop go-to-market plans, and build practical systems to support expansion into new customers, markets, and partnerships.",
       },
     ],
   },
   team: {
     id: "team",
-    title: "Who you work with",
-    intro: "Two people, the whole model. One finds the market and works the pipeline. One builds the system and keeps it running.",
+    title: "Commercial expertise meets technical execution.",
+    intro:
+      "Launch Control combines hands-on business development with custom software and systems engineering. Strategy, execution, and technology are developed together rather than handed between disconnected teams.",
     people: [
       {
-        name: "Eris Dothard",
-        role: "Systems and development",
-        body: "Builds the website, the CRM, the backend and the agents inside it, and keeps all of it running after launch.",
+        name: "Maxwell Hartmann",
+        role: "Co-Founder & Managing Director",
+        body: "Leads business development, client acquisition, partnerships and market strategy. Owns the client relationship from the first conversation through every stage after.",
       },
       {
-        name: "Maxwell Hartmann",
-        role: "Business development and market strategy",
-        body: "Finds the market, the people and the message. Builds the prospect lists, runs the outreach and the follow-up, and moves opportunities forward.",
+        name: "Eris Dothard",
+        role: "Co-Founder & Technical Director",
+        body: "Leads technical architecture, development, automation and system implementation. Builds the website, the CRM and the systems inside it, and keeps them running.",
       },
     ],
   },
@@ -364,7 +399,7 @@ const content: SiteContent = {
     id: "book",
     title: "Book a launch",
     body: "Tell us what you sell and who you need to reach. We reply within one working day.",
-    afterNote: "Next is a 30-minute call. No proposal until we have talked.",
+    afterNote: "We'll start with a short conversation to understand your business, identify opportunities, and see where we can add value.",
     fields: {
       name: "Name",
       email: "Email",
@@ -389,7 +424,7 @@ const content: SiteContent = {
     },
   },
   footer: {
-    blurb: "Business development systems: brand, website, CRM, lead generation and outreach, built and run by one team.",
+    blurb: "We help businesses find new customers, convert opportunities into revenue, and build the systems that make growth repeatable.",
     navLabel: "Site",
     contactLabel: "Contact",
     email: "hello@launchcontrol.example",
