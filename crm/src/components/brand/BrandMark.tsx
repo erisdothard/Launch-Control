@@ -1,16 +1,17 @@
 /*
   The Grid Box mark, copied from web/src/components/ui/BrandMark.tsx (same geometry as
-  public/brand/*-v2.svg). The C is a starting-grid slot, the L sits in it, and the L's foot is the
+  public/brand/*-v3.svg). The C is a starting-grid slot, the L sits in it, and the L's foot is the
   livery stripe leaving the box. Decorative beside the wordmark, so aria-hidden.
 */
 export function BrandMark({ className = "" }: { className?: string }) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 126 120" className={className}>
+    <svg aria-hidden="true" viewBox="0 0 136 120" className={className}>
       <polygon fill="var(--color-steel)" points="96,14 24,14 10,28 10,92 24,106 96,106 96,92 24,92 24,28 96,28" />
       <rect x="36" y="40" width="14" height="40" fill="var(--color-steel)" />
-      <polygon fill="var(--color-livery-green)" points="36,66 77,66 68,80 36,80" />
-      <polygon fill="var(--color-accent)" points="80,66 105,66 96,80 71,80" />
-      <polygon fill="var(--color-livery-red)" points="108,66 124,66 115,80 99,80" />
+      <polygon fill="var(--color-livery-red)" points="36,66 77,66 68,80 36,80" />
+      <polygon fill="var(--color-livery-orange)" points="80,66 105,66 96,80 71,80" />
+      <polygon fill="var(--color-accent)" points="108,66 124,66 115,80 99,80" />
+      <polygon fill="var(--color-livery-green)" points="127,66 133,66 124,80 118,80" />
     </svg>
   );
 }

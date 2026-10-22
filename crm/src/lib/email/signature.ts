@@ -12,8 +12,8 @@ export const LOGO_CID = "lc-signature-logo";
 export const NAME_CID = "lc-signature-name";
 const NAME_URL = "https://crm.golaunchcontrol.com/api/email/signature-name";
 const NAME_H = 17;
-const LOGO_URL = "https://crm.golaunchcontrol.com/brand/launch-control-email-mark-v2.png";
-const PREVIEW_LOGO = "/brand/launch-control-email-mark-v2.png";
+const LOGO_URL = "https://crm.golaunchcontrol.com/brand/launch-control-email-mark-v3.png";
+const PREVIEW_LOGO = "/brand/launch-control-email-mark-v3.png";
 const LOGO_W = 114;
 const LOGO_H = 25;
 const COMPANY = "Launch Control";
@@ -88,8 +88,8 @@ export function signatureHtml(
   const contact = [`<a href="mailto:${mail}" style="${link}">${mail}</a>`, phone?.trim() ? escapeHtml(phone.trim()) : ""]
     .filter(Boolean)
     .join(`<span style="color:${GRAY};padding:0 6px;">&middot;</span>`);
-  // One 4px step between every row, so nothing reads as a separate block.
-  const GAP = "padding-top:4px;";
+  // One 2px step between every row, so nothing reads as a separate block.
+  const GAP = "padding-top:2px;";
   const rows = [
     line(nameCell, nameSrc ? "" : nameStyle),
     title.trim() ? line(escapeHtml(title.trim()), `${GAP}font-size:13px;line-height:17px;color:${GRAY};`) : "",
@@ -99,7 +99,7 @@ export function signatureHtml(
   const logoCell = DEMO_COMPANY
     ? ""
     : `<td valign="middle" style="padding:0 14px 0 0;vertical-align:middle;"><a href="${SITE}" style="text-decoration:none;"><img src="${logoSrc(source)}" width="${LOGO_W}" height="${LOGO_H}" alt="Launch Control" style="display:block;width:${LOGO_W}px;height:${LOGO_H}px;border:0;outline:none;"></a></td>`;
-  const rule = DEMO_COMPANY ? "" : "padding:0 0 0 14px;border-left:2px solid #6b7178;";
+  const rule = DEMO_COMPANY ? "" : "padding:0 0 0 14px;border-left:2px solid #f0c419;";
   return `${FONT_FACE}<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;${FONT}color:${INK};">
 <tr>
 ${logoCell}
