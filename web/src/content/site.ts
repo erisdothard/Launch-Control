@@ -315,6 +315,18 @@ const content: SiteContent = {
         ],
       },
       {
+        client: "Launch Control CRM",
+        title: "The CRM behind the work, open as a live demo.",
+        summary:
+          "Leads, pipeline, follow-ups and email in one place, with the automation described above running inside it. Loaded with invented demo data so you can click through it yourself.",
+        href: "https://demo.golaunchcontrol.com/admin/dashboard",
+        year: "2026",
+        shots: {
+          hero: { src: "/work/hyper-racer-crm-dashboard-desk-v3.webp", alt: "The CRM dashboard: lead counts, pipeline value and a ranked list of who to contact", width: 2560, height: 1600 },
+          phone: { src: "/work/hyper-racer-crm-dashboard-phone-v3.webp", alt: "The CRM dashboard on a phone", width: 1170, height: 2532 },
+        },
+      },
+      {
         client: "UBM Group",
         title: "A healthcare integration consultancy's site, built to win hospital clients.",
         summary:
@@ -360,18 +372,6 @@ const content: SiteContent = {
         shots: {
           hero: { src: "/work/syntra-home-desk-v1.webp", alt: "Syntra AI home page: We build software for your business, a rocket on the launch pad", width: 2560, height: 1600 },
           phone: { src: "/work/syntra-home-phone-v1.webp", alt: "Syntra AI home page on a phone", width: 1170, height: 2532 },
-        },
-      },
-      {
-        client: "Launch Control CRM",
-        title: "The CRM behind the work, open as a live demo.",
-        summary:
-          "Leads, pipeline, follow-ups and email in one place, with the automation described above running inside it. Loaded with invented demo data so you can click through it yourself.",
-        href: "https://demo.golaunchcontrol.com/admin/dashboard",
-        year: "2026",
-        shots: {
-          hero: { src: "/work/hyper-racer-crm-dashboard-desk-v3.webp", alt: "The CRM dashboard: lead counts, pipeline value and a ranked list of who to contact", width: 2560, height: 1600 },
-          phone: { src: "/work/hyper-racer-crm-dashboard-phone-v3.webp", alt: "The CRM dashboard on a phone", width: 1170, height: 2532 },
         },
       },
     ],
