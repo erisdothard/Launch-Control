@@ -25,8 +25,8 @@ function CrmScreens() {
 }
 
 /* Work: shown before services, the way the reference agencies do it (docs/review/agency-refs).
-   The featured build gets the hero collage, the agents' three guarantees and the CRM screens.
-   The others get a collage or a row of screens. */
+   The featured build (Hyper Racer) gets the hero collage, the automation copy and the CRM screens.
+   The others sit in one side-scrolling strip of cards below it. */
 export function Work() {
   return (
     <section id={work.id} aria-labelledby={titleId} className="relative overflow-x-clip border-t border-border bg-background/90" style={{ zIndex: "var(--z-content)" }}>
@@ -93,45 +93,53 @@ export function Work() {
           </Reveal>
         </article>
 
-        {/* The rest */}
-        {work.more.map((entry) => {
-          const titleId = `work-${entry.client}-title`;
-          const copy = (
-            <div>
-              <p className="label-mono mb-4 text-ember">
-                {entry.client} <span className="text-subtle">· {entry.year}</span>
-              </p>
-              <h3 id={titleId} className="text-title">
-                {entry.title}
-              </h3>
-              <p className="mt-5 max-w-[56ch] text-body text-muted">{entry.summary}</p>
-              <div className="mt-8">
-                <ButtonLink href={entry.href} target="_blank" rel="noopener noreferrer" variant="secondary">
-                  {work.visitLabel}
-                </ButtonLink>
-              </div>
-            </div>
-          );
-          return (
-            <article key={entry.client} className="mt-14 border-t border-border pt-10 lg:mt-16 lg:pt-12" aria-labelledby={titleId}>
-              {entry.screens ? (
-                <Reveal>
-                  <ScreenViewer screens={entry.screens} labelledBy={titleId} lead={copy} />
-                </Reveal>
-              ) : (
-                <Reveal className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
-                  <div className="lg:col-span-5">{copy}</div>
-                  {entry.shots && (
-                    <div className="relative lg:col-span-7">
-                      <BrowserFrame shot={entry.shots.hero} className={HERO_DESK} />
-                      <PhoneFrame shot={entry.shots.phone} sizes="(min-width: 640px) 150px, 78vw" className={PHONE_OVERLAP} />
+        {/* The other builds: one side-scrolling strip so Hyper Racer stays the one big case study and
+            the rest take a single row (Max, 2026-10-21). Two cards fill the row; from three up the
+            strip scrolls. Cards clip flush with the column's edges; nothing peeks past the container (the
+            sliding viewer was rejected for that). */}
+        <div className="mt-14 border-t border-border pt-10 lg:mt-16 lg:pt-12">
+          <p id="work-more-title" className="label-mono mb-6 text-steel">
+            {work.moreLabel}
+          </p>
+          <ul
+            aria-labelledby="work-more-title"
+            className="m-0 flex snap-x snap-mandatory list-none gap-6 overflow-x-auto overscroll-x-contain p-0 pb-4 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
+          >
+            {work.more.map((entry) => {
+              const entryTitleId = `work-${entry.client.replace(/\s+/g, "-").toLowerCase()}-title`;
+              const phoneShot = entry.shots?.phone ?? entry.screens?.[0]?.phone;
+              return (
+                <li key={entry.client} className="w-[85vw] max-w-[520px] shrink-0 snap-start sm:w-[calc(50%-0.75rem)] sm:max-w-none">
+                  <article aria-labelledby={entryTitleId} className="flex h-full flex-col border border-border bg-surface/80">
+                    {/* The capture rises from the card's bottom edge: its top (window bar, Dynamic Island) shows,
+                        the rest runs off under the rule, so it reads as a device and not a cropped rectangle. */}
+                    <div className="relative flex h-[260px] items-start justify-center overflow-hidden border-b border-border bg-elevated/60 px-6 pt-6">
+                      {entry.shots ? (
+                        <BrowserFrame shot={entry.shots.hero} sizes="(min-width: 640px) 392px, 85vw" className="w-full" />
+                      ) : (
+                        phoneShot && <PhoneFrame shot={phoneShot} sizes="170px" className="w-[170px]" />
+                      )}
                     </div>
-                  )}
-                </Reveal>
-              )}
-            </article>
-          );
-        })}
+                    <div className="flex flex-1 flex-col p-6">
+                      <p className="label-mono mb-3 text-ember">
+                        {entry.client} <span className="text-subtle">· {entry.year}</span>
+                      </p>
+                      <h3 id={entryTitleId} className="text-title text-pretty">
+                        {entry.title}
+                      </h3>
+                      <p className="mt-3 text-body text-muted">{entry.summary}</p>
+                      <div className="mt-auto pt-6">
+                        <ButtonLink href={entry.href} target="_blank" rel="noopener noreferrer" variant="secondary">
+                          {work.visitLabel}
+                        </ButtonLink>
+                      </div>
+                    </div>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
     </section>
   );

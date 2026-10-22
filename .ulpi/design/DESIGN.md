@@ -56,7 +56,7 @@ from the B&H Jordan 199 livery photo) are small accents. Dark only, by brief.
 | border | #262b31 | hairline rules (decorative only) |
 | text | #f4f6f8 | body copy, headings on panels |
 | **steel** | #c6ccd3 | display type: captions, section titles, the wordmark |
-| muted | #a7adb4 | secondary copy, nav items |
+| muted | #b6bcc3 | secondary copy, nav items (lifted from #a7adb4 on 2026-10-22 for readability) |
 | subtle | #7a8189 | small print, footer credits, control borders, placeholders |
 | **ember (accent)** | #f0c419 | THE accent, Jordan yellow. Start ring, Book panel, primary button, the nav CTA, combustion heat |
 | ember-hot | #f07d1a | Jordan orange: livery stripe, heat ramp stage 2. Never a surface |
@@ -78,7 +78,7 @@ steel), orange and red only inside the stripe and the engine's faint glow.
 |---|---|---|---|
 | text | 18.72 | 17.96 | 16.44 |
 | steel | 12.53 | 12.03 | 11.01 |
-| muted | 8.96 | 8.60 | 7.87 |
+| muted | 10.59 | 10.16 | 9.30 |
 | subtle | 5.15 | 4.94 | 4.52 |
 | ember (yellow) | 12.18 | 11.69 | 10.70 |
 | danger | 4.40 | 4.23 | 3.87 |
