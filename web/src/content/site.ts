@@ -125,7 +125,7 @@ export const siteSchema = z.object({
         .refine((entry) => entry.shots || entry.screens, { message: "a project needs shots or screens" }),
       )
       .min(1)
-      .max(3),
+      .max(6),
   }),
   /** How an engagement runs: four stages in a row. Concise and visual, not a new chapter. */
   process: z.object({
@@ -313,6 +313,54 @@ const content: SiteContent = {
           { label: "Hours",
             note: "Driving and on-duty time against the daily and weekly limits, with one-tap status changes.", phone: { src: "/work/dispatchrelay-hos-phone-v4.webp", alt: "Hours of service: driving, on-duty and weekly limits with status buttons", width: 1290, height: 2796 } },
         ],
+      },
+      {
+        client: "UBM Group",
+        title: "A healthcare integration consultancy's site, built to win hospital clients.",
+        summary:
+          "Positioning, copy and a full marketing site for a consultancy that connects hospital systems and migrates clinical data. Services, process, insights and a consultation funnel on one site.",
+        href: "https://www.ubmgroupllc.com",
+        year: "2026",
+        shots: {
+          hero: { src: "/work/ubm-group-home-desk-v1.webp", alt: "UBM Group home page: Connecting the systems that power modern healthcare", width: 2560, height: 1600 },
+          phone: { src: "/work/ubm-group-home-phone-v1.webp", alt: "UBM Group home page on a phone", width: 1170, height: 2532 },
+        },
+      },
+      {
+        client: "Safety Net Consulting",
+        title: "Career and life consulting, with booking and a client portal built in.",
+        summary:
+          "Brand, site and client portal for a consulting practice: services, scheduling, checkout and sign-in for clients, all on one platform.",
+        href: "https://safety-net-career-consulting.vercel.app",
+        year: "2026",
+        shots: {
+          hero: { src: "/work/safety-net-home-desk-v1.webp", alt: "Safety Net Consulting home page", width: 2560, height: 1600 },
+          phone: { src: "/work/safety-net-home-phone-v1.webp", alt: "Safety Net Consulting home page on a phone", width: 1170, height: 2532 },
+        },
+      },
+      {
+        client: "3 Aces Trucking",
+        title: "An expedited freight carrier's site, with a customer portal.",
+        summary:
+          "Brand-forward marketing site for a trucking company: fleet, services, contact and a portal entry for customers, built as the front door to the FreightX platform that became DispatchRelay.",
+        href: "https://www.3acestruckinginc.com",
+        year: "2026",
+        shots: {
+          hero: { src: "/work/three-aces-home-desk-v1.webp", alt: "3 Aces Trucking home page: Expedited freight", width: 2560, height: 1600 },
+          phone: { src: "/work/three-aces-home-phone-v1.webp", alt: "3 Aces Trucking home page on a phone", width: 1170, height: 2532 },
+        },
+      },
+      {
+        client: "Syntra AI",
+        title: "A 3D scrollytelling site for a software studio.",
+        summary:
+          "A rocket on the pad that ignites and launches as you scroll, carrying the pitch through portfolio, services and contact. WebGL, scroll-driven animation and a frame player tuned to run smoothly on the live site.",
+        href: "https://www.syntraai.tech",
+        year: "2026",
+        shots: {
+          hero: { src: "/work/syntra-home-desk-v1.webp", alt: "Syntra AI home page: We build software for your business, a rocket on the launch pad", width: 2560, height: 1600 },
+          phone: { src: "/work/syntra-home-phone-v1.webp", alt: "Syntra AI home page on a phone", width: 1170, height: 2532 },
+        },
       },
       {
         client: "Launch Control CRM",
