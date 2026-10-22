@@ -384,14 +384,14 @@ const content: SiteContent = {
       "Launch Control combines hands-on business development with custom software and systems engineering. Strategy, execution, and technology are developed together rather than handed between disconnected teams.",
     people: [
       {
-        name: "Maxwell Hartmann",
-        role: "Co-Founder & Managing Director",
-        body: "Leads business development, client acquisition, partnerships and market strategy. Owns the client relationship from the first conversation through every stage after.",
-      },
-      {
         name: "Eris Dothard",
         role: "Co-Founder & Technical Director",
         body: "Leads technical architecture, development, automation and system implementation. Builds the website, the CRM and the systems inside it, and keeps them running.",
+      },
+      {
+        name: "Maxwell Hartmann",
+        role: "Co-Founder & Managing Director",
+        body: "Leads business development, client acquisition, partnerships and market strategy. Owns the client relationship from the first conversation through every stage after.",
       },
     ],
   },
