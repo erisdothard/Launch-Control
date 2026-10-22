@@ -9,8 +9,8 @@ const SITE = "https://golaunchcontrol.com";
 export const LOGO_CID = "lc-signature-logo";
 const LOGO_URL = "https://crm.golaunchcontrol.com/brand/launch-control-email-mark-v2.png";
 const PREVIEW_LOGO = "/brand/launch-control-email-mark-v2.png";
-const LOGO_W = 140;
-const LOGO_H = 31;
+const LOGO_W = 114;
+const LOGO_H = 25;
 const COMPANY = "Launch Control";
 // Client demos (NEXT_PUBLIC_DEMO_MODE=1) sign as the demo's own company: its name, no Launch Control
 // logo. NEXT_PUBLIC_DEMO_COMPANY names it on the demo deployment; the real CRM never sets either.
@@ -32,14 +32,9 @@ function escapeHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-/** tel: target for a typed phone number: digits only, US numbers get +1. */
-function telHref(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 10) return `tel:+1${digits}`;
-  return `tel:+${digits}`;
-}
-
 const FONT = "font-family:Arial,Helvetica,sans-serif;";
+// The name is set in the wordmark's face where it is installed; mail apps without it fall back to Arial.
+const NAME_FONT = "font-family:Michroma,'Eurostile','Bank Gothic',Arial,Helvetica,sans-serif;";
 const INK = "#050607";
 const GRAY = "#5b626a";
 
@@ -56,28 +51,27 @@ function logoSrc(source: LogoSource): string {
   return source === "cid" ? `cid:${LOGO_CID}` : source === "preview" ? PREVIEW_LOGO : LOGO_URL;
 }
 
-// Logo | thin gray rule | the person, in the order Max set (2026-10-21): name, title, email,
-// LAUNCH CONTROL, phone, then small print. Narrow (about 460px) and no wide letter-spacing, so it
-// never wraps or clips in a narrow reading pane. The rule is the text column's left border.
+// Logo (the only link to the site) | thin gray rule | the person (Eris, 2026-10-21): name, title,
+// then email and phone on one line. The phone is plain text, not a tel: link. Narrow (about 420px)
+// so it never wraps or clips in a narrow reading pane. The rule is the text column's left border.
 export function signatureHtml({ name, title, address, phone, lines }: SignatureInput, source: LogoSource = "url"): string {
   const mail = escapeHtml(address);
   const link = `color:${INK};text-decoration:none;`;
+  const contact = [`<a href="mailto:${mail}" style="${link}">${mail}</a>`, phone?.trim() ? escapeHtml(phone.trim()) : ""]
+    .filter(Boolean)
+    .join(`<span style="color:${GRAY};padding:0 7px;">&middot;</span>`);
   const rows = [
-    line(escapeHtml(name.trim()), `font-size:16px;line-height:21px;font-weight:bold;color:${INK};`),
-    title.trim() ? line(escapeHtml(title.trim()), `font-size:13px;line-height:19px;color:${GRAY};padding-bottom:6px;`) : "",
-    line(`<a href="mailto:${mail}" style="${link}">${mail}</a>`, `font-size:13px;line-height:19px;color:${INK};`),
-    line(DEMO_COMPANY ? escapeHtml(DEMO_COMPANY.toUpperCase()) : `<a href="${SITE}" style="${link}">LAUNCH CONTROL</a>`, `font-size:12px;line-height:19px;font-weight:bold;letter-spacing:1.5px;color:${INK};`),
-    phone?.trim()
-      ? line(`<a href="${telHref(phone)}" style="${link}">${escapeHtml(phone.trim())}</a>`, `font-size:13px;line-height:19px;color:${INK};`)
-      : "",
+    line(escapeHtml(name.trim()), `${NAME_FONT}font-size:14px;line-height:20px;font-weight:bold;color:${INK};`),
+    title.trim() ? line(escapeHtml(title.trim()), `font-size:13px;line-height:18px;color:${GRAY};`) : "",
+    line(contact, `font-size:13px;line-height:18px;color:${INK};padding-top:5px;`),
     ...smallLines(lines).map((l, i) =>
-      line(escapeHtml(l), `font-size:11px;line-height:16px;color:${GRAY};${i === 0 ? "padding-top:6px;" : ""}`, true)
+      line(escapeHtml(l), `font-size:11px;line-height:16px;color:${GRAY};${i === 0 ? "padding-top:5px;" : ""}`, true)
     ),
   ].join("");
   const logoCell = DEMO_COMPANY
     ? ""
-    : `<td valign="middle" style="padding:0 18px 0 0;vertical-align:middle;"><a href="${SITE}" style="text-decoration:none;"><img src="${logoSrc(source)}" width="${LOGO_W}" height="${LOGO_H}" alt="Launch Control" style="display:block;width:${LOGO_W}px;height:${LOGO_H}px;border:0;outline:none;"></a></td>`;
-  const rule = DEMO_COMPANY ? "" : "padding:2px 0 2px 18px;border-left:2px solid #6b7178;";
+    : `<td valign="middle" style="padding:0 16px 0 0;vertical-align:middle;"><a href="${SITE}" style="text-decoration:none;"><img src="${logoSrc(source)}" width="${LOGO_W}" height="${LOGO_H}" alt="Launch Control" style="display:block;width:${LOGO_W}px;height:${LOGO_H}px;border:0;outline:none;"></a></td>`;
+  const rule = DEMO_COMPANY ? "" : "padding:1px 0 1px 16px;border-left:2px solid #6b7178;";
   return `<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;${FONT}color:${INK};">
 <tr>
 ${logoCell}
@@ -87,7 +81,7 @@ ${logoCell}
 }
 
 export function signatureText({ name, title, address, phone, lines }: SignatureInput): string {
-  return ["--", name.trim(), title.trim(), address, DEMO_COMPANY || "LAUNCH CONTROL (golaunchcontrol.com)", phone?.trim() ?? "", ...smallLines(lines)]
+  return ["--", name.trim(), title.trim(), [address, phone?.trim() ?? ""].filter(Boolean).join("  ·  "), DEMO_COMPANY || "golaunchcontrol.com", ...smallLines(lines)]
     .filter(Boolean)
     .join("\n");
 }
