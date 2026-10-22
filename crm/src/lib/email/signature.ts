@@ -33,8 +33,12 @@ function escapeHtml(value: string): string {
 }
 
 const FONT = "font-family:Arial,Helvetica,sans-serif;";
-// The name is set in the wordmark's face where it is installed; mail apps without it fall back to Arial.
+// The name is set in the wordmark's face. The @font-face below loads it in Apple Mail, iOS Mail and
+// Outlook for Mac; Gmail and Outlook for Windows strip it and show Arial. Michroma has one weight,
+// so the name is regular, like the wordmark, not a synthesised bold.
 const NAME_FONT = "font-family:Michroma,'Eurostile','Bank Gothic',Arial,Helvetica,sans-serif;";
+const MICHROMA_WOFF2 = "https://fonts.gstatic.com/s/michroma/v21/PN_zRfy9qWD8fEagAPg9pTn5_PDb.woff2";
+const FONT_FACE = `<style>@font-face{font-family:Michroma;font-style:normal;font-weight:400;src:url(${MICHROMA_WOFF2}) format('woff2');}</style>`;
 const INK = "#050607";
 const GRAY = "#5b626a";
 
@@ -61,7 +65,7 @@ export function signatureHtml({ name, title, address, phone, lines }: SignatureI
     .filter(Boolean)
     .join(`<span style="color:${GRAY};padding:0 7px;">&middot;</span>`);
   const rows = [
-    line(escapeHtml(name.trim()), `${NAME_FONT}font-size:14px;line-height:20px;font-weight:bold;color:${INK};`),
+    line(escapeHtml(name.trim()), `${NAME_FONT}font-size:15px;line-height:21px;color:${INK};`),
     title.trim() ? line(escapeHtml(title.trim()), `font-size:13px;line-height:18px;color:${GRAY};`) : "",
     line(contact, `font-size:13px;line-height:18px;color:${INK};padding-top:5px;`),
     ...smallLines(lines).map((l, i) =>
@@ -72,7 +76,7 @@ export function signatureHtml({ name, title, address, phone, lines }: SignatureI
     ? ""
     : `<td valign="middle" style="padding:0 16px 0 0;vertical-align:middle;"><a href="${SITE}" style="text-decoration:none;"><img src="${logoSrc(source)}" width="${LOGO_W}" height="${LOGO_H}" alt="Launch Control" style="display:block;width:${LOGO_W}px;height:${LOGO_H}px;border:0;outline:none;"></a></td>`;
   const rule = DEMO_COMPANY ? "" : "padding:1px 0 1px 16px;border-left:2px solid #6b7178;";
-  return `<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;${FONT}color:${INK};">
+  return `${FONT_FACE}<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;${FONT}color:${INK};">
 <tr>
 ${logoCell}
 <td valign="middle" style="${rule}vertical-align:middle;"><table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;">${rows}</table></td>
