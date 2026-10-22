@@ -11,7 +11,8 @@ import { outlookAccessToken } from "./outlookAccount";
 import { sendViaResend } from "./resend";
 import { currentCrmUserEmail } from "./session";
 import { SIGNATURE_LOGO_PNG_BASE64 } from "./logoData";
-import { emailHtml, emailText, LOGO_CID, type SignatureInput } from "./signature";
+import { emailHtml, emailText, LOGO_CID, NAME_CID, type SignatureInput } from "./signature";
+import { renderNameImage, type NameImage } from "./nameImage";
 import { isEmail } from "./text";
 import { isDemoMode } from "@/lib/demo/mode";
 import { unsubscribeHeaders } from "./unsubscribe";
@@ -195,6 +196,7 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
   // The From line is the company; the signature names the person, always from the sending row, so
   // "send as Eris" signs as Eris. Turned off, or no person set on the row, means no signature.
   const signature: SignatureInput = {
+    accountId: account.id,
     name: account.signature_name,
     title: account.signature_title,
     address: account.address,
@@ -205,6 +207,9 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
   const signed = sign ? { text: emailText(body, signature), html: emailHtml(body, signature) } : { text: body, html: null };
   const toLine = to.join(", ");
   const headers = input.unsubscribeBaseUrl ? listUnsubscribe(to[0], lead?.id ?? null, input.unsubscribeBaseUrl, account.address) : undefined;
+
+  // The name in Michroma for the inline send; if drawing fails the name goes as text, not unsent.
+  const nameImage = sign && !isDemoMode() && account.provider === "outlook" ? await renderNameImage(signature.name).catch(() => null) : null;
 
   let providerMessageId: string | null = null;
   let providerThreadId: string | null = null;
@@ -238,9 +243,10 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
         bcc,
         subject,
         ...signed,
-        // Outlook mail embeds the signature logo so it shows even where remote images are blocked.
-        ...(sign && signed.html ? { html: emailHtml(body, signature, "cid") } : {}),
-        attachments: sign ? [...outbound, signatureLogoFile()] : outbound,
+        // Outlook mail embeds the signature logo and the drawn name so they show even where remote
+        // images are blocked (and Outlook for Windows, which loads no web fonts).
+        ...(sign && signed.html ? { html: emailHtml(body, signature, "cid", nameImage ?? undefined) } : {}),
+        attachments: sign ? [...outbound, signatureLogoFile(), ...(nameImage ? [signatureNameFile(nameImage)] : [])] : outbound,
         inReplyTo,
         headers,
       });
@@ -374,6 +380,11 @@ async function headerFor(messageId: string): Promise<string | null> {
 async function threadFor(messageId: string): Promise<string | null> {
   const { data } = (await createServiceRoleClient()?.from("email_messages").select("provider_thread_id").eq("id", messageId).maybeSingle()) ?? {};
   return data?.provider_thread_id ?? null;
+}
+
+/** The signature name, drawn in Michroma, as an inline (cid:) part. */
+function signatureNameFile(image: NameImage): OutboundFile {
+  return { filename: "name.png", content: image.png, contentType: "image/png", cid: NAME_CID };
 }
 
 /** The signature logo as an inline (cid:) part, so it never depends on loading a remote image. */
