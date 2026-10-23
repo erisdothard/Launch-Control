@@ -355,7 +355,7 @@ const content: SiteContent = {
         title: "An expedited freight carrier's site, with a customer portal.",
         summary:
           "Brand-forward marketing site for a trucking company: fleet, services, contact and a portal entry for customers, built as the front door to the FreightX platform that became DispatchRelay.",
-        href: "https://www.3acestruckinginc.com",
+        href: "https://3acestruckinginc.com",
         year: "2026",
         shots: {
           hero: { src: "/work/three-aces-home-desk-v1.webp", alt: "3 Aces Trucking home page: Expedited freight", width: 2560, height: 1600 },
