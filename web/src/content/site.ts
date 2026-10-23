@@ -364,9 +364,9 @@ const content: SiteContent = {
       },
       {
         client: "Syntra AI",
-        title: "A 3D scrollytelling site for a software studio.",
+        title: "Syntra AI: custom software with AI running the work inside it.",
         summary:
-          "A rocket on the pad that ignites and launches as you scroll, carrying the pitch through portfolio, services and contact. WebGL, scroll-driven animation and a frame player tuned to run smoothly on the live site.",
+          "An AI consultancy that builds custom software for businesses: websites, customer portals, booking and ordering systems, marketplaces and internal tools, connected to each other, with AI running the work inside them. Its site launches a rocket as you scroll.",
         href: "https://www.syntraai.tech",
         year: "2026",
         shots: {
