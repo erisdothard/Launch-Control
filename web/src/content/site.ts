@@ -362,18 +362,6 @@ const content: SiteContent = {
           phone: { src: "/work/three-aces-home-phone-v1.webp", alt: "3 Aces Trucking home page on a phone", width: 1170, height: 2532 },
         },
       },
-      {
-        client: "Syntra AI",
-        title: "Syntra AI: custom software with AI running the work inside it.",
-        summary:
-          "An AI consultancy that builds custom software for businesses: websites, customer portals, booking and ordering systems, marketplaces and internal tools, connected to each other, with AI running the work inside them. Its site launches a rocket as you scroll.",
-        href: "https://www.syntraai.tech",
-        year: "2026",
-        shots: {
-          hero: { src: "/work/syntra-home-desk-v1.webp", alt: "Syntra AI home page: We build software for your business, a rocket on the launch pad", width: 2560, height: 1600 },
-          phone: { src: "/work/syntra-home-phone-v1.webp", alt: "Syntra AI home page on a phone", width: 1170, height: 2532 },
-        },
-      },
     ],
   },
   process: {
