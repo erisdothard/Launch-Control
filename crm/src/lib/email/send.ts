@@ -233,7 +233,8 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
       // and other system mail don't count.
       const lastFromThem = [...thread].reverse().find((m) => m.direction === "in" && m.fromAddress.toLowerCase() === to[0]);
       const inReplyTo = reply?.messageIdHeader ?? (lastFromThem ? await headerFor(lastFromThem.id) : null);
-      const sent = await sendViaOutlookSmtp(await outlookAccessToken(account.id, "smtp"), {
+      // App-only mode sends through Graph with its own token, so skip the SMTP sign-in.
+      const sent = await sendViaOutlookSmtp(outlookAppOnly() ? "" : await outlookAccessToken(account.id, "smtp"), {
         fromName: account.display_name,
         fromAddress: account.address,
         // App-only mode signs in to SMTP as the one mailbox the app works on.

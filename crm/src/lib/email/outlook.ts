@@ -143,8 +143,49 @@ export interface OutboundFile {
   cid?: string;
 }
 
-/** Sends through smtp.office365.com as the mailbox; Exchange files a copy in Sent Items. */
+/** The same message as raw MIME, so Graph sends exactly what SMTP would (headers, threading, cid images). */
+function mailOptions(msg: SmtpSend, messageId: string) {
+  return {
+    from: { name: msg.fromName, address: msg.fromAddress },
+    to: msg.to,
+    cc: msg.cc?.length ? msg.cc : undefined,
+    bcc: msg.bcc?.length ? msg.bcc : undefined,
+    subject: msg.subject,
+    text: msg.text,
+    html: msg.html ?? undefined,
+    attachments: msg.attachments?.map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType, ...(a.cid ? { cid: a.cid, contentDisposition: "inline" as const } : {}) })),
+    messageId,
+    inReplyTo: msg.inReplyTo ?? undefined,
+    references: msg.references ?? msg.inReplyTo ?? undefined,
+    headers: msg.headers,
+  };
+}
+
+/**
+ * App-only: Graph sendMail with the MIME body. Needs only the Mail.Send application permission,
+ * where SMTP AUTH as an app also needs Exchange PowerShell setup. Exchange files the Sent copy.
+ */
+async function sendViaGraphMime(msg: SmtpSend, messageId: string): Promise<void> {
+  const built = await nodemailer.createTransport({ streamTransport: true, buffer: true, newline: "windows" }).sendMail(mailOptions(msg, messageId));
+  const res = await fetch(`${GRAPH}/users/${encodeURIComponent(emailConfig.msAppMailbox)}/sendMail`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await appOnlyToken("graph")}`, "Content-Type": "text/plain" },
+    body: (built.message as Buffer).toString("base64"),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new Error(`Outlook didn't send it: ${body.error?.message ?? res.status}`);
+  }
+}
+
+/** Sends as the mailbox; Exchange files a copy in Sent Items. SMTP when signed in, Graph in app-only mode. */
 export async function sendViaOutlookSmtp(accessToken: string, msg: SmtpSend): Promise<{ messageId: string }> {
+  if (outlookAppOnly()) {
+    const messageId = `<${randomUUID()}@${msg.mailbox.split("@")[1]}>`;
+    await sendViaGraphMime(msg, messageId);
+    return { messageId };
+  }
   const transport = nodemailer.createTransport({
     host: "smtp.office365.com",
     port: 587,
@@ -157,20 +198,7 @@ export async function sendViaOutlookSmtp(accessToken: string, msg: SmtpSend): Pr
   });
   const messageId = `<${randomUUID()}@${msg.mailbox.split("@")[1]}>`;
   try {
-    await transport.sendMail({
-      from: { name: msg.fromName, address: msg.fromAddress },
-      to: msg.to,
-      cc: msg.cc?.length ? msg.cc : undefined,
-      bcc: msg.bcc?.length ? msg.bcc : undefined,
-      subject: msg.subject,
-      text: msg.text,
-      html: msg.html ?? undefined,
-      attachments: msg.attachments?.map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType, ...(a.cid ? { cid: a.cid, contentDisposition: "inline" as const } : {}) })),
-      messageId,
-      inReplyTo: msg.inReplyTo ?? undefined,
-      references: msg.references ?? msg.inReplyTo ?? undefined,
-      headers: msg.headers,
-    });
+    await transport.sendMail(mailOptions(msg, messageId));
   } finally {
     transport.close();
   }
