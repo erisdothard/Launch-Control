@@ -17,6 +17,7 @@ import { isEmail } from "./text";
 import { isDemoMode } from "@/lib/demo/mode";
 import { unsubscribeHeaders } from "./unsubscribe";
 import { findOptOut, optOutMessage } from "./optOut";
+import { outboundHalt } from "@/lib/agents/halt";
 
 export { ATTACHMENT_BUCKET, validAttachment, type EmailAttachment };
 
@@ -34,9 +35,12 @@ export interface SendInput {
  * warning: it went out, but something after the send didn't (the copy wasn't saved). The caller
  * must NOT send again; it shows the warning. code "daily_cap": refused before sending because the
  * mailbox hit its daily limit; nothing went out. code "opted_out": a recipient unsubscribed, bounced
- * or asked not to be contacted; nothing went out and it must not be retried.
+ * or asked not to be contacted; nothing went out and it must not be retried. code "halted": the
+ * Guardian's outbound halt is on (or couldn't be read); nothing went out, retry once it's cleared.
  */
-export type SendResult = { ok: true; id?: string; warning?: string } | { ok: false; error: string; code?: "daily_cap" | "opted_out" };
+export type SendResult =
+  | { ok: true; id?: string; warning?: string }
+  | { ok: false; error: string; code?: "daily_cap" | "opted_out" | "halted" };
 
 /**
  * One outbound email from anywhere in the CRM: the Inbox (compose, reply, reply all, forward),
@@ -169,6 +173,9 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
   if (!usable) {
     return { ok: false, error: `${account.address} needs reconnecting in Settings before it can send.` };
   }
+  // The Guardian's halt stops every send, a person's included. Can't read it, don't send.
+  const halt = await outboundHalt(supabase);
+  if (halt.halted) return { ok: false, code: "halted", error: halt.message };
   const sentToday = await sentInLastDay(supabase, account.mailbox ?? account.address);
   if (sentToday === null) return { ok: false, error: "Couldn't check today's sending limit. Try again in a minute." };
   if (sentToday >= DAILY_SEND_CAP) {

@@ -119,3 +119,11 @@ def test_scrape_batch_reads_results(cfg: Config, tmp_path: Path, monkeypatch: py
     monkeypatch.setattr(gmaps, "_run", failing)
     with pytest.raises(gmaps.GmapsError, match="driver missing"):
         gmaps._scrape_batch(cfg.gmaps, [q], tmp_path / "cache" / "gmaps-runs" / "w2", tmp_path)
+
+
+def test_paused_keywords_are_skipped(cfg) -> None:  # type: ignore[no-untyped-def]
+    from leadgen.discover.queries import build_queries
+
+    paused = cfg.model_copy(update={"filters": cfg.filters.model_copy(update={"paused_keywords": ["Race Prep Shop"]})})
+    qs = build_queries(paused, ["FL"], ["race_prep"], 50)
+    assert qs and not any(q.text.lower().startswith("race prep shop") for q in qs)

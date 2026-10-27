@@ -6,6 +6,7 @@ from typing import Any
 
 from leadgen.config import Config
 from leadgen.enrich.people import FIRST_NAMES
+from leadgen.filters import is_blind
 from leadgen.models import Lead
 
 
@@ -45,6 +46,8 @@ def signals_for(lead: Lead) -> dict[str, Any]:
         "score_capped_by": list(lead.score.capped_by) if lead.score else [],
         "google_category": p.category or None,
         "discovered_by": p.query or p.source,
+        # No readable website: phone outreach, never the email queue (metrics.call_list).
+        "call_list": is_blind(lead) and not lead.score,
     }
     if not lead.contact and email_first_name(lead):
         base["contact_source"] = "first name from email address"

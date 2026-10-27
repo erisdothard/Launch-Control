@@ -52,6 +52,39 @@ def post_crawl_reasons(lead: Lead, cfg: FilterCfg, today: date) -> list[str]:
     return reasons
 
 
+def is_blind(lead: Lead) -> bool:
+    """No website we could read: scoring it would be guesswork, so it goes to the call list instead."""
+    e = lead.enrichment
+    return not lead.domain or e is None or not e.ok or not e.pages
+
+
+def call_list_reasons(lead: Lead) -> list[str]:
+    """A blind lead is only worth keeping if someone can phone it."""
+    has_phone = bool(lead.phone_e164 or lead.place.phone or (lead.enrichment and lead.enrichment.phone))
+    return ["no_readable_site_no_phone"] if is_blind(lead) and not has_phone else []
+
+
+def out_of_state_reasons(lead: Lead, states: list[str] | None, cfg: FilterCfg) -> list[str]:
+    """Maps searches near a track return businesses across the state line. Dropped only when asked."""
+    st = lead.place.state
+    if cfg.out_of_state != "drop" or not states or not st or st in states:
+        return []
+    return [f"out_of_state:{st}"]
+
+
+def factor_reasons(lead: Lead, cfg: FilterCfg) -> list[str]:
+    """Dealbreaker ratings that exclude rather than cap (e.g. booking_need <= 1: a parts store with
+    no bookings, which Max marked lost 8 times out of 13 on the 2026-10-17 run and never contacted)."""
+    if not lead.score:
+        return []
+    out: list[str] = []
+    for key, floor in cfg.factor_floors.items():
+        rating = lead.score.breakdown.get(key)
+        if rating is not None and rating.rating <= floor:
+            out.append(f"factor:{key}<={floor}")
+    return out
+
+
 CONTACT_FIELDS = ("email", "phone")
 
 

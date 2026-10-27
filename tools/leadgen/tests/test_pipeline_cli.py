@@ -103,6 +103,7 @@ async def test_pipeline_gmaps_path_and_store(cfg: Config, monkeypatch: pytest.Mo
             calls["finish"] = (status, error)
 
     monkeypatch.setattr(pipeline, "Store", FakeStore)
+    monkeypatch.setattr(pipeline.overrides, "load", lambda s: pipeline.overrides.Overrides())
     monkeypatch.setattr(pipeline, "supabase_env", lambda: ("https://x.supabase.co", "k"))
     s = await pipeline.run(cfg, pipeline.RunOptions(states=["FL"], segments=["race_prep"], max_queries=2, no_score=True))
     assert s.store_counts["inserted"] == 1 and calls["finish"] == ("completed", None)

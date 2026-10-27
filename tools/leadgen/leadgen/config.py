@@ -87,6 +87,22 @@ class FilterCfg(BaseModel):
     stale_years: int = 2
     blocklist: list[str] = Field(default_factory=list)
     excluded_categories: list[str] = Field(default_factory=list)
+    # Factor rating at or below which a scored lead is excluded outright (not just capped).
+    factor_floors: dict[str, int] = Field(default_factory=dict)
+    # "drop": results outside the run's requested states are excluded. "keep": they stay.
+    out_of_state: Literal["keep", "drop"] = "keep"
+    # Google Maps keywords the Prospector paused for low yield; build_queries skips them.
+    paused_keywords: list[str] = Field(default_factory=list)
+
+    @field_validator("factor_floors")
+    @classmethod
+    def _known_factors(cls, v: dict[str, int]) -> dict[str, int]:
+        unknown = set(v) - set(FACTOR_KEYS)
+        if unknown:
+            raise ValueError(f"factor_floors: unknown factors {sorted(unknown)}")
+        if any(not 0 <= r <= 4 for r in v.values()):
+            raise ValueError("factor_floors: ratings must be 0-4")
+        return v
 
 
 class ScoreCfg(BaseModel):

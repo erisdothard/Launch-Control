@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from itertools import zip_longest
 
 from leadgen.config import Config
+from leadgen.overrides import norm
 
 
 @dataclass(frozen=True)
@@ -27,12 +28,14 @@ def _state_queries(cfg: Config, state: str, segment_keys: list[str]) -> list[Que
     """All queries for one state, interleaved so any prefix covers many segments and places."""
     places: list[tuple[str, str]] = [(t.name, f"near {t.name}") for t in cfg.tracks if t.state == state]
     places += [(m, f"in {m}, {state}") for m in cfg.states[state].metros]
+    paused = {norm(k) for k in cfg.filters.paused_keywords}
     per_segment: list[list[Query]] = []
     for key in segment_keys:
         seg = cfg.segments[key]
         rows = [
             Query(text=f"{kw} {suffix}", segment_key=key, state=state, place=name)
             for kw in seg.keywords
+            if norm(kw) not in paused
             for name, suffix in places
         ]
         if rows:

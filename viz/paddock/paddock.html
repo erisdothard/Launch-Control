@@ -1,0 +1,189 @@
+<title>Launch Control Paddock</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Sora:wght@400;500;600&family=Chivo+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: pit-wall board. Living isometric paddock left (pixel canvas + crisp overlay), telemetry rail right, crew sheet below. Single dark theme by brand decision. */
+  :root {
+    --bg: #050607; --surface: #0b0d10; --elevated: #15181c; --border: #262b31;
+    --text: #f4f6f8; --steel: #c6ccd3; --muted: #b6bcc3; --subtle: #7a8189;
+    --yellow: #f0c419; --orange: #f07d1a; --red: #e3261d; --green: #2bb24c; --blue: #9ec5e8;
+    --font-display: "Michroma", "Eurostile", "Arial Black", sans-serif;
+    --font-body: "Sora", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Chivo Mono", "SF Mono", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; line-height: 1.5; padding-block: 0 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+  .board { max-width: 1480px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding-block: 22px 6px; border-bottom: 1px solid var(--border); position: relative; }
+  .head::after { content: ""; position: absolute; left: 0; bottom: -1px; height: 2px; width: 220px; background: linear-gradient(90deg, var(--red) 0 42%, var(--orange) 42% 68%, var(--yellow) 68% 92%, var(--green) 92%); }
+  .brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
+  .brand svg { width: 54px; height: 48px; flex: none; }
+  .brand h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(15px, 1.1vw + 10px, 22px); letter-spacing: 0.08em; color: var(--steel); margin: 0; text-transform: uppercase; text-wrap: balance; }
+  .brand .sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--subtle); margin-top: 4px; }
+  .status { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); background: var(--surface); }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+  .pill.halt .dot { background: var(--red); box-shadow: 0 0 12px var(--red); animation: blink 0.9s steps(2) infinite; }
+  .pill.halt { color: var(--text); border-color: var(--red); }
+  @keyframes blink { to { opacity: 0.25; } }
+  .ctrl { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { background: var(--elevated); border: 1px solid var(--border); color: var(--steel); padding: 8px 14px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; border-radius: 3px; transition: border-color 150ms, background 150ms, transform 150ms; }
+  .btn:hover { border-color: var(--steel); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--yellow); border-color: var(--yellow); color: #111; }
+  .btn.primary:hover { background: #ffd43a; }
+  .btn.danger { border-color: var(--red); color: #ff7b74; }
+  .btn.danger:hover { background: rgba(227,38,29,0.14); }
+
+  .main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: stretch; }
+  .stage { position: relative; background: #07080a; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; min-height: 460px; min-width: 0; width: 100%; max-width: 100%; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #world { image-rendering: pixelated; image-rendering: crisp-edges; }
+  .stage .legend { position: absolute; right: 14px; bottom: 12px; display: flex; gap: 14px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle); pointer-events: none; }
+  .legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 1px; margin-right: 6px; vertical-align: middle; background: var(--c); box-shadow: 0 0 8px var(--c); }
+  .stage .lap { position: absolute; right: 14px; top: 12px; text-align: right; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--subtle); pointer-events: none; }
+  .stage .lap b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 22px; color: var(--steel); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+  .stage .sim { position: absolute; left: 14px; top: 12px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--subtle); border: 1px dashed var(--border); padding: 4px 8px; border-radius: 3px; pointer-events: none; }
+  .stage .truth { position: absolute; left: 14px; bottom: 12px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle); pointer-events: none; max-width: 46%; line-height: 1.5; }
+  .stage .truth b { color: var(--steel); font-weight: 500; }
+  .stage .flag { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 50% 60%, rgba(227,38,29,0.18), rgba(227,38,29,0) 60%); transition: opacity 400ms; }
+  .stage.halted .flag { opacity: 1; }
+
+  .rail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; min-width: 0; }
+  .card h2 { font-family: var(--font-mono); font-weight: 500; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--subtle); margin: 0 0 12px; display: flex; justify-content: space-between; gap: 10px; }
+  .card h2 small { color: var(--subtle); letter-spacing: 0.08em; font-weight: 400; text-transform: none; }
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .kpi { min-width: 0; }
+  .kpi .v { font-family: var(--font-display); font-weight: 400; font-size: 20px; color: var(--steel); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .kpi .v.warn { color: var(--yellow); }
+  .kpi .v.bad { color: var(--red); }
+  .kpi .l { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--subtle); margin-top: 3px; }
+  .meter { height: 4px; background: var(--elevated); border-radius: 2px; margin-top: 7px; position: relative; overflow: hidden; }
+  .meter i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--yellow); transition: width 400ms; }
+  .meter.red i { background: var(--red); }
+  .meter.green i { background: var(--green); }
+  .cohort { display: grid; gap: 10px; }
+  .cohort .row { display: grid; grid-template-columns: 86px 1fr 52px; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; }
+  .cohort .row .n { color: var(--muted); text-transform: uppercase; }
+  .cohort .row .c { text-align: right; color: var(--steel); font-variant-numeric: tabular-nums; }
+  .cohort .bar { height: 10px; background: var(--elevated); position: relative; border-radius: 2px; overflow: hidden; }
+  .cohort .bar i { position: absolute; inset: 0 auto 0 0; width: 0; transition: width 400ms; }
+  .cohort .bar.m i { background: linear-gradient(90deg, var(--red), var(--orange), var(--yellow)); }
+  .cohort .bar.f i { background: var(--steel); }
+  .verdict { margin-top: 10px; font-size: 12.5px; color: var(--muted); border-left: 2px solid var(--yellow); padding-left: 10px; }
+  .verdict b { color: var(--text); font-weight: 600; }
+  .feed { list-style: none; margin: 0; padding: 0; font-family: var(--font-mono); font-size: 11px; display: flex; flex-direction: column; gap: 6px; max-height: 236px; overflow: hidden; }
+  .feed li { display: grid; grid-template-columns: 46px 96px 1fr; gap: 8px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid #14171b; animation: slide 300ms ease-out; min-width: 0; }
+  @keyframes slide { from { opacity: 0; transform: translateY(-6px); } }
+  .feed .t { color: var(--subtle); font-variant-numeric: tabular-nums; }
+  .feed .a { color: var(--steel); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .feed .a::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; background: var(--s, var(--green)); vertical-align: 1px; }
+  .feed .d { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .feed li.halted .a { --s: var(--red); color: #ff7b74; }
+  .feed li.running .a { --s: var(--yellow); }
+
+  .owners { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .own { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; position: relative; min-width: 0; transition: border-color 200ms, box-shadow 200ms; }
+  .own::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; background: var(--c); border-radius: 0 2px 2px 0; }
+  .own.active { border-color: var(--c); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent), 0 0 24px -8px var(--c); }
+  .own h3 { font-family: var(--font-display); font-weight: 400; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--steel); margin: 0 0 2px; }
+  .own .post { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--c); margin: 0 0 6px; }
+  .own .role { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+  .own dl { margin: 0; display: grid; grid-template-columns: 44px 1fr; gap: 2px 8px; font-size: 11.5px; }
+  .own dt { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--subtle); }
+  .own dd { margin: 0; color: var(--muted); }
+  .own dd.never { color: #d18f8a; }
+  .foot { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--subtle); padding-top: 6px; }
+
+  @media (max-width: 980px) { .main { grid-template-columns: 1fr; } .stage { min-height: 0; height: 64vw; } }
+  @media (max-width: 520px) { .stage { height: 78vw; } .stage .legend, .stage .truth { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .pill.halt .dot { animation: none; } .feed li { animation: none; } }
+</style>
+
+<div class="board">
+  <header class="head">
+    <div class="brand">
+      <svg viewBox="0 0 136 120" role="img" aria-label="Launch Control mark"><polygon fill="#c6ccd3" points="96,14 24,14 10,28 10,92 24,106 96,106 96,92 24,92 24,28 96,28"/><rect x="36" y="40" width="14" height="40" fill="#c6ccd3"/><polygon fill="#e3261d" points="36,66 77,66 68,80 36,80"/><polygon fill="#f07d1a" points="80,66 105,66 96,80 71,80"/><polygon fill="#f0c419" points="108,66 124,66 115,80 99,80"/><polygon fill="#2bb24c" points="127,66 133,66 124,80 118,80"/></svg>
+      <div>
+        <h1>Launch Control <span style="color:var(--yellow)">/</span> Paddock</h1>
+        <div class="sub">Five agents on the crew. The paddock only shows what the harness can prove.</div>
+      </div>
+    </div>
+    <div class="status">
+      <span class="pill" id="flag"><span class="dot"></span><span id="flagText">outbound_halt = false</span></span>
+      <div class="ctrl">
+        <button class="btn" id="btnPause" type="button">Pause</button>
+        <button class="btn" id="btnSpeed" type="button">Speed 1×</button>
+        <button class="btn danger" id="btnBounce" type="button">Simulate bounce spike</button>
+        <button class="btn primary" id="btnClear" type="button" hidden>Eris: green flag</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="main" aria-label="Paddock and telemetry">
+    <div class="stage" id="stage">
+      <canvas id="world" aria-label="Living pixel-art paddock: pit garage with three bays, pit wall, race control tower, team radio truck and results board, with the five agents and Eris as crew"></canvas>
+      <canvas id="hud" aria-hidden="true"></canvas>
+      <div class="flag"></div>
+      <div class="sim">Simulated state · binds to agent_runs</div>
+      <div class="lap">Lap<b id="lap">01</b></div>
+      <div class="truth"><b>Truth contract.</b> Every move on screen is a row in agent_runs. Nothing walks on a guess.</div>
+      <div class="legend">
+        <span style="--c:#f0c419">Leads</span>
+        <span style="--c:#c6ccd3">Draft</span>
+        <span style="--c:#2bb24c">Approved</span>
+        <span style="--c:#f07d1a">Proposal</span>
+        <span style="--c:#9ec5e8">Reply</span>
+      </div>
+    </div>
+
+    <aside class="rail">
+      <div class="card">
+        <h2>Telemetry <small>this pass</small></h2>
+        <div class="kpis">
+          <div class="kpi"><div class="v" id="kLeads">0</div><div class="l">New leads</div></div>
+          <div class="kpi"><div class="v" id="kUsable">0%</div><div class="l">Usable-rate · bar 70%</div><div class="meter" id="mUsable"><i></i></div></div>
+          <div class="kpi"><div class="v" id="kSends">0</div><div class="l">Sends · cap 60/mailbox</div><div class="meter" id="mSends"><i></i></div></div>
+          <div class="kpi"><div class="v" id="kBounce">0.0%</div><div class="l">Bounce · red flag at 3%</div><div class="meter" id="mBounce"><i></i></div></div>
+          <div class="kpi"><div class="v" id="kReplies">0</div><div class="l">Replies</div></div>
+          <div class="kpi"><div class="v" id="kMeetings">0</div><div class="l">Meetings</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Cohort A/B <small>winner at 200 sends</small></h2>
+        <div class="cohort">
+          <div class="row"><span class="n">Motorsport</span><div class="bar m"><i id="bM"></i></div><span class="c" id="cM">0</span></div>
+          <div class="row"><span class="n">Freight</span><div class="bar f"><i id="bF"></i></div><span class="c" id="cF">0</span></div>
+        </div>
+        <div class="verdict" id="verdict"><b>Strategist:</b> insufficient data, keep sending.</div>
+      </div>
+      <div class="card">
+        <h2>agent_runs <small>latest</small></h2>
+        <ul class="feed" id="feed"></ul>
+      </div>
+    </aside>
+  </section>
+
+  <section class="owners" aria-label="The crew">
+    <div class="own" data-agent="mission-control" style="--c:#c6ccd3"><h3>Mission Control</h3><p class="post">Race engineer · pit wall</p><p class="role">Dispatches the crew by priority, calls the brief.</p><dl><dt>Owns</dt><dd>dispatch, daily brief</dd><dt>Never</dt><dd class="never">sending, bypassing a red flag</dd></dl></div>
+    <div class="own" data-agent="guardian" style="--c:#e3261d"><h3>Guardian</h3><p class="post">Race control · tower</p><p class="role">Checks first. Throws the red flag.</p><dl><dt>Owns</dt><dd>halt flag, compliance checks</dd><dt>Never</dt><dd class="never">drafting</dd></dl></div>
+    <div class="own" data-agent="prospector" style="--c:#f0c419"><h3>Prospector</h3><p class="post">Timing &amp; scoring · bay 1</p><p class="role">Scans the field, fills the cohort.</p><dl><dt>Owns</dt><dd>lead_gen_runs, discovery config</dd><dt>Never</dt><dd class="never">score weights, lead status, email</dd></dl></div>
+    <div class="own" data-agent="outreach-writer" style="--c:#c6ccd3"><h3>Outreach Writer</h3><p class="post">Commercial desk · bay 2</p><p class="role">Drafts from evidence, walks it to the wall.</p><dl><dt>Owns</dt><dd>campaign drafts</dd><dt>Never</dt><dd class="never">sending, stripping the footer</dd></dl></div>
+    <div class="own" data-agent="strategist" style="--c:#f07d1a"><h3>Strategist</h3><p class="post">Strategy wall · bay 3</p><p class="role">Reads the board. Proposes, never applies.</p><dl><dt>Owns</dt><dd>weights, messaging, cohort verdicts</dd><dt>Never</dt><dd class="never">applying its own changes</dd></dl></div>
+    <div class="own" data-agent="eris" style="--c:#2bb24c"><h3>Eris</h3><p class="post">Team principal · pit wall</p><p class="role">Every irreversible move passes here.</p><dl><dt>Owns</dt><dd>approvals, closing calls, the green flag</dd><dt>Never</dt><dd class="never">—</dd></dl></div>
+  </section>
+
+  <footer class="foot">
+    <span>Runtime: Claude Code subagents · State: Supabase (agent_runs, outcomes, system_flags)</span>
+    <span>Team radio = sender, inbox, scheduler already built in tools/leadgen</span>
+  </footer>
+</div>
+
+<script src="world.js"></script>
+<script src="sim.js"></script>

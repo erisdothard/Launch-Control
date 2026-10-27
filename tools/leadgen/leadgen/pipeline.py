@@ -11,6 +11,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
+from leadgen import overrides
 from leadgen.config import Config, supabase_env
 from leadgen.dedupe import dedupe, drop_known
 from leadgen.discover import directories, gmaps
@@ -19,7 +20,16 @@ from leadgen.discover.seeds import load_seeds
 from leadgen.enrich.crawl import Crawler, CrawlResult
 from leadgen.enrich.extract import build_enrichment
 from leadgen.export import write_csv, write_jsonl
-from leadgen.filters import contact_reasons, post_crawl_reasons, pre_crawl_reasons, with_reasons
+from leadgen.filters import (
+    call_list_reasons,
+    contact_reasons,
+    factor_reasons,
+    is_blind,
+    out_of_state_reasons,
+    post_crawl_reasons,
+    pre_crawl_reasons,
+    with_reasons,
+)
 from leadgen.models import Enrichment, Lead
 from leadgen.record import email_first_name, lead_row
 from leadgen.score import Scorer
@@ -93,6 +103,7 @@ async def score_all(cfg: Config, leads: list[Lead], rescore: bool) -> tuple[list
         updated = lead.model_copy(update={"score": res}) if res else lead
         if res and res.exclude:
             updated = with_reasons(updated, [f"llm:{res.exclude_why or 'not a fit'}"[:160]])
+        updated = with_reasons(updated, factor_reasons(updated, cfg.filters))
         out.append(updated)
     return out, scorer.stats
 
@@ -115,6 +126,8 @@ async def run(cfg: Config, opts: RunOptions, run_id: str | None = None,
         if env is None:
             raise RuntimeError("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set (tools/leadgen/.env). Use --dry-run.")
         store = Store(*env)
+        # Knobs the Prospector changed at runtime (overrides.py) layer over config.yaml.
+        cfg = overrides.apply(cfg, overrides.load(store))
         if run_id is None:
             run_id = store.start_run({"options": opts.__dict__, "max_queries": opts.max_queries or cfg.max_queries})
     try:
@@ -159,6 +172,7 @@ async def _run(cfg: Config, opts: RunOptions, today: date, out_root: Path, summa
         leads, c["already_in_crm"] = drop_known(leads, known)
 
     leads = [with_reasons(lead, pre_crawl_reasons(lead, cfg.filters)) for lead in leads]
+    leads = [with_reasons(lead, out_of_state_reasons(lead, opts.states, cfg.filters)) for lead in leads]
     excluded = [lead for lead in leads if lead.excluded]
     candidates = [lead for lead in leads if not lead.excluded]
     if opts.limit is not None:
@@ -170,8 +184,11 @@ async def _run(cfg: Config, opts: RunOptions, today: date, out_root: Path, summa
     c["enriched"] = sum(1 for lead in enriched if lead.enrichment and lead.enrichment.ok)
     enriched = [with_reasons(lead, post_crawl_reasons(lead, cfg.filters, today)) for lead in enriched]
     enriched = [with_reasons(lead, contact_reasons(lead, opts.require)) for lead in enriched]
+    enriched = [with_reasons(lead, call_list_reasons(lead)) for lead in enriched]
 
-    to_score = [lead for lead in enriched if not lead.excluded]
+    # Blind leads (no readable site) skip Claude: they are kept for the call list, unscored.
+    to_score = [lead for lead in enriched if not lead.excluded and not is_blind(lead)]
+    c["call_list"] = sum(1 for lead in enriched if not lead.excluded and is_blind(lead))
     progress("scoring")
     if not opts.no_score and to_score:
         scored, stats = await score_all(cfg, to_score, opts.rescore)

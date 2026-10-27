@@ -5,6 +5,7 @@ import { sendAsAccount, type SendResult } from "@/lib/email/send";
 import { primaryOutlookAccount } from "@/lib/email/outlookAccount";
 import { emailConfig } from "@/lib/email/config";
 import { claimDraft, markDraft } from "@/lib/store/drafts";
+import { outboundHalt } from "@/lib/agents/halt";
 
 // Sends the follow-up drafts the worker wrote (tools/leadgen/leadgen/automation.py), when the team
 // has switched automatic sending on in Settings. The worker calls this every pass with
@@ -34,6 +35,9 @@ export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const admin = createServiceRoleClient();
   if (!admin) return NextResponse.json({ error: "not configured" }, { status: 500 });
+  // The Guardian's halt: refuse the whole pass (423) so the worker logs it. Fails closed.
+  const halt = await outboundHalt(admin);
+  if (halt.halted) return NextResponse.json({ sent: 0, halted: true, error: halt.message }, { status: 423 });
 
   const { data: settings } = await admin.from("automation_settings").select("auto_send_follow_ups, daily_send_cap").eq("id", true).maybeSingle();
   if (!settings?.auto_send_follow_ups) return NextResponse.json({ sent: 0, skipped: "automatic sending is off" });
@@ -105,6 +109,8 @@ export async function POST(request: NextRequest) {
       failed.push({ id: d.id, error: result.error });
       // Back in the queue with the reason, for a person or the next pass.
       await markDraft(d.id, { status: "pending", error: result.error }, admin);
+      // Halted mid-pass: stop here; the rest wait until a person clears it.
+      if (result.code === "halted") break;
     }
   }
   return NextResponse.json({ sent, failed: failed.length, warnings: warnings.length });

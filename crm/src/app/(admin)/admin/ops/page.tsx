@@ -4,10 +4,15 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { LiveryRail } from "@/components/today/shared";
 import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { isOwner } from "@/lib/auth/owner";
+import { haltFlag, lastRuns } from "@/lib/agents/crew";
+import { pipelineSnapshot } from "@/lib/agents/metrics";
+import { whenSaid } from "@/lib/store/today";
+import CrewBoard from "./CrewBoard";
 import { getOps, type AgentState, type CheckState, type OpsAgent, type OpsCheck, type OpsEvent } from "@/lib/store/ops";
 
 // Agent Ops: is everything running, what each agent is doing, and what they just did.
-// Owner-only until it has proven itself; the story video lives under "How it works".
+// Owner-only until it has proven itself. The Crew board (agent_runs, the brief, the pipeline, the
+// halt) leads; the CRM-side checks follow; the story video stays secondary under "How it works".
 
 // Private bucket; the page hands out a short-lived signed URL only after the owner check.
 const BUCKET = "ops-private";
@@ -107,14 +112,30 @@ function Feed({ events }: { events: OpsEvent[] }) {
   );
 }
 
-export default async function OpsPage() {
+const HALT_NOTICE: Record<string, string> = {
+  cleared: "Halt cleared. Sending resumes on the next pass.",
+  error: "Couldn't clear the halt. It's still on; try again.",
+  denied: "Only the owner can clear the halt.",
+};
+
+export default async function OpsPage({ searchParams }: { searchParams: Promise<{ halt?: string | string[] }> }) {
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!isOwner(user?.email)) notFound();
 
-  const [ops, video, poster] = await Promise.all([getOps(), signedUrl(VIDEO), signedUrl(POSTER)]);
+  const haltParam = (await searchParams).halt;
+  const notice = typeof haltParam === "string" ? (HALT_NOTICE[haltParam] ?? null) : null;
+  const now = new Date();
+  const [ops, video, poster, runs, halt, pipeline] = await Promise.all([
+    getOps(),
+    signedUrl(VIDEO),
+    signedUrl(POSTER),
+    lastRuns(supabase),
+    haltFlag(supabase),
+    pipelineSnapshot(supabase).catch(() => null),
+  ]);
   const problems = ops.checks.some((c) => c.state === "down");
 
   return (
@@ -123,6 +144,8 @@ export default async function OpsPage() {
 
       <div className="grid grid-cols-1 gap-x-11 gap-y-12 min-[1100px]:grid-cols-[minmax(0,1fr)_300px]">
         <div className="flex min-w-0 flex-col gap-10">
+          <CrewBoard runs={runs} halt={halt} pipeline={pipeline} when={(iso) => whenSaid(iso, now)} notice={notice} />
+
           <section aria-labelledby="ops-status" className="card relative overflow-hidden px-6 py-6 sm:px-8">
             {problems && <LiveryRail />}
             <h2 id="ops-status" className="mb-4 text-[17px] font-semibold text-[var(--color-text)]">
@@ -137,7 +160,7 @@ export default async function OpsPage() {
 
           <section aria-labelledby="ops-agents">
             <h2 id="ops-agents" className="mb-3 text-[17px] font-semibold text-[var(--color-text)]">
-              The agents
+              Seats, from CRM activity
             </h2>
             <ol className="card overflow-hidden">
               {ops.agents.map((a) => (

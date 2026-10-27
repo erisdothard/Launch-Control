@@ -4,6 +4,9 @@ The CRM owns everything about the sending (merge fields, suppressions, the per-m
 follow-ups, reply tracking: crm/src/app/api/automation/send-campaigns). This module only keeps the
 clock: Microsoft flags mailboxes that burst, so campaigns go out a few a minute, which needs a
 caller every minute rather than every automation pass (five minutes).
+
+The Guardian gates every call (guardian.allow_outbound): while outbound is halted, or when the
+gate can't be checked, the CRM route isn't called at all.
 """
 
 from __future__ import annotations
@@ -12,9 +15,13 @@ import logging
 import os
 import threading
 import time
+from collections.abc import Callable
 from typing import Any
 
 import httpx
+
+from leadgen import guardian
+from leadgen.store import Store
 
 log = logging.getLogger(__name__)
 
@@ -41,29 +48,42 @@ def send_due_campaigns(http: httpx.Client | None = None) -> dict[str, int]:
     return {k: int(v) for k, v in body.items() if isinstance(v, int) and not isinstance(v, bool)}
 
 
-def run_once(http: httpx.Client | None = None) -> dict[str, int]:
-    """send_due_campaigns that never raises: a CRM outage must not kill the worker's thread."""
+def run_once(http: httpx.Client | None = None, store: Store | None = None) -> dict[str, int]:
+    """send_due_campaigns behind the Guardian, never raising: a CRM outage must not kill the
+    worker's thread. No store means the halt can't be checked, so nothing is sent (fails closed)."""
+    if store is None:
+        log.error("campaign send skipped: no store to check the outbound halt")
+        return {}
     try:
+        if not guardian.allow_outbound(store):
+            log.warning("campaign send skipped: outbound halted by the Guardian")
+            return {}
         return send_due_campaigns(http)
     except Exception:
         log.exception("campaign send call failed")
         return {}
 
 
-def start_background(every_s: float = RUN_EVERY_S) -> threading.Thread | None:
-    """Start the once-a-minute caller. Returns None (and starts nothing) without AUTOMATION_SECRET."""
+def start_background(store_factory: Callable[[], Store] | None = None,
+                     every_s: float = RUN_EVERY_S) -> threading.Thread | None:
+    """Start the once-a-minute caller. Returns None (and starts nothing) without AUTOMATION_SECRET,
+    CRM_URL, or a store for the Guardian's halt check."""
     if not os.environ.get("AUTOMATION_SECRET", "").strip():
         log.info("mass email sender off: AUTOMATION_SECRET not set")
         return None
     if not os.environ.get("CRM_URL", "").strip():
         log.error("mass email sender off: CRM_URL not set")
         return None
+    if store_factory is None:
+        log.error("mass email sender off: no store for the Guardian's halt check")
+        return None
     http = httpx.Client(timeout=TIMEOUT_S)
+    store = store_factory()
 
     def loop() -> None:
         while True:
             started = time.monotonic()
-            counts = run_once(http)
+            counts = run_once(http, store)
             if any(counts.values()):
                 log.info("campaigns: %s", counts)
             # Keep a steady minute between call starts, however long the call took.

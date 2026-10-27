@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendEmail, type SendResult } from "@/lib/email/send";
 import { isAutoReply, isHardBounce, isSenderProblem } from "@/lib/email/deliverability";
 import { findOptOut } from "@/lib/email/optOut";
+import { outboundHalt } from "@/lib/agents/halt";
 import { outlookAppOnly } from "@/lib/email/config";
 import { renderMerge } from "@/lib/email/merge";
 import { replySubject } from "@/lib/email/text";
@@ -206,6 +207,12 @@ export async function POST(request: NextRequest) {
     // Reply tracking failing must not stop sending; the next call tries again.
   }
 
+  // The Guardian's halt: reply tracking above still runs, nothing is sent. Fails closed.
+  const halt = await outboundHalt(admin);
+  if (halt.halted) return NextResponse.json({ ...out, halted: true, error: halt.message }, { status: 423 });
+  // Set when the halt lands while this pass is sending: un-claim and stop, never pause or fail anyone.
+  let haltedMidPass: string | null = null;
+
   const { data: campaignRows, error } = await admin
     .from("email_campaigns")
     .select(
@@ -247,6 +254,7 @@ export async function POST(request: NextRequest) {
 
   // 2. First emails.
   for (const c of campaigns) {
+    if (haltedMidPass) break;
     if (c.status === "sent" || outOfTime()) continue;
     if (c.scheduled_at && c.scheduled_at > nowIso()) continue;
     // A disconnected mailbox holds the campaign (nothing fails); it resumes once reconnected.
@@ -300,6 +308,10 @@ export async function POST(request: NextRequest) {
           // A warning (sent, copy not saved) is still sent: never send it again.
           await admin.from("campaign_recipients").update({ status: "sent", sent_at: nowIso(), error: result.warning ?? null }).eq("id", r.id);
           out.sent += 1;
+        } else if (result.code === "halted") {
+          await admin.from("campaign_recipients").update({ sent_at: null, error: null }).eq("id", r.id).eq("status", "pending");
+          haltedMidPass = result.error;
+          break;
         } else if (pausesCampaign(result)) {
           // Not their fault: put them back in line untouched and stop the campaign with the reason.
           await admin.from("campaign_recipients").update({ sent_at: null, error: null }).eq("id", r.id).eq("status", "pending");
@@ -332,7 +344,7 @@ export async function POST(request: NextRequest) {
 
   // 3. Automatic follow-ups, to people who haven't replied, after the campaign's wait.
   for (const c of campaigns) {
-    if (outOfTime()) break;
+    if (outOfTime() || haltedMidPass) break;
     if (!c.follow_up_after_days || !c.follow_up_body?.trim()) continue;
     if (c.status !== "sending" && c.status !== "sent") continue;
     if (!c.account_id || !activeAccounts.has(c.account_id)) continue;
@@ -400,7 +412,11 @@ export async function POST(request: NextRequest) {
         unsubscribeBaseUrl: baseUrl,
       }).catch((err: unknown): SendResult => ({ ok: false, error: err instanceof Error ? err.message : "Send failed" }));
       if (result.ok) out.followUps += 1;
-      else if (result.code === "opted_out") {
+      else if (result.code === "halted") {
+        await admin.from("campaign_recipients").update({ follow_up_sent_at: null, step: 1 }).eq("id", r.id);
+        haltedMidPass = result.error;
+        break;
+      } else if (result.code === "opted_out") {
         await admin.from("campaign_recipients").update({ skip_reason: `Follow-up skipped: ${result.error}`.slice(0, 500) }).eq("id", r.id);
         out.skipped += 1;
       } else if (pausesCampaign(result)) {
@@ -418,5 +434,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (haltedMidPass) return NextResponse.json({ ...out, halted: true, error: haltedMidPass }, { status: 423 });
   return NextResponse.json(out);
 }

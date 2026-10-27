@@ -72,6 +72,9 @@ Reruns are cheap: every Google Maps query is cached in `out/cache/gmaps/`, every
 | `filters.stale_years` | copyright older than this many years and no recent dates = stale, excluded |
 | `filters.blocklist` | name/domain substrings always excluded (OEM experiences, national chains) |
 | `filters.excluded_categories` | Google categories that are never prospects (gas stations, body shops, ...) |
+| `filters.factor_floors` | factor rating at or below which a scored lead is excluded (`booking_need: 1`, `niche_fit: 1`) |
+| `filters.out_of_state` | `keep` (default) or `drop` results outside the run's requested states |
+| `filters.paused_keywords` | keywords skipped when building queries; the Prospector adds to this at runtime |
 | `enrich.*` | pages per site (6), seconds between requests to one host (1.0), timeouts |
 | `score.model`, `score.effort` | Claude model (`claude-sonnet-5-5`) and effort |
 | `score.weights` | weight of each factor in the 0-100 score |
@@ -107,6 +110,14 @@ disqualifier (OEM, national chain, not motorsport), which moves the business to 
 Each row in the CRM keeps the evidence: `score_breakdown` (rating + evidence per factor) and
 `signals` (booking/CRM tools found, "call for availability"-type phrases, latest event date,
 copyright year, emails, socials, Google review count).
+
+## Call list and the Prospector
+
+A business with no website we can read is not scored (it would be guesswork): it is kept with
+`signals.call_list = true` for phone outreach, or excluded when it has no phone either. After every
+worker run `leadgen/prospector.py` measures usable-rate (`leadgen/metrics.py`), may pause one dead
+keyword (stored in `system_flags.prospector_overrides`, layered over this config at run start, rolled
+back if the next run doesn't confirm it) and otherwise escalates to `.github/workflows/prospector-review.yml`.
 
 ## Ground rules baked in
 

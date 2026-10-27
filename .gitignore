@@ -9,3 +9,8 @@
 # raw review frames (the composed .jpg sheets are kept)
 /docs/review/v*-*.png
 .vercel
+
+# macOS + hyperframes render caches
+.DS_Store
+.thumbnails/
+.hyperframes/

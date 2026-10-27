@@ -374,11 +374,18 @@ def sync_meetings(store: Store, graph: outlook_sync.GraphClient, now: datetime) 
     return stored
 
 
-def send_due_follow_ups(http: httpx.Client | None = None) -> int:
+def send_due_follow_ups(http: httpx.Client | None = None, store: Store | None = None) -> int:
     """Ask the CRM to send the queued follow-ups (it owns sending, signatures and the daily cap,
-    and does nothing while automatic sending is off). Needs CRM_URL and AUTOMATION_SECRET."""
+    and does nothing while automatic sending is off). Needs CRM_URL and AUTOMATION_SECRET.
+    The Guardian gates the call: halted, or no store to check the halt with, means no call."""
     secret = os.environ.get("AUTOMATION_SECRET", "").strip()
     if not secret:
+        return 0
+    from leadgen import guardian  # imported here: the halt gate is the only change to this module
+
+    gate = store or guardian.default_store()
+    if gate is None or not guardian.allow_outbound(gate):
+        log.warning("follow-up send skipped: outbound halted by the Guardian (or the halt can't be read)")
         return 0
     base = os.environ.get("CRM_URL", "https://crm.golaunchcontrol.com").rstrip("/")
     client = http or httpx.Client(timeout=120)

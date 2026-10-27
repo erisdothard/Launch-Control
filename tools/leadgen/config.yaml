@@ -192,6 +192,16 @@ filters:
     - enterprise rent
     - hertz
     - turo
+  # Factor rating at or below which a scored lead is excluded, not just capped. On the 2026-10-17
+  # run, booking_need <= 1 matched 0 of Max's 32 contacted and 8 of his 13 lost (parts stores).
+  factor_floors:
+    booking_need: 1
+    niche_fit: 1
+  # keep | drop results outside the requested states. Keep: Max contacted several nearby
+  # out-of-state venues from a Florida-only run.
+  out_of_state: keep
+  # Keywords the Prospector paused for low yield (see leadgen/prospector.py). Remove to resume.
+  paused_keywords: []
   # Google Maps categories that are never prospects.
   excluded_categories:
     - Gas station
