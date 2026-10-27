@@ -63,11 +63,11 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
     <>
       {campaigns.some((c) => c.status === "sending") && <AutoRefresh />}
       <AdminHeader
-        title="Mass email"
+        title="Campaigns"
         subtitle={lede(campaigns)}
         actions={
           <Link href={`/admin/campaigns/new${q}`} className="btn btn-primary">
-            New mass email
+            New campaign
           </Link>
         }
       />
@@ -135,7 +135,7 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
       {rest.length > 0 && (
         <section aria-labelledby="all-campaigns" className="mt-[34px]">
           <h2 id="all-campaigns" className="mb-1 text-[17px] font-semibold text-[var(--color-text)]">
-            {hero ? "The rest" : "All mass emails"}
+            {hero ? "The rest" : "All campaigns"}
           </h2>
           <ul>
             {rest.map((c) => {

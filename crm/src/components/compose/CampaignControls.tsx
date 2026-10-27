@@ -65,7 +65,7 @@ export default function CampaignControls({ id, status, hasFollowUp, demo }: Camp
             type="button"
             className="btn btn-secondary"
             disabled={pending}
-            onClick={() => run("cancel", "Cancel this mass email? Nobody else will get it, including follow-ups. Emails already sent stay sent.")}
+            onClick={() => run("cancel", "Cancel this campaign? Nobody else will get it, including follow-ups. Emails already sent stay sent.")}
           >
             Cancel
           </button>

@@ -73,7 +73,7 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
       {c.status === "sending" && <AutoRefresh />}
       <Link href={`/admin/campaigns${q}`} className="btn-quiet mb-4 inline-flex items-center gap-1.5 text-[15px]">
         <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M9 3L5 7l4 4" /></svg>
-        All mass emails
+        All campaigns
       </Link>
       <AdminHeader title={c.name || c.subject || "Untitled"} subtitle={lede(c)} actions={<CampaignControls id={c.id} status={c.status} hasFollowUp={Boolean(c.followUpAfterDays)} demo={demo} />} />
 

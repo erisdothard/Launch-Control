@@ -186,7 +186,7 @@ async function validate(p: CampaignPayload, forSending: boolean): Promise<Valida
   ];
 
   return {
-    name: str(p.name, MAX_NAME).trim() || subject || "Untitled mass email",
+    name: str(p.name, MAX_NAME).trim() || subject || "Untitled campaign",
     accountId: account.id,
     includeSignature: p.includeSignature !== false,
     subject,
@@ -233,7 +233,7 @@ export async function saveCampaignAction(
     let id: string;
     if (payload.draftId && /^[0-9a-f-]{36}$/i.test(payload.draftId)) {
       const replaced = await replaceDraft(payload.draftId, campaign, v.recipients);
-      if (!replaced) return { ok: false, error: "That draft was already sent or deleted. Start a new mass email." };
+      if (!replaced) return { ok: false, error: "That draft was already sent or deleted. Start a new campaign." };
       id = payload.draftId;
     } else {
       id = await createCampaign(campaign, v.recipients);
@@ -241,7 +241,7 @@ export async function saveCampaignAction(
     revalidateCampaigns(id);
     return { ok: true, id, count: v.pendingCount };
   } catch {
-    return { ok: false, error: "Couldn't save the mass email. Nothing was sent. Try again in a moment." };
+    return { ok: false, error: "Couldn't save the campaign. Nothing was sent. Try again in a moment." };
   }
 }
 

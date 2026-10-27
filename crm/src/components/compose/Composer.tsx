@@ -268,10 +268,10 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
         </span>
         <div className="font-display text-[18px] tracking-[0.04em] text-[var(--color-steel)]">{done.draft ? "DRAFT SAVED" : "ON ITS WAY"}</div>
         <p className="mt-3 max-w-xl text-[16px] text-[var(--color-text-muted)]">
-          Demo mode: nothing was saved or sent. In the real CRM this {done.draft ? "draft" : `mass email to ${done.count} people`} now shows on the Mass email page.
+          Demo mode: nothing was saved or sent. In the real CRM this {done.draft ? "draft" : `campaign to ${done.count} people`} now shows on the Campaigns page.
         </p>
         <Link href="/admin/campaigns?demo=1" className="btn btn-secondary mt-6">
-          See mass emails
+          See campaigns
         </Link>
       </div>
     );
@@ -494,7 +494,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
                 </>
               )}
             </dl>
-            <p className="mt-5 text-[15px] text-[var(--color-text-muted)]">Each person gets their own email. You can pause or cancel from the Mass email page while it sends.</p>
+            <p className="mt-5 text-[15px] text-[var(--color-text-muted)]">Each person gets their own email. You can pause or cancel from the Campaigns page while it sends.</p>
             {error && (
               <p role="alert" className="mt-3 text-[15px] text-[var(--color-hot)]">
                 {error}

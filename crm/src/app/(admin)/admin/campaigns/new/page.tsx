@@ -105,7 +105,7 @@ export default async function NewCampaignPage({ searchParams }: NewCampaignPageP
   return (
     <>
       <AdminHeader
-        title={continuing ? "Finish your draft" : "Mass email"}
+        title={continuing ? "Finish your draft" : "New campaign"}
         subtitle="Three steps: pick who gets it, write it once, then choose when it goes. Everyone gets their own email, filled in with their name."
       />
       <Composer

@@ -211,7 +211,7 @@ export default function SendStep(p: SendStepProps) {
           <label htmlFor="campaign-name" id="name" className="block text-[17px] font-semibold text-[var(--color-text)]">
             Name it
           </label>
-          <p className="mt-1 text-[15px] text-[var(--color-text-muted)]">Only your team sees this, on the Mass email page.</p>
+          <p className="mt-1 text-[15px] text-[var(--color-text-muted)]">Only your team sees this, on the Campaigns page.</p>
           <input id="campaign-name" className="field mt-3" value={p.name} maxLength={120} placeholder={p.subject || "October intro, Nashville"} onChange={(e) => p.onName(e.target.value)} />
         </section>
       </div>

@@ -77,6 +77,16 @@ const baseMoreLinks = [
     ),
   },
   {
+    label: "Campaigns",
+    href: "/admin/campaigns",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 8v4h3l5 4V4L6 8z" />
+        <path d="M14 7.5a3.5 3.5 0 0 1 0 5M16 5a7 7 0 0 1 0 10" />
+      </svg>
+    ),
+  },
+  {
     label: "Lead Gen",
     href: "/admin/lead-gen",
     icon: (
