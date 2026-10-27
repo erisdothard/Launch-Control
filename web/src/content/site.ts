@@ -62,6 +62,8 @@ export const siteSchema = z.object({
   nav: z.array(z.object({ label: z.string(), href: z.string().startsWith("#") })).max(4),
   /** The phone menu button: all nav items live behind it below the sm breakpoint. */
   navMenu: z.object({ open: z.string(), close: z.string() }),
+  /** Client and team login to the CRM: a utility link beside the nav CTA, not a section item. */
+  login: z.object({ label: z.string(), href: z.string().url() }),
   hero: z.object({
     eyebrow: z.array(z.string()).min(1).max(5),
     title: z.string(),
@@ -218,6 +220,7 @@ const content: SiteContent = {
     { label: "Book a launch", href: "#book" },
   ],
   navMenu: { open: "Menu", close: "Close" },
+  login: { label: "Log in", href: "https://crm.golaunchcontrol.com/login" },
   hero: {
     eyebrow: ["Brand", "Website", "CRM", "Lead generation", "Outreach"],
     title: "We build the whole engine. Then we launch it.",

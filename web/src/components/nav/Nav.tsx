@@ -4,6 +4,7 @@
   Nav: minimal top bar. Transparent over the top of the hero, solid `surface` as soon as the page
   scrolls, never backdrop-filter. Wordmark and ≤4 items from site.nav; the last item (Book a launch)
   is the one yellow item, drawn as a small outlined button so it reads as the call to action.
+  The CRM login (site.login) sits just left of it as a muted utility link, outside the ≤4 items.
   Below sm the bar is wordmark + Menu only (the outlined CTA and the wordmark do not both fit on
   a 375px phone); the Menu opens a solid panel under the bar listing every item, Book a launch
   last in yellow, so every section stays reachable on a phone. A passive scroll listener toggles a data attribute,
@@ -64,6 +65,13 @@ export function Nav() {
               </li>
             ))}
           </ul>
+          <a
+            href={site.login.href}
+            className="label-mono hidden text-muted no-underline hover:text-text sm:inline"
+            style={{ transition: "color var(--duration-fast) var(--ease-ui)" }}
+          >
+            {site.login.label}
+          </a>
           <a href={cta.href} className={CTA} onClick={() => setOpen(false)}>
             {cta.label}
           </a>
@@ -94,6 +102,11 @@ export function Nav() {
             </a>
           </li>
         ))}
+        <li className="border-t border-border">
+          <a href={site.login.href} className="label-mono block px-6 py-4 text-muted no-underline">
+            {site.login.label}
+          </a>
+        </li>
       </ul>
     </header>
   );
