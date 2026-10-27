@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { Role } from "@/lib/auth/roles";
 import { BrandLockup } from "@/components/brand/BrandMark";
+import { isOwner } from "@/lib/auth/owner";
 
 const crmItems = [
   {
@@ -122,6 +123,18 @@ const footItems = [
   },
 ];
 
+// Owner-only: the agent ops page. Never rendered for Max or the demo.
+const opsItem = {
+  label: "Agent Ops",
+  href: "/admin/ops",
+  icon: (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2.5" y="4" width="15" height="11" rx="1.5" />
+      <path d="M8.5 7.5v4l3.5-2z" />
+    </svg>
+  ),
+};
+
 // Saved views: the questions Max asks most, one click each (the Leads page's own views).
 const savedViews = [
   { label: "Needs reply", href: "/admin/leads?view=needs-reply", dot: "var(--color-hot)" },
@@ -209,7 +222,7 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
         </ul>
 
         <ul className="mt-6 space-y-0.5">
-          {footItems.map((item) => (
+          {(isOwner(userEmail) ? [opsItem, ...footItems] : footItems).map((item) => (
             <li key={item.href}>
               <Link href={item.href} className={itemClass(isActive(item.href))}>
                 <span className="shrink-0">{item.icon}</span>
