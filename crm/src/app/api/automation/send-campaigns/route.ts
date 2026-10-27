@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendEmail, type SendResult } from "@/lib/email/send";
 import { isAutoReply, isHardBounce, isSenderProblem } from "@/lib/email/deliverability";
+import { findOptOut } from "@/lib/email/optOut";
+import { outlookAppOnly } from "@/lib/email/config";
 import { renderMerge } from "@/lib/email/merge";
 import { replySubject } from "@/lib/email/text";
 import { toAttachments, toMerge } from "@/lib/store/campaigns";
@@ -84,14 +86,13 @@ function gapFor(perMinute: number): number {
   return Math.min(5_000, Math.max(1_000, Math.floor(40_000 / Math.max(1, perMinute))));
 }
 
-async function blocked(admin: Admin, email: string, leadId: string | null): Promise<string | null> {
-  const [{ data: suppressed }, lead] = await Promise.all([
-    admin.from("email_suppressions").select("reason").eq("email", email.toLowerCase()).maybeSingle(),
-    leadId ? admin.from("leads").select("do_not_contact").eq("id", leadId).maybeSingle() : Promise.resolve({ data: null }),
-  ]);
-  if (suppressed) return suppressed.reason === "bounce" ? "Address bounced before" : "Unsubscribed";
-  if (lead.data?.do_not_contact) return "Asked not to be contacted";
-  return null;
+// The same check sendEmail makes (lib/email/optOut.ts), asked first so the recipient is marked
+// skipped with the reason instead of failed. Undefined: couldn't check, leave them for the next pass.
+async function blocked(admin: Admin, email: string, leadId: string | null): Promise<string | null | undefined> {
+  const hit = await findOptOut(admin, [email], leadId).catch(() => undefined);
+  if (hit === undefined) return undefined;
+  if (!hit) return null;
+  return hit.reason === "bounced before" ? "Address bounced before" : hit.reason === "unsubscribed" ? "Unsubscribed" : "Asked not to be contacted";
 }
 
 async function suppress(admin: Admin, email: string, reason: "opt_out" | "bounce"): Promise<void> {
@@ -216,8 +217,8 @@ export async function POST(request: NextRequest) {
   const campaigns = (campaignRows ?? []) as CampaignRow[];
   if (campaigns.length === 0) return NextResponse.json(out);
 
-  const { data: accounts } = await admin.from("email_accounts").select("id, status");
-  const activeAccounts = new Set((accounts ?? []).filter((a) => a.status === "active").map((a) => a.id));
+  const { data: accounts } = await admin.from("email_accounts").select("id, provider, status");
+  const activeAccounts = new Set((accounts ?? []).filter((a) => a.status === "active" || (a.provider === "outlook" && a.status === "needs_reconnect" && outlookAppOnly())).map((a) => a.id));
 
   // Pace: what each campaign and each mailbox already sent in the last minute (claims included).
   const minuteAgo = new Date(started - MINUTE_MS).toISOString();
@@ -274,6 +275,7 @@ export async function POST(request: NextRequest) {
         const { data: live } = await admin.from("email_campaigns").select("status").eq("id", c.id).maybeSingle();
         if (live?.status !== "sending") break;
         const why = await blocked(admin, r.email, r.lead_id);
+        if (why === undefined) continue;
         if (why) {
           await admin.from("campaign_recipients").update({ status: "skipped", skip_reason: why }).eq("id", r.id).eq("status", "pending");
           out.skipped += 1;
@@ -304,6 +306,10 @@ export async function POST(request: NextRequest) {
           await pauseCampaign(admin, c.id, result.error);
           out.paused += 1;
           break;
+        } else if (result.code === "opted_out") {
+          // Opted out between the check above and the send: skipped, never failed or retried.
+          await admin.from("campaign_recipients").update({ status: "skipped", sent_at: null, skip_reason: result.error.slice(0, 500) }).eq("id", r.id);
+          out.skipped += 1;
         } else {
           await admin.from("campaign_recipients").update({ status: "failed", sent_at: null, error: result.error.slice(0, 500) }).eq("id", r.id);
           if (isHardBounce(result.error)) await suppress(admin, r.email, "bounce");
@@ -349,6 +355,7 @@ export async function POST(request: NextRequest) {
       const { data: live } = await admin.from("email_campaigns").select("status, follow_up_after_days").eq("id", c.id).maybeSingle();
       if (!live || (live.status !== "sending" && live.status !== "sent") || !live.follow_up_after_days) break;
       const why = await blocked(admin, r.email, r.lead_id);
+      if (why === undefined) continue;
       // Anything else they wrote, or anything we sent them since (a reply by hand, the CRM's own
       // follow-up), makes this automatic nudge wrong. Record why and leave them be.
       const after = r.sent_at ?? nowIso();
@@ -393,7 +400,10 @@ export async function POST(request: NextRequest) {
         unsubscribeBaseUrl: baseUrl,
       }).catch((err: unknown): SendResult => ({ ok: false, error: err instanceof Error ? err.message : "Send failed" }));
       if (result.ok) out.followUps += 1;
-      else if (pausesCampaign(result)) {
+      else if (result.code === "opted_out") {
+        await admin.from("campaign_recipients").update({ skip_reason: `Follow-up skipped: ${result.error}`.slice(0, 500) }).eq("id", r.id);
+        out.skipped += 1;
+      } else if (pausesCampaign(result)) {
         // Nothing went out: undo the claim so this follow-up is sent once the mailbox can send again.
         await admin.from("campaign_recipients").update({ follow_up_sent_at: null, step: 1 }).eq("id", r.id);
         if (c.status === "sending") await pauseCampaign(admin, c.id, result.error);

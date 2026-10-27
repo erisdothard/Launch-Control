@@ -16,6 +16,7 @@ import { renderNameImage, type NameImage } from "./nameImage";
 import { isEmail } from "./text";
 import { isDemoMode } from "@/lib/demo/mode";
 import { unsubscribeHeaders } from "./unsubscribe";
+import { findOptOut, optOutMessage } from "./optOut";
 
 export { ATTACHMENT_BUCKET, validAttachment, type EmailAttachment };
 
@@ -32,9 +33,10 @@ export interface SendInput {
 /**
  * warning: it went out, but something after the send didn't (the copy wasn't saved). The caller
  * must NOT send again; it shows the warning. code "daily_cap": refused before sending because the
- * mailbox hit its daily limit; nothing went out.
+ * mailbox hit its daily limit; nothing went out. code "opted_out": a recipient unsubscribed, bounced
+ * or asked not to be contacted; nothing went out and it must not be retried.
  */
-export type SendResult = { ok: true; id?: string; warning?: string } | { ok: false; error: string; code?: "daily_cap" };
+export type SendResult = { ok: true; id?: string; warning?: string } | { ok: false; error: string; code?: "daily_cap" | "opted_out" };
 
 /**
  * One outbound email from anywhere in the CRM: the Inbox (compose, reply, reply all, forward),
@@ -146,7 +148,7 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
   if (!to.length) return { ok: false, error: "Add who it's going to." };
   const bad = [...to, ...cc, ...bcc].find((a) => !isEmail(a));
   if (bad) return { ok: false, error: `"${bad}" isn't a valid email address.` };
-  if (to.length + cc.length + bcc.length > MAX_RECIPIENTS) return { ok: false, error: `Fifty people at most. For more, use Mass email.` };
+  if (to.length + cc.length + bcc.length > MAX_RECIPIENTS) return { ok: false, error: `Fifty people at most. For more, use a campaign.` };
   if (!subject) return { ok: false, error: "Add a subject." };
   if (!body) return { ok: false, error: "Write a message first." };
   if (body.length > MAX_BODY) return { ok: false, error: "That message is too long." };
@@ -183,6 +185,15 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
   const leadId = input.leadId ?? reply?.leadId ?? null;
   const lead = leadId ? await getLeadById(leadId, supabase) : null;
   if (leadId && !lead) return { ok: false, error: "That lead no longer exists." };
+  // Opt-outs are enforced here, for every caller: nothing reaches a provider for someone who
+  // unsubscribed, bounced or asked not to be contacted. Can't check, don't send.
+  let block: Awaited<ReturnType<typeof findOptOut>>;
+  try {
+    block = await findOptOut(supabase, [...to, ...cc, ...bcc], lead?.id ?? null);
+  } catch {
+    return { ok: false, error: "Couldn't check the do-not-contact list. Nothing was sent; try again in a minute." };
+  }
+  if (block) return { ok: false, code: "opted_out", error: optOutMessage(block) };
   const thread = lead && !reply ? await getThread(lead.id, supabase) : [];
 
   let outbound: OutboundFile[];

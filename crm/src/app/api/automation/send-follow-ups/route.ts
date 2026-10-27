@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { sendAsAccount } from "@/lib/email/send";
+import { sendAsAccount, type SendResult } from "@/lib/email/send";
 import { primaryOutlookAccount } from "@/lib/email/outlookAccount";
 import { emailConfig } from "@/lib/email/config";
 import { claimDraft, markDraft } from "@/lib/store/drafts";
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
   for (const d of drafts ?? []) {
     const lead = (d as unknown as { leads: { awaiting: string | null; do_not_contact: boolean; status: string } | null }).leads;
     // Re-check at send time: they may have replied or opted out since the draft was written.
-    if (!lead || lead.do_not_contact || lead.awaiting !== "them" || lead.status === "converted" || lead.status === "lost") {
+    if (!lead || lead.do_not_contact || lead.awaiting !== "them" || lead.status === "converted" || lead.status === "lost" || lead.status === "nurture") {
       await admin.from("email_drafts").update({ status: "discarded", updated_at: new Date().toISOString() }).eq("id", d.id).eq("status", "pending");
       continue;
     }
@@ -93,11 +93,14 @@ export async function POST(request: NextRequest) {
       subject: d.subject,
       body: d.body_text,
       sentBy: SENT_BY,
-    }).catch((err: unknown) => ({ ok: false as const, error: err instanceof Error ? err.message : "Send failed" }));
+    }).catch((err: unknown): SendResult => ({ ok: false, error: err instanceof Error ? err.message : "Send failed" }));
     if (result.ok) {
       // Claimed as sent already. A warning means it went out but the CRM copy didn't save.
       sent += 1;
       if (result.warning) warnings.push({ id: d.id, warning: result.warning });
+    } else if (result.code === "opted_out") {
+      // They can never be emailed: the draft is dropped, not retried every pass.
+      await markDraft(d.id, { status: "discarded", error: result.error }, admin);
     } else {
       failed.push({ id: d.id, error: result.error });
       // Back in the queue with the reason, for a person or the next pass.

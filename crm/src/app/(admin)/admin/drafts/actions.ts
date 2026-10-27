@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { sendEmail, validAttachment, type EmailAttachment, type SendResult } from "@/lib/email/send";
 import { currentCrmUserEmail } from "@/lib/email/session";
-import { claimDraft, getDraft, markDraft, updateAutomationSettings, type AutomationSettings } from "@/lib/store/drafts";
+import { AFTER_LAST_FOLLOW_UP, claimDraft, getDraft, markDraft, updateAutomationSettings, type AutomationSettings } from "@/lib/store/drafts";
 import { getEmailAccounts, getThread } from "@/lib/store/messages";
 
 // Drafts live in the Inbox (Drafts folder); /admin/drafts only redirects there. Today imports
@@ -94,6 +94,8 @@ export async function sendDraftAction(id: string, edits?: DraftEdits): Promise<S
 
   // ok with a warning still went out (only the CRM copy failed), so it counts as sent.
   if (result.ok) await markDraft(id, { status: "sent", sentBy, subject, body }).catch(() => undefined);
+  // Someone who opted out can never be sent this: the draft is dropped with the reason.
+  else if (result.code === "opted_out") await markDraft(id, { status: "discarded", error: result.error });
   // A failed send goes back in the queue with the reason and the edits, so it can be retried.
   else await markDraft(id, { status: "pending", error: result.error, subject, body });
   revalidateDrafts(draft.leadId);
@@ -119,8 +121,11 @@ export async function updateAutomationAction(patch: Partial<AutomationSettings>)
   ) {
     return { ok: false, error: "Follow-up days must be 1 to 60, six at most." };
   }
-  if (patch.coldAfterDays !== undefined && (!Number.isInteger(patch.coldAfterDays) || patch.coldAfterDays < 1 || patch.coldAfterDays > 90)) {
-    return { ok: false, error: "Gone cold must be 1 to 90 days." };
+  if (patch.coldAfterDays !== undefined && (!Number.isInteger(patch.coldAfterDays) || patch.coldAfterDays < 1 || patch.coldAfterDays > 60)) {
+    return { ok: false, error: "Pick 1 to 60 days." };
+  }
+  if (patch.afterLastFollowUp !== undefined && !AFTER_LAST_FOLLOW_UP.includes(patch.afterLastFollowUp)) {
+    return { ok: false, error: "Pick what happens after the last follow-up." };
   }
   if (patch.dailySendCap !== undefined && (!Number.isInteger(patch.dailySendCap) || patch.dailySendCap < 0 || patch.dailySendCap > 200)) {
     return { ok: false, error: "Daily limit must be 0 to 200." };
