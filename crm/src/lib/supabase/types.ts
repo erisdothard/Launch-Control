@@ -46,6 +46,7 @@ export type Database = {
       }
       automation_settings: {
         Row: {
+          after_last_follow_up: string
           auto_send_follow_ups: boolean
           cold_after_days: number
           daily_send_cap: number
@@ -55,6 +56,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          after_last_follow_up?: string
           auto_send_follow_ups?: boolean
           cold_after_days?: number
           daily_send_cap?: number
@@ -64,6 +66,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          after_last_follow_up?: string
           auto_send_follow_ups?: boolean
           cold_after_days?: number
           daily_send_cap?: number

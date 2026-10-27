@@ -24,11 +24,17 @@ export interface EmailDraft {
   replyingTo: { subject: string; body: string; at: string } | null;
 }
 
+/** Where a lead goes when it never answered any follow-up. */
+export type AfterLastFollowUp = "nurture" | "lost" | "none";
+export const AFTER_LAST_FOLLOW_UP: AfterLastFollowUp[] = ["nurture", "lost", "none"];
+
 export interface AutomationSettings {
   autoSendFollowUps: boolean;
   draftReplies: boolean;
   followUpDays: number[];
+  /** Days after the last follow-up before afterLastFollowUp applies. */
   coldAfterDays: number;
+  afterLastFollowUp: AfterLastFollowUp;
   dailySendCap: number;
 }
 
@@ -130,6 +136,7 @@ export async function getAutomationSettings(client?: StoreClient): Promise<Autom
     draftReplies: data?.draft_replies ?? true,
     followUpDays: data?.follow_up_days ?? [3, 4, 7],
     coldAfterDays: data?.cold_after_days ?? 7,
+    afterLastFollowUp: AFTER_LAST_FOLLOW_UP.find((v) => v === data?.after_last_follow_up) ?? "nurture",
     dailySendCap: data?.daily_send_cap ?? 25,
   };
 }
@@ -144,6 +151,7 @@ export async function updateAutomationSettings(patch: Partial<AutomationSettings
       ...(patch.draftReplies !== undefined && { draft_replies: patch.draftReplies }),
       ...(patch.followUpDays !== undefined && { follow_up_days: patch.followUpDays }),
       ...(patch.coldAfterDays !== undefined && { cold_after_days: patch.coldAfterDays }),
+      ...(patch.afterLastFollowUp !== undefined && { after_last_follow_up: patch.afterLastFollowUp }),
       ...(patch.dailySendCap !== undefined && { daily_send_cap: patch.dailySendCap }),
     })
     .eq("id", true);

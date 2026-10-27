@@ -336,6 +336,29 @@ export async function markLeadNotAFit(id: string, client?: StoreClient): Promise
   return updateLead(id, { status: "lost", statusReason: "Not a fit", awaiting: null, followUpOn: null, nextAction: "" }, client);
 }
 
+/** Off the daily chase but not lost: no follow-ups until they write back or someone reopens it. */
+export async function markLeadQuiet(id: string, client?: StoreClient): Promise<Lead | null> {
+  const lead = await updateLead(id, { status: "nurture", statusReason: "Gone quiet: moved by hand", followUpOn: null, nextAction: "Check in now and then" }, client);
+  // A queued chase is moot once they're off the list.
+  const supabase = await getStoreClient(client);
+  const { error } = await supabase
+    .from("email_drafts")
+    .update({ status: "discarded", updated_at: new Date().toISOString() })
+    .eq("lead_id", id)
+    .eq("kind", "follow_up")
+    .eq("status", "pending");
+  if (error) throw error;
+  return lead;
+}
+
+/** Back on the active list from Gone quiet or Closed (never undoes "asked not to be contacted"). */
+export async function reopenLead(id: string, client?: StoreClient): Promise<Lead | null> {
+  const lead = await getLeadById(id, client);
+  if (!lead || lead.doNotContact) return null;
+  const status = lead.lastContactedAt ? "contacted" : "new";
+  return updateLead(id, { status, statusReason: "Reopened", nextAction: "", followUpOn: null }, client);
+}
+
 export async function deleteLead(id: string, client?: StoreClient): Promise<boolean> {
   const supabase = await getStoreClient(client);
   const lead = await getLeadById(id, supabase);

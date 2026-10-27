@@ -5,6 +5,8 @@ import {
   createLead,
   updateLead,
   markLeadNotAFit,
+  markLeadQuiet,
+  reopenLead,
   deleteLead,
   convertLeadToCustomer,
   convertLeadToDeal,
@@ -40,6 +42,16 @@ export async function createLeadAction(input: CreateLeadInput, allowDuplicate = 
 
 export async function markLeadNotAFitAction(id: string) {
   await markLeadNotAFit(id);
+  revalidateLeads(id);
+}
+
+export async function markLeadQuietAction(id: string) {
+  await markLeadQuiet(id);
+  revalidateLeads(id);
+}
+
+export async function reopenLeadAction(id: string) {
+  await reopenLead(id);
   revalidateLeads(id);
 }
 

@@ -4,7 +4,7 @@ import LocalDate from "@/components/admin/LocalDate";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import StatusBadge from "@/components/admin/StatusBadge";
+import StatusBadge, { statusLabel } from "@/components/admin/StatusBadge";
 import { LEAD_STATUSES, type Lead, type LeadGenRun } from "@/lib/store/types";
 import { readSignals, scoreBand } from "@/lib/leadgen/factors";
 import { FactorBars, SignalChips } from "@/components/admin/ProspectInsights";
@@ -286,12 +286,12 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
             aria-label="Status"
             value={filters.status ?? ""}
             onChange={(e) => pushParam("status", e.target.value || undefined)}
-            className={`${selectClass} capitalize`}
+            className={selectClass}
           >
             <option value="">Any status</option>
             {LEAD_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {statusLabel(s)}
               </option>
             ))}
           </select>

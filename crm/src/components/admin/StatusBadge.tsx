@@ -26,6 +26,7 @@ const LEAD: Record<string, BadgeMeta> = {
   negotiation: { label: "Negotiating", tone: "steel" },
   converted: { label: "Customer", tone: "success" },
   lost: { label: "Closed", tone: "closed" },
+  nurture: { label: "Gone quiet", tone: "neutral" },
 };
 
 const DEAL: Record<string, BadgeMeta> = {

@@ -160,3 +160,22 @@ def test_a_failed_heartbeat_never_stops_the_loop() -> None:
             raise RuntimeError("table missing")
 
     automation.beat(Broken(), {"follow_ups": 0})  # type: ignore[arg-type]
+
+
+def test_silent_lead_goes_quiet_by_default_not_lost() -> None:
+    store = FakeStore([{"id": "l1"}, {"id": "l2"}], pending=["l2"])
+    now = datetime(2026, 10, 27, 15, tzinfo=UTC)
+    closed = automation.close_gone_cold(store, automation.Settings(True, 3, 7), now)  # type: ignore[arg-type]
+    assert closed == 1
+    lead_id, patch = store.patches[0]
+    assert lead_id == "l1" and patch["status"] == "nurture" and "awaiting" not in patch
+
+
+def test_silent_lead_can_still_be_closed_as_lost_or_left_alone() -> None:
+    now = datetime(2026, 10, 27, 15, tzinfo=UTC)
+    lost = FakeStore([{"id": "l1"}], pending=[])
+    automation.close_gone_cold(lost, automation.Settings(True, 3, 7, "lost"), now)  # type: ignore[arg-type]
+    assert lost.patches[0][1]["status"] == "lost"
+    left = FakeStore([{"id": "l1"}], pending=[])
+    assert automation.close_gone_cold(left, automation.Settings(True, 3, 14, "none"), now) == 0  # type: ignore[arg-type]
+    assert left.patches == []

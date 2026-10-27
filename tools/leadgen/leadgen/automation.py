@@ -8,10 +8,12 @@
    stores the whole mailbox) is never drafted for: every read here starts from a lead.
 3. Follow-ups. When a lead we emailed hasn't answered and its follow-up date has come, write the
    next short nudge into Drafts (the CRM sends it on its own when automatic sending is on), up to
-   the configured number of nudges, then asks the CRM to send what's due. A lead still silent after
-   the last one is closed as gone cold.
+   the configured number of nudges, then asks the CRM to send what's due. A lead still silent
+   cold_after_days after the last one goes where Settings says (after_last_follow_up): "Gone quiet"
+   (status nurture, the default: off the chase, not lost), closed as lost, or nowhere. A follow-up
+   date a person set by hand is respected: the lead waits until that day.
 
-Statuses themselves are never set here except "went cold": the triggers in
+Statuses themselves are never set here except "gone quiet" / "went cold": the triggers in
 crm/supabase/migrations/20261019000005_auto_pipeline.sql own every other move.
 """
 
@@ -55,6 +57,8 @@ class Settings:
     draft_replies: bool
     max_follow_ups: int
     cold_after_days: int
+    # What happens cold_after_days after the last follow-up: "nurture", "lost" or "none".
+    after_last_follow_up: str = "nurture"
 
 
 class Writer(Protocol):
@@ -104,6 +108,7 @@ def load_settings(store: Store) -> Settings:
         draft_replies=bool(row.get("draft_replies", True)),
         max_follow_ups=len(row.get("follow_up_days") or [3, 4, 7]),
         cold_after_days=int(row.get("cold_after_days", 7)),
+        after_last_follow_up=str(row.get("after_last_follow_up") or "nurture"),
     )
 
 
@@ -280,20 +285,32 @@ def queue_follow_ups(store: Store, writer: Writer, settings: Settings, today: da
 
 
 def close_gone_cold(store: Store, settings: Settings, now: datetime) -> int:
+    """Leads silent through every follow-up: Gone quiet (nurture) or lost, per Settings."""
+    if settings.after_last_follow_up not in ("nurture", "lost"):
+        return 0
     cutoff = (now - timedelta(days=settings.cold_after_days)).isoformat()
+    today = team_today(now).isoformat()
     leads = store._req("GET", "leads", params={
         "awaiting": "eq.them", "status": "in.(contacted,replied)", "follow_up_count": f"gte.{settings.max_follow_ups}",
-        "last_contacted_at": f"lt.{cutoff}", "select": "id",
+        "last_contacted_at": f"lt.{cutoff}",
+        # A date set by hand in the future means someone is still on it.
+        "or": f"(follow_up_on.is.null,follow_up_on.lte.{today})",
+        "select": "id",
     }).json()
     pending = pending_draft_leads(store)
+    quiet = settings.after_last_follow_up == "nurture"
+    patch: dict[str, Any] = (
+        {"status": "nurture", "status_reason": "Gone quiet: no reply to any follow-up",
+         "follow_up_on": None, "next_action": "Check in now and then"}
+        if quiet else
+        {"status": "lost", "status_reason": "Went cold: no reply to any follow-up",
+         "awaiting": None, "follow_up_on": None, "next_action": ""}
+    )
     closed = 0
     for lead in leads:
         if lead["id"] in pending:
             continue
-        store.patch_lead(lead["id"], {
-            "status": "lost", "status_reason": "Went cold: no reply to any follow-up",
-            "awaiting": None, "follow_up_on": None, "next_action": "",
-        })
+        store.patch_lead(lead["id"], patch)
         closed += 1
     return closed
 

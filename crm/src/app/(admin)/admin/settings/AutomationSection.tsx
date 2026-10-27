@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { AutomationSettings } from "@/lib/store/drafts";
+import type { AfterLastFollowUp, AutomationSettings } from "@/lib/store/drafts";
 import { updateAutomationAction } from "../drafts/actions";
 
 function Toggle({
@@ -48,6 +48,9 @@ export default function AutomationSection({ settings }: { settings: AutomationSe
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [cap, setCap] = useState(String(settings.dailySendCap));
+  const [quietDays, setQuietDays] = useState(String(settings.coldAfterDays));
+  const [after, setAfter] = useState<AfterLastFollowUp>(settings.afterLastFollowUp);
+  const quietDirty = quietDays !== String(settings.coldAfterDays) || after !== settings.afterLastFollowUp;
 
   function save(patch: Partial<AutomationSettings>) {
     setError(null);
@@ -83,9 +86,50 @@ export default function AutomationSection({ settings }: { settings: AutomationSe
           checked={settings.autoSendFollowUps}
           onChange={(v) => save({ autoSendFollowUps: v })}
           label="Send follow-ups automatically"
-          hint={`Leads who haven't answered get a short follow-up 3 business days after each email, up to ${maxFollowUps}, from the address the thread is on, stopping the moment they reply. Off: the follow-ups wait in Drafts for you to send. A lead with no answer ${settings.coldAfterDays} days after the last one is closed as gone cold.`}
+          hint={`Leads who haven't answered get a short follow-up 3 business days after each email, up to ${maxFollowUps}, from the address the thread is on, stopping the moment they reply. Off: the follow-ups wait in Drafts for you to send.`}
           disabled={pending}
         />
+        <div className="py-5">
+          <span className="block text-base font-medium text-[var(--color-text)]">After the last follow-up</span>
+          <span className="mt-1 block max-w-2xl text-sm leading-relaxed text-[var(--color-text-muted)]">
+            When someone never answers any follow-up. Gone quiet takes them off the daily list without calling them lost; they come back the
+            moment they write. A follow-up date you set on a lead by hand always wins.
+          </span>
+          <form
+            className="mt-3 flex flex-wrap items-center gap-2 text-[15px] text-[var(--color-text-muted)]"
+            onSubmit={(e) => {
+              e.preventDefault();
+              save({ coldAfterDays: Number(quietDays), afterLastFollowUp: after });
+            }}
+          >
+            <span>Wait</span>
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={quietDays}
+              onChange={(e) => setQuietDays(e.target.value)}
+              aria-label="Days to wait after the last follow-up"
+              className="field w-20 tabular"
+              disabled={pending}
+            />
+            <span>days, then</span>
+            <select
+              value={after}
+              onChange={(e) => setAfter(e.target.value as AfterLastFollowUp)}
+              aria-label="What happens after the wait"
+              className="field w-auto"
+              disabled={pending}
+            >
+              <option value="nurture">move them to Gone quiet</option>
+              <option value="lost">close them as lost</option>
+              <option value="none">leave them for me to decide</option>
+            </select>
+            <button type="submit" disabled={pending || !quietDirty} className="btn btn-secondary btn-sm">
+              Save
+            </button>
+          </form>
+        </div>
         <div className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <span>
             <span className="block text-base font-medium text-[var(--color-text)]">Daily limit</span>

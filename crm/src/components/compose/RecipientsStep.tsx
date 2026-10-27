@@ -25,6 +25,7 @@ const STATUS_LABEL: Record<string, string> = {
   negotiation: "Negotiating",
   converted: "Customers",
   lost: "Closed",
+  nurture: "Gone quiet",
 };
 
 const SKIP_OPTIONS = [0, 3, 7, 14, 30, 60, 90];
