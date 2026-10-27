@@ -125,3 +125,13 @@ def test_in_lists_quote_odd_addresses_and_a_bad_chunk_does_not_stall() -> None:
     threads = respx.get(f"{REST}/email_messages").mock(return_value=httpx.Response(400, json={"message": "bad"}))
     assert store.leads_for_threads(['t"1,2']) == {}
     assert threads.calls[0].request.url.params["provider_thread_id"] == 'in.("t\\"1,2")'
+
+
+@respx.mock
+def test_heartbeat_upserts_one_row_per_loop() -> None:
+    route = respx.post(f"{REST}/worker_heartbeats").mock(return_value=httpx.Response(201))
+    Store(URL, "key").heartbeat("automation", {"last_pass": {"follow_ups": 2}})
+    req = route.calls.last.request
+    assert "merge-duplicates" in req.headers["Prefer"]
+    body = json.loads(req.content)
+    assert body["name"] == "automation" and body["detail"] == {"last_pass": {"follow_ups": 2}} and body["beat_at"]

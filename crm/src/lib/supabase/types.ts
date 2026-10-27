@@ -862,6 +862,24 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_heartbeats: {
+        Row: {
+          beat_at: string
+          detail: Json
+          name: string
+        }
+        Insert: {
+          beat_at?: string
+          detail?: Json
+          name: string
+        }
+        Update: {
+          beat_at?: string
+          detail?: Json
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       email_inbox: {

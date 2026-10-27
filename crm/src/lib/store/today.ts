@@ -127,7 +127,7 @@ function teamDay(iso: string): string {
 }
 
 /** "today 7:40am", "yesterday 3:14pm", "Monday 9:02am", "Oct 3" */
-function whenSaid(iso: string, now: Date): string {
+export function whenSaid(iso: string, now: Date): string {
   const today = teamTodayISO(now, TEAM_TIME_ZONE);
   const day = teamDay(iso);
   if (day === today) return `today ${shortTime(iso)}`;
@@ -499,7 +499,7 @@ function toAgenda(events: CalendarEvent[], leads: Map<string, Lead>): AgendaEven
 }
 
 /** The team's calendar day as a UTC [from, to) window. */
-function teamDayWindow(now: Date): { from: string; to: string } {
+export function teamDayWindow(now: Date): { from: string; to: string } {
   const today = teamTodayISO(now, TEAM_TIME_ZONE);
   // Midnight to midnight in the team zone, each with its own offset (a DST day is 23 or 25 hours).
   const [y, m, d] = today.split("-").map(Number);
