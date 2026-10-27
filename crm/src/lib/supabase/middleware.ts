@@ -49,6 +49,10 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Outside the demo the proxy only matches /login so the demo can bounce it; the login page itself
+  // must render, or every redirect to it below loops back here.
+  if (request.nextUrl.pathname.startsWith("/login")) return supabaseResponse;
+
   const isPublicAdminPath = PUBLIC_ADMIN_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
   if (!user && !isPublicAdminPath) {
