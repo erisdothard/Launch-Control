@@ -4,6 +4,7 @@ import { getEmailAccounts, type EmailAccount } from "./messages";
 import { AUTOMATED_LEAD_SOURCE } from "./types";
 import { TEAM_TIME_ZONE, teamDayWindow, whenSaid } from "./today";
 import { teamTodayISO } from "@/lib/leads/followUp";
+import { isAutoReply } from "@/lib/email/deliverability";
 
 // Agent Ops: what the agents are doing right now, read straight from the tables they write.
 // Owner-only for now. Everything is built here on the server so the page only lays it out.
@@ -73,6 +74,9 @@ interface MessageRow {
   lead_id: string | null;
   direction: string;
   created_at: string;
+  // An inbound message counts as a reply only from a lead-gen prospect and only when it isn't an
+  // auto-reply (same rule as crm/src/lib/agents/metrics.ts), so test leads never read as results.
+  realReply: boolean;
 }
 
 interface SuppressionRow {
@@ -126,11 +130,15 @@ async function readMessages(supabase: StoreClient): Promise<MessageRow[]> {
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("email_messages")
-      .select("lead_id, direction, created_at")
+      .select("lead_id, direction, created_at, subject, leads(source)")
       .order("created_at", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) throw error;
-    rows.push(...data);
+    for (const m of data) {
+      const lead = Array.isArray(m.leads) ? m.leads[0] : m.leads;
+      const realReply = m.direction === "in" && lead?.source === AUTOMATED_LEAD_SOURCE && !isAutoReply(m.subject ?? "");
+      rows.push({ lead_id: m.lead_id, direction: m.direction, created_at: m.created_at, realReply });
+    }
     if (data.length < PAGE) return rows;
   }
 }
@@ -141,7 +149,7 @@ async function readSegments(supabase: StoreClient, messages: MessageRow[]): Prom
   for (const m of messages) {
     if (!m.lead_id) continue;
     if (m.direction === "out" && !emailedAt.has(m.lead_id)) emailedAt.set(m.lead_id, m.created_at);
-    if (m.direction === "in" && emailedAt.has(m.lead_id)) replied.add(m.lead_id);
+    if (m.realReply && emailedAt.has(m.lead_id)) replied.add(m.lead_id);
   }
   const ids = [...emailedAt.keys()];
   const segmentOf = new Map<string, string>();
@@ -380,10 +388,10 @@ function feed(raw: OpsRaw, now: Date): OpsEvent[] {
   }
 
   // Sends batch into one line a day; every reply stays its own line, since each one matters.
-  const recent = raw.messages.filter((m) => m.created_at >= since && (m.direction === "out" || m.direction === "in"));
+  const recent = raw.messages.filter((m) => m.created_at >= since && (m.direction === "out" || m.realReply));
   for (const g of grouped(recent, (m) => m.created_at, (m) => (m.direction === "in" ? `in-${m.created_at}` : "out"), byTeamDay)) {
     g.key = g.key.startsWith("in-") ? "in" : "out";
-    const text = g.key === "out" ? `${plural(g.count, "email", "emails")} went out that day.` : "A lead wrote back.";
+    const text = g.key === "out" ? `${plural(g.count, "email", "emails")} went out that day.` : "A prospect wrote back.";
     events.push({ id: `mail-${g.key}-${g.at}`, at: g.at, agent: g.key === "out" ? "Sent" : "Inbox", text });
   }
 
