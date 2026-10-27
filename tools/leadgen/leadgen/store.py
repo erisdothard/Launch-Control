@@ -104,6 +104,11 @@ class Store:
         rows = self._req("GET", "lead_gen_runs", params={"id": f"eq.{run_id}", "select": "status"}).json()
         return rows[0]["status"] if rows else None
 
+    def heartbeat(self, name: str, detail: dict[str, Any]) -> None:
+        """Agent Ops reads this row to tell a quiet worker from a stopped one."""
+        self._req("POST", "worker_heartbeats", prefer="resolution=merge-duplicates,return=minimal",
+                  json={"name": name, "beat_at": datetime.now(UTC).isoformat(), "detail": detail})
+
     def fail_orphaned_runs(self) -> int:
         """A worker restart leaves its run 'running' forever; nothing else can be running then."""
         rows = self._req("PATCH", "lead_gen_runs", params={"status": "eq.running"}, prefer="return=representation",

@@ -390,6 +390,14 @@ def run_once(store: Store, writer: Writer, graph: outlook_sync.GraphClient | Non
     return out
 
 
+def beat(store: Store, counts: dict[str, int]) -> None:
+    """Check in for Agent Ops. A missing table or a blip must never stop the loop."""
+    try:
+        store.heartbeat("automation", {"every_s": RUN_EVERY_S, "last_pass": counts})
+    except Exception:
+        log.warning("heartbeat failed", exc_info=True)
+
+
 def start_background(store_factory, every_s: float = RUN_EVERY_S) -> threading.Thread:  # noqa: ANN001
     store, writer = store_factory(), ClaudeWriter()
     creds = outlook_sync.ms_credentials()
@@ -400,6 +408,7 @@ def start_background(store_factory, every_s: float = RUN_EVERY_S) -> threading.T
             counts = run_once(store, writer, graph)
             if any(counts.values()):
                 log.info("automation: %s", counts)
+            beat(store, counts)
             time.sleep(every_s)
 
     thread_ = threading.Thread(target=loop, name="crm-automation", daemon=True)

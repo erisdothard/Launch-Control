@@ -152,3 +152,11 @@ def _with_messages(req: Any, msgs: list[dict[str, Any]]) -> Any:
         return req(method, path, **kw)
 
     return wrapped
+
+
+def test_a_failed_heartbeat_never_stops_the_loop() -> None:
+    class Broken:
+        def heartbeat(self, name: str, detail: dict[str, Any]) -> None:
+            raise RuntimeError("table missing")
+
+    automation.beat(Broken(), {"follow_ups": 0})  # type: ignore[arg-type]
