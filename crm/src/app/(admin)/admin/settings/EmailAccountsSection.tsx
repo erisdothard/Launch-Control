@@ -17,6 +17,12 @@ interface EmailAccountsSectionProps {
   gmailResult: string | null;
   outlookReady: boolean;
   outlookResult: string | null;
+  /**
+   * Outlook runs as the CRM's own app (client credentials): no user sign-in, so nothing to
+   * reconnect, and every address sends through this one mailbox over SMTP.
+   */
+  appOnly: boolean;
+  appMailbox: string;
 }
 
 const OUTLOOK_RESULT: Record<string, { text: string; good: boolean }> = {
@@ -63,18 +69,23 @@ function plainReason(raw: string): string {
 
 const DAY: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
 
+// Errors from the old signed-in-user connection (MFA prompts, expired sign-ins). In app-only mode
+// the CRM never signs in as a person, so these say nothing about whether it can send today.
+const SIGN_IN_ERROR = /AADSTS|multi-?factor|\bMFA\b|invalid_grant|refresh token|expired|consent|password/i;
+
 /** Working, or when it stopped and why, plus the one thing to do about it. */
-function AccountStatus({ account }: { account: EmailAccount }) {
+function AccountStatus({ account, appOnly, receives }: { account: EmailAccount; appOnly: boolean; receives: boolean }) {
   const reconnect = account.provider === "outlook" ? "/api/outlook/connect" : "/api/gmail/connect";
+  const lastError = appOnly && account.provider === "outlook" && account.lastError && SIGN_IN_ERROR.test(account.lastError) ? null : account.lastError;
   if (account.status === "active") {
     return (
       <p className="text-[15px] text-[var(--color-text-muted)]">
         <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[var(--color-success)] align-middle" aria-hidden="true" />
-        Sending and syncing
-        {account.lastError && account.lastErrorAt && (
+        {receives ? "Sending, and replies sync into the CRM" : "Sending"}
+        {lastError && account.lastErrorAt && (
           <span className="text-[var(--color-text-dim)]">
             {" "}
-            · last problem <LocalDate iso={account.lastErrorAt} options={DAY} />: {plainReason(account.lastError)}
+            · last problem <LocalDate iso={account.lastErrorAt} options={DAY} />: {plainReason(lastError)}
           </span>
         )}
       </p>
@@ -94,7 +105,7 @@ function AccountStatus({ account }: { account: EmailAccount }) {
         {account.lastError ? `: ${plainReason(account.lastError)}.` : "."}{" "}
         <span className="text-[var(--color-text-muted)]">Nothing sends as this address until it&apos;s reconnected.</span>
       </p>
-      {account.provider !== "resend" && (
+      {account.provider !== "resend" && !(appOnly && account.provider === "outlook") && (
         <a href={reconnect} className="btn btn-secondary btn-sm shrink-0 self-start sm:self-auto">
           Reconnect
         </a>
@@ -103,7 +114,16 @@ function AccountStatus({ account }: { account: EmailAccount }) {
   );
 }
 
-function AccountRow({ account, phone: savedPhone }: { account: EmailAccount; phone: string }) {
+/** Where this address's mail actually goes out from, and where replies to it land. */
+function routeLine(account: EmailAccount, appOnly: boolean, appMailbox: string): string {
+  if (account.provider !== "outlook") return "";
+  if (!appOnly) return account.mailbox ? ` · an alias on ${account.mailbox}` : " · the Outlook mailbox";
+  const own = account.address.toLowerCase() === appMailbox;
+  if (own) return " · the CRM's mailbox: every email goes out through it, and its replies sync here";
+  return ` · goes out through ${appMailbox} with Send As. Replies to it land in its own Outlook, not in the CRM yet`;
+}
+
+function AccountRow({ account, phone: savedPhone, appOnly, appMailbox }: { account: EmailAccount; phone: string; appOnly: boolean; appMailbox: string }) {
   const [name, setName] = useState(account.displayName);
   const [signer, setSigner] = useState(account.signatureName);
   const [title, setTitle] = useState(account.signatureTitle);
@@ -144,7 +164,7 @@ function AccountRow({ account, phone: savedPhone }: { account: EmailAccount; pho
           </p>
           <p className="mt-0.5 text-[15px] break-words text-[var(--color-text-muted)]">
             {account.address}
-            {account.mailbox ? ` · an alias on ${account.mailbox}` : account.provider === "outlook" ? " · the Outlook mailbox" : ""}
+            {routeLine(account, appOnly, appMailbox)}
           </p>
         </div>
         <p className="text-sm text-[var(--color-text-dim)]">
@@ -152,7 +172,11 @@ function AccountRow({ account, phone: savedPhone }: { account: EmailAccount; pho
         </p>
       </div>
       <div className="mt-3">
-        <AccountStatus account={account} />
+        <AccountStatus
+          account={account}
+          appOnly={appOnly}
+          receives={account.provider !== "outlook" || !appOnly || account.address.toLowerCase() === appMailbox}
+        />
       </div>
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,0.85fr)_minmax(0,1fr)]">
         <label className="block" htmlFor={`signer-${id}`}>
@@ -246,6 +270,8 @@ export default function EmailAccountsSection({
   gmailResult,
   outlookReady,
   outlookResult,
+  appOnly,
+  appMailbox,
 }: EmailAccountsSectionProps) {
   const [local, setLocal] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -275,8 +301,8 @@ export default function EmailAccountsSection({
         Email and signature
       </h2>
       <p className="mt-2 max-w-2xl text-base text-[var(--color-text-muted)]">
-        Each address below is one person. When you write an email, Send as picks who it&apos;s from, and that person&apos;s signature goes under
-        the message automatically (switch Add signature off to leave it out). The From name stays Launch Control for everyone.
+        Each address below is one person. When you write an email, Send as picks who it&apos;s from: their inbox shows that address&apos;s
+        From name (set below), and that person&apos;s signature goes under the message unless you switch it off.
       </p>
 
       {notice && (
@@ -288,7 +314,7 @@ export default function EmailAccountsSection({
       {visible.length > 0 ? (
         <ul className="mt-4">
           {visible.map((a) => (
-            <AccountRow key={a.id} account={a} phone={phones[a.id] ?? a.signaturePhone} />
+            <AccountRow key={a.id} account={a} phone={phones[a.id] ?? a.signaturePhone} appOnly={appOnly} appMailbox={appMailbox} />
           ))}
         </ul>
       ) : (
@@ -299,7 +325,16 @@ export default function EmailAccountsSection({
         <div className="mt-10 border-t border-[var(--color-border)] pt-8">
           <h3 className="text-base font-semibold text-[var(--color-text)]">Connect another address</h3>
           <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {outlookReady && (
+            {outlookReady && appOnly && (
+              <div className="well p-5">
+                <p className="text-base font-medium text-[var(--color-text)]">Microsoft 365 (Outlook)</p>
+                <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">
+                  Connected as the CRM&apos;s own app, working on {appMailbox}. Nobody signs in, so a password change or a Microsoft
+                  sign-in prompt can&apos;t disconnect it, and there is nothing to reconnect.
+                </p>
+              </div>
+            )}
+            {outlookReady && !appOnly && (
               <div className="well p-5">
                 <p className="text-base font-medium text-[var(--color-text)]">Microsoft 365 (Outlook)</p>
                 <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">

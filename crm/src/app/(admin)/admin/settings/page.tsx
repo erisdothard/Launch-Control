@@ -5,7 +5,7 @@ import AutomationSection from "./AutomationSection";
 import { getAutomationSettings } from "@/lib/store/drafts";
 import { getCompanyInfo, getSignaturePhones } from "@/lib/store/company";
 import { getEmailAccounts } from "@/lib/store/messages";
-import { emailConfig, gmailEnabled, outlookEnabled, resendEnabled } from "@/lib/email/config";
+import { emailConfig, gmailEnabled, outlookAppOnly, outlookEnabled, resendEnabled } from "@/lib/email/config";
 
 interface SettingsPageProps {
   searchParams: Promise<{ gmail?: string; outlook?: string }>;
@@ -36,6 +36,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           gmailResult={params.gmail ?? null}
           outlookReady={outlookEnabled()}
           outlookResult={params.outlook ?? null}
+          appOnly={outlookAppOnly()}
+          appMailbox={emailConfig.msAppMailbox}
         />
         <AutomationSection settings={automation} />
         <CompanyInfoForm company={company} />

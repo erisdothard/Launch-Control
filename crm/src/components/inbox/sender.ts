@@ -1,5 +1,6 @@
-// Who an email goes out as. Max's mailbox (maxwell@) and its alias (eris@) are both rows in
-// email_accounts; each carries the person who signs it. Pure helpers, safe in client components.
+// Who an email goes out as. Max's mailbox (maxwell@) and eris@ are both rows in email_accounts;
+// eris@ sends through maxwell@ with Send As. Each row carries its From name and the person who
+// signs it. Pure helpers, safe in client components.
 import type { SignatureInput } from "@/lib/email/signature";
 
 export interface SenderAccount {
@@ -49,7 +50,7 @@ export function signatureOf(a: SenderAccount | undefined): SignatureInput | null
 
 export function cannotSendReason(a: SenderAccount | undefined): string | null {
   if (!a) return "Connect Outlook in Settings first.";
-  if (a.status === "needs_reconnect") return `${a.address} needs reconnecting in Settings before it can send.`;
+  if (a.status === "needs_reconnect") return `${a.address} can't send right now. Check it in Settings.`;
   if (a.status !== "active") return `${a.address} can't send right now. Check it in Settings.`;
   return null;
 }

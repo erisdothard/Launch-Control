@@ -84,7 +84,7 @@ export function SendAsSwitch({ options, value, onChange, disabled, layout = "inl
                     {senderName(a)}
                   </span>
                   <span className="block truncate text-[14px] leading-[1.35] text-[var(--color-text-dim)]">{a.address}</span>
-                  {a.status !== "active" && <span className="block text-[14px] leading-[1.35] text-[var(--color-hot)]">Not connected</span>}
+                  {a.status !== "active" && <span className="block text-[14px] leading-[1.35] text-[var(--color-hot)]">Can&apos;t send right now</span>}
                 </span>
               </button>
             );
@@ -92,9 +92,9 @@ export function SendAsSwitch({ options, value, onChange, disabled, layout = "inl
         </div>
         {selected.status !== "active" && (
           <p className="mt-1.5 text-[14.5px] text-[var(--color-hot)]">
-            Outlook needs signing in again before this can send.{" "}
+            This address can&apos;t send right now.{" "}
             <a href="/admin/settings#email-accounts" className="underline underline-offset-2 hover:text-[var(--color-text)]">
-              Reconnect in Settings
+              Check it in Settings
             </a>
           </p>
         )}
