@@ -59,4 +59,5 @@ Debug URL params: `?debug` exposes `window.__lc.{setProgress,freezeTime,info}`; 
 - Real engine asset (Track A). Source files exist in `assets-src/`; part separation and assembly not yet
   verified by this repo's pipeline.
 - Lighthouse, tablet/mobile e2e, real-device test, Vercel deploy with live-URL verification.
-- Nothing committed beyond the initial README.
+- Vercel (team syntra-ai): one project per app from this repo, Root Directory `web` (golaunchcontrol.com)
+  and `crm` (crm.golaunchcontrol.com). Deploy state shows on GitHub commit statuses.
