@@ -27,6 +27,7 @@ function lead(
     status: "new",
     source: "lead-gen",
     doNotContact: false,
+    callList: false,
     lastContactedAt: null,
     views: ["not-contacted"],
     ...extra,

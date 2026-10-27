@@ -75,7 +75,7 @@ def _first_address(addresses: str | None) -> str:
 
 
 def _suppressions(store: Store) -> dict[str, str]:
-    rows = metrics._all(store, "email_suppressions", {"select": "email,reason"})
+    rows = metrics._all(store, "email_suppressions", {"select": "email,reason"}, order="email")
     return {r["email"].strip().lower(): str(r.get("reason") or "") for r in rows if r.get("email")}
 
 

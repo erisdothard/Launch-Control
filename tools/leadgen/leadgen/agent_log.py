@@ -11,7 +11,7 @@ import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from leadgen.store import Store, StoreError
@@ -59,6 +59,16 @@ def _finish(store: Store, run: Run, status: str, error: str | None = None) -> No
                          "evidence": run.evidence, "error": error})
     except StoreError:
         log.exception("could not close agent_runs row %s", run.id)
+
+
+def fail_stale_runs(store: Store, older_than_minutes: int = 60) -> int:
+    """A worker restart leaves its passes 'running' forever. Mark those older than the cutoff failed.
+    Returns how many were closed."""
+    cutoff = (datetime.now(UTC) - timedelta(minutes=older_than_minutes)).isoformat()
+    rows = store._req("PATCH", "agent_runs", params={"status": "eq.running", "started_at": f"lt.{cutoff}"},
+                      prefer="return=representation",
+                      json={"status": "failed", "finished_at": _now(), "error": "worker restarted mid-run"}).json()
+    return len(rows or [])
 
 
 def last_runs(store: Store) -> dict[str, dict[str, Any]]:

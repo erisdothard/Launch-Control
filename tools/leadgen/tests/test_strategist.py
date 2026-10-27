@@ -54,7 +54,16 @@ def test_enough_data_gets_one_proposal_call(rest: FakeRest) -> None:  # noqa: F8
 
 def test_runs_at_most_once_per_seven_days(rest: FakeRest) -> None:  # noqa: F811
     rest.tables.update(leads_and_mail({"race_prep": 1}, {}))
-    rest.tables["agent_runs"].append({"id": "s", "agent": "strategist", "started_at": (NOW - timedelta(days=6)).isoformat()})
+    rest.tables["agent_runs"].append({"id": "s", "agent": "strategist", "status": "done", "started_at": (NOW - timedelta(days=6)).isoformat()})
     assert strategist.run_weekly(rest.store(), now=NOW, use_default_writer=False) is None
     rest.tables["agent_runs"][0]["started_at"] = (NOW - timedelta(days=7, minutes=1)).isoformat()
     assert strategist.run_weekly(rest.store(), now=NOW, use_default_writer=False) is not None
+
+
+def test_a_failed_or_stuck_review_does_not_hold_off_the_next(rest: FakeRest) -> None:  # noqa: F811
+    rest.tables.update(leads_and_mail({"race_prep": 1}, {}))
+    rest.tables["agent_runs"] += [
+        {"id": "f", "agent": "strategist", "status": "failed", "started_at": (NOW - timedelta(days=1)).isoformat()},
+        {"id": "r", "agent": "strategist", "status": "running", "started_at": (NOW - timedelta(days=2)).isoformat()},
+    ]
+    assert strategist.due(rest.store(), NOW) is True

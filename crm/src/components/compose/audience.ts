@@ -17,6 +17,8 @@ export interface AudienceLead {
   status: LeadStatus;
   source: string;
   doNotContact: boolean;
+  /** Lead-gen put them on the call list (signals.call_list: no readable site): phone outreach only. */
+  callList: boolean;
   lastContactedAt: string | null;
   views: LeadView[];
 }
@@ -30,10 +32,11 @@ export interface Candidate {
   origin: string;
 }
 
-export type ExcludeReason = "do_not_contact" | "suppressed" | "missing_email" | "invalid" | "duplicate" | "recent";
+export type ExcludeReason = "do_not_contact" | "call_list" | "suppressed" | "missing_email" | "invalid" | "duplicate" | "recent";
 
 export const EXCLUDE_LABELS: Record<ExcludeReason, { title: string; why: string; overridable: boolean }> = {
   do_not_contact: { title: "Asked not to be contacted", why: "These leads are marked do not contact.", overridable: false },
+  call_list: { title: "Call list: phone only", why: "These leads are on the call list, so they get a phone call, not email.", overridable: false },
   suppressed: { title: "Unsubscribed or bounced", why: "These addresses opted out or bounced before.", overridable: false },
   missing_email: { title: "No email address", why: "Add an address on their record to include them.", overridable: false },
   invalid: { title: "Address doesn't look right", why: "These can't be delivered as written.", overridable: false },
@@ -141,6 +144,7 @@ export function evaluateAudience(candidates: Candidate[], ctx: AudienceContext):
     seen.add(email);
     if (!isValidEmail(email)) push("invalid");
     else if (lead?.doNotContact) push("do_not_contact");
+    else if (lead?.callList) push("call_list");
     else if (ctx.suppressed.has(email)) push("suppressed");
     else if (
       ctx.skipDays > 0 &&

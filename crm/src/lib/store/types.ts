@@ -137,6 +137,9 @@ export interface Lead {
   statusChangedAt: string | null;
   awaiting: Awaiting | null;
   doNotContact: boolean;
+  // signals.call_list from lead-gen (no readable site): phone outreach only, never mass email.
+  // Read from the row itself, since prospect is null for a lead with no site and no score.
+  callList: boolean;
   followUpCount: number;
   prospect: Prospect | null;
 }

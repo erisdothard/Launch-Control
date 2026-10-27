@@ -64,6 +64,14 @@ def run_once(http: httpx.Client | None = None, store: Store | None = None) -> di
         return {}
 
 
+def beat(store: Store, every_s: float, counts: dict[str, int]) -> None:
+    """Check in for Mission Control, like automation.beat. A blip must never stop the loop."""
+    try:
+        store.heartbeat("campaigns", {"every_s": every_s, "last_pass": counts})
+    except Exception:
+        log.warning("campaigns heartbeat failed", exc_info=True)
+
+
 def start_background(store_factory: Callable[[], Store] | None = None,
                      every_s: float = RUN_EVERY_S) -> threading.Thread | None:
     """Start the once-a-minute caller. Returns None (and starts nothing) without AUTOMATION_SECRET,
@@ -86,6 +94,7 @@ def start_background(store_factory: Callable[[], Store] | None = None,
             counts = run_once(http, store)
             if any(counts.values()):
                 log.info("campaigns: %s", counts)
+            beat(store, every_s, counts)
             # Keep a steady minute between call starts, however long the call took.
             time.sleep(max(1.0, every_s - (time.monotonic() - started)))
 

@@ -36,6 +36,8 @@ def _match(row: dict[str, Any], key: str, expr: str) -> bool:
         return _s(val) in arg.strip("()").split(",")
     if op == "gte":
         return val is not None and str(val) >= arg
+    if op == "lt":
+        return val is not None and str(val) < arg
     if op == "like":
         return val is not None and re.fullmatch(arg.replace("*", ".*"), str(val)) is not None
     if op == "not" and arg == "is.null":
@@ -69,7 +71,7 @@ class FakeRest:
             return httpx.Response(404, json={"message": f"relation {table} does not exist"})
         params = dict(request.url.params)
         rows = self.tables.setdefault(table, [])
-        filters = {k: v for k, v in params.items() if k not in self.RESERVED}
+        filters = {k: v for k, v in params.items() if k not in self.RESERVED and not k.endswith(".limit")}
         if request.method == "POST":
             body = json.loads(request.content)
             row = {"id": f"{table}-{len(rows) + 1}", "started_at": datetime.now(UTC).isoformat(), **body}
@@ -79,7 +81,8 @@ class FakeRest:
         if request.method == "PATCH":
             for r in hit:
                 r.update(json.loads(request.content))
-            return httpx.Response(204)
+            return httpx.Response(200, json=hit) if "return=representation" in request.headers.get("prefer", "") \
+                else httpx.Response(204)
         if "order" in params:
             col, _, way = params["order"].partition(".")
             hit = sorted(hit, key=lambda r: str(r.get(col) or ""), reverse=way == "desc")

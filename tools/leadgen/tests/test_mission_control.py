@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 from test_guardian import FakeRest, rest  # noqa: F401  (fixture)
 
-from leadgen import mission_control, worker
+from leadgen import agent_log, campaigns, copy_rules, guardian, metrics, mission_control, outreach_writer, worker
 from leadgen.config import Config
 from leadgen.pipeline import RunSummary
 
@@ -133,6 +133,97 @@ def test_crew_pass_survives_every_agent_failing(monkeypatch: pytest.MonkeyPatch)
     calls.clear()
     worker.crew_pass(object(), check_due=False)  # type: ignore[arg-type]
     assert calls == ["writer"]
+
+
+def test_crew_pass_skips_the_writer_when_it_is_not_due(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(worker.outreach_writer, "run_once", lambda *_a, **_k: calls.append("writer"))
+    monkeypatch.setattr(worker.outreach_writer, "STATE", outreach_writer.WriterState(last_pass=datetime.now(UTC)))
+    ran = worker.crew_pass(object(), check_due=False)  # type: ignore[arg-type]
+    assert calls == [] and ran == {"outreach-writer": False, "mission-control": False, "strategist": False}
+
+
+def test_crew_and_campaigns_threads_heartbeat(rest: FakeRest) -> None:  # noqa: F811
+    store = rest.store()
+    worker.crew_beat(store, 300, {"outreach-writer": True})
+    campaigns.beat(store, 60, {"sent": 2})
+    beats = {r["name"]: r["detail"] for r in rest.tables["worker_heartbeats"]}
+    assert beats == {"crew": {"every_s": 300, "last_pass": {"outreach-writer": True}},
+                     "campaigns": {"every_s": 60, "last_pass": {"sent": 2}}}
+    rest.broken.add("worker_heartbeats")
+    worker.crew_beat(store, 300, {})  # a missing table never raises
+    campaigns.beat(store, 60, {})
+
+
+def test_fail_stale_runs_closes_only_old_running_rows(rest: FakeRest) -> None:  # noqa: F811
+    now = datetime.now(UTC)
+    rest.tables["agent_runs"] += [
+        {"id": "old", "agent": "guardian", "status": "running", "started_at": (now - timedelta(minutes=90)).isoformat()},
+        {"id": "new", "agent": "guardian", "status": "running", "started_at": (now - timedelta(minutes=5)).isoformat()},
+        {"id": "done", "agent": "guardian", "status": "done", "started_at": (now - timedelta(hours=5)).isoformat()},
+    ]
+    assert agent_log.fail_stale_runs(rest.store(), older_than_minutes=60) == 1
+    status = {r["id"]: (r["status"], r.get("error")) for r in rest.tables["agent_runs"]}
+    assert status == {"old": ("failed", "worker restarted mid-run"), "new": ("running", None), "done": ("done", None)}
+    worker.close_stale_runs(rest.store())  # wrapper is safe to call again
+    rest.broken.add("agent_runs")
+    worker.close_stale_runs(rest.store())  # and never raises
+
+
+def test_a_failed_brief_does_not_count_as_today(rest: FakeRest) -> None:  # noqa: F811
+    seed(rest)
+    rest.tables["agent_runs"] += [
+        {"id": "f", "agent": "mission-control", "status": "failed", "started_at": (MORNING - timedelta(hours=1)).isoformat()},
+        {"id": "r", "agent": "mission-control", "status": "running", "started_at": (MORNING - timedelta(minutes=30)).isoformat()},
+    ]
+    assert mission_control.due(rest.store(), MORNING) is True
+    rest.tables["agent_runs"].append({"id": "h", "agent": "mission-control", "status": "halted",
+                                      "started_at": (MORNING - timedelta(minutes=10)).isoformat()})
+    assert mission_control.due(rest.store(), MORNING) is False
+
+
+def test_fallback_brief_and_decision_line_are_scrubbed(rest: FakeRest, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: F811
+    seed(rest, email_campaigns=[], email_drafts=[])
+    rest.tables["system_flags"][0]["value"] = True
+    rest.tables["agent_runs"].append({"id": "g", "agent": "guardian", "status": "done", "started_at": MORNING.isoformat(),
+                                      "decision": "Halted: the daily cap was hit today."})
+    brief = mission_control.run_daily(rest.store(), now=MORNING, use_default_writer=False)
+    assert brief is not None and copy_rules.TIME_WORDS.search(brief) is None
+    assert brief.splitlines()[-1] == "Decision: Outbound is halted."  # the guardian's 'daily ... today' sentence is gone
+    # An LLM brief without its own Decision line gets the scrubbed one appended.
+    facts = mission_control.collect(rest.store(), MORNING)
+    text, _ = mission_control.write_brief(facts, FakeWriter("Nothing was sent."))
+    assert text == "Nothing was sent.\nDecision: Outbound is halted."
+    # A decision with nothing left after the scrub becomes the safe one, never an empty line.
+    monkeypatch.setattr(mission_control, "the_decision", lambda _f: "Check the daily cap today.")
+    assert mission_control.decision_line(facts) == f"Decision: {mission_control.SAFE_DECISION}"
+
+
+def test_new_banned_words_are_scrubbed() -> None:
+    text = "Sent 4.\nA daily digest.\nWeekly too.\nReplies came immediately.\nIt frees up the desk.\nDecision: none."
+    clean, removed = copy_rules.scrub_time_words(text)
+    assert clean == "Sent 4.\nDecision: none." and len(removed) == 4
+
+
+def test_paging_reads_are_ordered(rest: FakeRest) -> None:  # noqa: F811
+    seen: list[dict[str, str]] = []
+    original = rest.handler
+
+    def spy(request):  # noqa: ANN001, ANN202
+        if request.method == "GET":
+            seen.append({"table": request.url.path.rsplit("/", 1)[-1], **dict(request.url.params)})
+        return original(request)
+
+    assert rest.mock is not None
+    rest.mock.routes.clear()
+    rest.mock.route(host="sb.test").mock(side_effect=spy)
+    seed(rest, email_suppressions=[{"email": "x@y.com", "reason": "bounce"}])
+    store = rest.store()
+    metrics.snapshot(store)
+    guardian._suppressions(store)
+    orders = {(s["table"], s.get("order")) for s in seen}
+    assert orders == {("leads", "id"), ("lead_gen_runs", "id"), ("email_messages", "id"), ("calendar_events", "id"),
+                      ("email_drafts", "id"), ("email_suppressions", "email")}
 
 
 class QueueStore:

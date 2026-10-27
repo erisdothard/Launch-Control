@@ -438,6 +438,7 @@ export async function getAudienceLeads(today: string, client?: StoreClient): Pro
     status: l.status,
     source: l.source,
     doNotContact: l.doNotContact,
+    callList: l.callList,
     lastContactedAt: l.lastContactedAt,
     views: LEAD_VIEWS.filter((v) => v.key !== "all" && matchesView(l, v.key, today)).map((v) => v.key),
   }));

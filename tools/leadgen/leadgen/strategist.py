@@ -20,7 +20,8 @@ from typing import Any
 
 from leadgen import agent_log, metrics
 from leadgen.automation import MODEL, Writer
-from leadgen.mission_control import default_writer, last_row, scrub_time_words
+from leadgen.copy_rules import scrub_time_words
+from leadgen.mission_control import default_writer, last_row
 from leadgen.store import Store
 
 log = logging.getLogger(__name__)
@@ -41,7 +42,8 @@ SYSTEM = (
 
 
 def due(store: Store, now: datetime) -> bool:
-    row = last_row(store, AGENT)
+    # Only a finished review counts: a failed or stuck pass must not hold off the next one.
+    row = last_row(store, AGENT, finished_only=True)
     return row is None or now - datetime.fromisoformat(row["started_at"].replace("Z", "+00:00")) >= STRATEGY_EVERY
 
 

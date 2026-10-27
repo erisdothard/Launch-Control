@@ -6,9 +6,11 @@ queued or running row, so there is nothing to coordinate between workers.
 
 It also schedules the agent crew (agents never call each other; this file does): the Guardian
 gates every send call (inside campaigns.py and automation.send_due_follow_ups), the Prospector
-checks each finished run, and a light "crew" thread runs the Outreach Writer every automation
-pass and checks every CREW_CHECK_S whether Mission Control's daily brief or the Strategist's
-weekly review is due. Every agent call is wrapped: one agent failing never stops the worker.
+checks each finished run, and a light "crew" thread wakes every automation pass, runs the Outreach
+Writer when outreach_writer.due() allows (at most every 30 minutes, backing off after a model error),
+and checks every CREW_CHECK_S whether Mission Control's daily brief or the Strategist's weekly review
+is due. The crew thread heartbeats as "crew" each pass. Every agent call is wrapped: one agent
+failing never stops the worker.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from leadgen import automation, campaigns, mission_control, outlook_sync, outreach_writer, prospector, strategist
+from leadgen import agent_log, automation, campaigns, mission_control, outlook_sync, outreach_writer, prospector, strategist
 from leadgen.config import Config, supabase_env
 from leadgen.filters import CONTACT_FIELDS
 from leadgen.gmail_sync import start_background_sync
@@ -102,34 +104,63 @@ def process_one(cfg: Config, store: Store) -> bool:
     return True
 
 
-def crew_pass(store: Store, check_due: bool) -> None:
-    """One crew tick: the Outreach Writer always; the daily/weekly agents when check_due."""
-    run_agent("outreach-writer", lambda: outreach_writer.run_once(store))
+def crew_pass(store: Store, check_due: bool) -> dict[str, bool]:
+    """One crew tick: the Outreach Writer when it's due; the daily/weekly agents when check_due.
+    Returns which agents were called, for the heartbeat."""
+    ran = {"outreach-writer": outreach_writer.due(), "mission-control": check_due, "strategist": check_due}
+    if ran["outreach-writer"]:
+        run_agent("outreach-writer", lambda: outreach_writer.run_once(store))
     if check_due:
         run_agent("mission-control", lambda: mission_control.run_daily(store))
         run_agent("strategist", lambda: strategist.run_weekly(store))
+    return ran
+
+
+def crew_beat(store: Store, every_s: float, ran: dict[str, bool]) -> None:
+    """Check in for Mission Control, like automation.beat. A blip must never stop the loop."""
+    try:
+        store.heartbeat("crew", {"every_s": every_s, "last_pass": ran})
+    except Exception:
+        log.warning("crew heartbeat failed", exc_info=True)
+
+
+def close_stale_runs(store: Store) -> None:
+    """Once at crew start: passes a previous worker left 'running' are marked failed."""
+    try:
+        closed = agent_log.fail_stale_runs(store)
+    except Exception:
+        log.exception("could not close stale agent_runs rows")
+        return
+    if closed:
+        log.warning("marked %d agent run(s) left over from a previous worker as failed", closed)
 
 
 def start_crew(store_factory: Callable[[], Store], every_s: float = CREW_EVERY_S,
                check_s: float = CREW_CHECK_S) -> threading.Thread:
     store = store_factory()
 
+    sleep_s = min(every_s, check_s)
+
     def loop() -> None:
+        close_stale_runs(store)
         last_check = float("-inf")
         while True:
             now = time.monotonic()
             check = now - last_check >= check_s
             if check:
                 last_check = now
+            ran: dict[str, bool] = {}
             try:
-                crew_pass(store, check)
+                ran = crew_pass(store, check)
             except Exception:
                 log.exception("crew pass failed")
-            time.sleep(min(every_s, check_s))
+            crew_beat(store, sleep_s, ran)
+            time.sleep(sleep_s)
 
     thread_ = threading.Thread(target=loop, name="agent-crew", daemon=True)
     thread_.start()
-    log.info("agent crew on: writer every %.0fs, daily/weekly checks every %.0fs", every_s, check_s)
+    log.info("agent crew on: wakes every %.0fs, writer at most every %.0fs, daily/weekly checks every %.0fs",
+             sleep_s, outreach_writer.RUN_EVERY.total_seconds(), check_s)
     return thread_
 
 

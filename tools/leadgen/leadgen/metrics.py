@@ -47,10 +47,14 @@ def usable_rate(leads: list[dict[str, Any]]) -> float:
     return sum(is_usable(x) for x in pool) / len(pool) if pool else 0.0
 
 
-def _all(store: Store, table: str, params: dict[str, str]) -> list[dict[str, Any]]:
+def _all(store: Store, table: str, params: dict[str, str], order: str = "id") -> list[dict[str, Any]]:
+    """Every matching row, a page at a time. Paging needs a stable order or rows repeat and go
+    missing between pages, so it sorts on a unique column: `id`, or the table's own key."""
     rows: list[dict[str, Any]] = []
     while True:
-        page = store._req("GET", table, params={**params, "limit": str(_PAGE), "offset": str(len(rows))}).json()
+        page = store._req("GET", table, params={
+            **params, "order": order, "limit": str(_PAGE), "offset": str(len(rows)),
+        }).json()
         rows.extend(page)
         if len(page) < _PAGE:
             return rows

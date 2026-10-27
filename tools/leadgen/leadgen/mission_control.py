@@ -16,12 +16,14 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import anthropic
+
 from leadgen import agent_log, metrics
 from leadgen.automation import MODEL, TEAM_TZ, ClaudeWriter, Writer
+from leadgen.copy_rules import TIME_WORDS, scrub_time_words  # noqa: F401  (re-exported for callers)
 from leadgen.store import Store
 
 log = logging.getLogger(__name__)
@@ -31,14 +33,11 @@ BRIEF_AFTER_HOUR = 7
 # A heartbeat older than this many of its own intervals (or STALE_DEFAULT_S without one) is stale.
 STALE_INTERVALS = 3
 STALE_DEFAULT_S = 1800
-
-# Duration and speed words never allowed in generated copy (docs/agents/CONVENTIONS.md).
-TIME_WORDS = re.compile(
-    r"\b(hours?|hrs?|minutes?|mins?|seconds?|secs?|days?|weeks?|months?|overnight|faster|fastest|"
-    r"quick(ly|er|est)?|speedy|speed|rapid(ly)?|instant(ly)?|time[- ]sav(ed|ing)|sav(e|es|ed|ing) time|"
-    r"in no time|24h|24 hours)\b",
-    re.I,
-)
+# Status values that mean a pass actually finished; a failed or stuck pass doesn't count as today's.
+FINISHED = ("done", "halted")
+LLM_TIMEOUT_S = 60.0
+# Used when the decision itself carries a banned word and is scrubbed away.
+SAFE_DECISION = "Read the latest agent rows in Mission Control; the decision text was withheld by the copy check."
 
 SYSTEM = (
     "You write the daily brief for Eris, who runs Launch Control, a business development systems firm. "
@@ -51,26 +50,13 @@ SYSTEM = (
 )
 
 
-def scrub_time_words(text: str) -> tuple[str, list[str]]:
-    """Drop every sentence or line that contains a time/speed word. Returns (clean text, removed)."""
-    kept: list[str] = []
-    removed: list[str] = []
-    for line in text.splitlines():
-        parts = re.split(r"(?<=[.!?])\s+", line)
-        good = [p for p in parts if not TIME_WORDS.search(p)]
-        removed += [p for p in parts if TIME_WORDS.search(p)]
-        if good or not line.strip():
-            kept.append(" ".join(good))
-    clean = re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
-    return clean, removed
-
-
-def last_row(store: Store, agent: str) -> dict[str, Any] | None:
+def last_row(store: Store, agent: str, finished_only: bool = False) -> dict[str, Any] | None:
     """Newest agent_runs row for one agent. (agent_log.last_runs reads the newest 200 rows overall,
-    which the Guardian's frequent passes can crowd out.)"""
-    rows = store._req("GET", "agent_runs", params={
-        "select": "*", "agent": f"eq.{agent}", "order": "started_at.desc", "limit": "1",
-    }).json()
+    which the Guardian's frequent passes can crowd out.) finished_only skips failed and stuck rows."""
+    params = {"select": "*", "agent": f"eq.{agent}", "order": "started_at.desc", "limit": "1"}
+    if finished_only:
+        params["status"] = f"in.({','.join(FINISHED)})"
+    rows = store._req("GET", "agent_runs", params=params).json()
     return rows[0] if rows else None
 
 
@@ -83,7 +69,7 @@ def due(store: Store, now: datetime) -> bool:
     local = now.astimezone(TEAM_TZ)
     if local.hour < BRIEF_AFTER_HOUR:
         return False
-    row = last_row(store, AGENT)
+    row = last_row(store, AGENT, finished_only=True)
     return row is None or _parse(row["started_at"]).astimezone(TEAM_TZ).date() != local.date()
 
 
@@ -164,8 +150,14 @@ def deterministic_brief(facts: dict[str, Any]) -> str:
     if missing:
         lines.append(f"No runs logged yet: {', '.join(missing)}.")
     lines.append("Outbound: HALTED." if facts["outbound_halted"] else "Outbound: open.")
-    lines.append(f"Decision: {the_decision(facts)}")
-    return "\n".join(lines)
+    clean, _removed = scrub_time_words("\n".join(lines))
+    return f"{clean}\n{decision_line(facts)}"
+
+
+def decision_line(facts: dict[str, Any]) -> str:
+    """'Decision: ...', scrubbed like the rest; a decision that loses everything gets SAFE_DECISION."""
+    clean, _removed = scrub_time_words(the_decision(facts))
+    return f"Decision: {clean or SAFE_DECISION}"
 
 
 def _prompt(facts: dict[str, Any]) -> str:
@@ -187,12 +179,14 @@ def write_brief(facts: dict[str, Any], writer: Writer | None) -> tuple[str, dict
         return deterministic_brief(facts), {"writer": "deterministic", "reason": "llm brief empty after scrub",
                                             "time_words_removed": removed}
     if "Decision:" not in clean:
-        clean += f"\nDecision: {the_decision(facts)}"
+        clean += f"\n{decision_line(facts)}"
     return clean, {"writer": MODEL, "time_words_removed": removed}
 
 
 def default_writer() -> Writer | None:
-    return ClaudeWriter() if os.environ.get("ANTHROPIC_API_KEY", "").strip() else None
+    if not os.environ.get("ANTHROPIC_API_KEY", "").strip():
+        return None
+    return ClaudeWriter(client=anthropic.Anthropic(max_retries=3, timeout=LLM_TIMEOUT_S))
 
 
 def run_daily(store: Store, now: datetime | None = None, writer: Writer | None = None,

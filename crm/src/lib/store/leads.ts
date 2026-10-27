@@ -97,6 +97,7 @@ function rowToLead(row: LeadRow): Lead {
     statusChangedAt: row.status_changed_at,
     awaiting: row.awaiting === "us" || row.awaiting === "them" ? (row.awaiting as Awaiting) : null,
     doNotContact: row.do_not_contact ?? false,
+    callList: isRecord(row.signals) && row.signals.call_list === true,
     followUpCount: row.follow_up_count ?? 0,
     prospect: rowToProspect(row),
   };
