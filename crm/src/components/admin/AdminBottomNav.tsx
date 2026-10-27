@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Role } from "@/lib/auth/roles";
+import { isOwner } from "@/lib/auth/owner";
 
 const mainTabs = [
   {
@@ -52,7 +53,19 @@ const mainTabs = [
   },
 ];
 
-const moreLinks = [
+// Owner-only: the agent ops page. Never rendered for Max or the demo.
+const opsLink = {
+  label: "Agent Ops",
+  href: "/admin/ops",
+  icon: (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2.5" y="4" width="15" height="11" rx="1.5" />
+      <path d="M8.5 7.5v4l3.5-2z" />
+    </svg>
+  ),
+};
+
+const baseMoreLinks = [
   {
     label: "Customers",
     href: "/admin/customers",
@@ -127,6 +140,7 @@ export default function AdminBottomNav({ userEmail }: { role: Role; userEmail: s
     return pathname.startsWith(href);
   }
 
+  const moreLinks = isOwner(userEmail) ? [...baseMoreLinks, opsLink] : baseMoreLinks;
   const isMoreActive = moreLinks.some((link) => isActive(link.href));
 
   useEffect(() => {
