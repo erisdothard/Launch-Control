@@ -5,17 +5,13 @@ import LocalDate from "@/components/admin/LocalDate";
 import StatusBadge, { statusLabel } from "@/components/admin/StatusBadge";
 import { Avatar, formatMoney } from "@/components/records/format";
 import { CalendarIcon, PhoneIcon, SparkIcon } from "@/components/records/icons";
-import { followUpState } from "@/lib/leads/followUp";
 import type { Deal, Lead } from "@/lib/store/types";
+import NextStep, { type StepDraft } from "./NextStepCard";
 
 // The record's one hero object (the Today mock's hero card): who this is, where it stands, what
 // it's worth, and the ONE thing to do next. Everything else on the page supports it.
 
-export interface HeroDraft {
-  kind: "reply" | "follow_up";
-  followUpNumber: number | null;
-  body: string;
-}
+export type HeroDraft = StepDraft;
 
 export interface HeroQuote {
   body: string;
@@ -43,34 +39,6 @@ function goToMessages(e: React.MouseEvent<HTMLAnchorElement>) {
   const box = panel.querySelector<HTMLTextAreaElement>("textarea");
   if (box) window.setTimeout(() => box.focus({ preventScroll: true }), reduce ? 0 : 450);
   history.replaceState(null, "", "#messages");
-}
-
-function Signal({ lead, today }: { lead: Lead; today: string }) {
-  if (lead.doNotContact) return <span className="font-medium text-[var(--color-hot)]">Asked not to be contacted</span>;
-  if (lead.status === "converted" || lead.status === "lost") return null;
-  if (lead.awaiting === "us") {
-    return (
-      <span className="font-medium text-[var(--color-hot)]">
-        Waiting on you
-        {lead.lastReplyAt && (
-          <>
-            {" "}since <LocalDate iso={lead.lastReplyAt} options={{ month: "short", day: "numeric" }} />
-          </>
-        )}
-      </span>
-    );
-  }
-  const due = followUpState(lead.followUpOn, today);
-  if (due?.dueNow) {
-    const overdue = lead.followUpOn !== null && lead.followUpOn < today;
-    return (
-      <span className={`font-medium ${overdue ? "text-[var(--color-hot)]" : "text-[var(--color-warm)]"}`}>
-        {overdue ? "Follow-up overdue" : "Follow-up due today"}
-      </span>
-    );
-  }
-  if (lead.awaiting === "them") return <span className="text-[var(--color-text-dim)]">Waiting on them</span>;
-  return null;
 }
 
 export default function LeadHero({ lead, deal, draft, lastFromThem, today, onEdit }: LeadHeroProps) {
@@ -104,9 +72,7 @@ export default function LeadHero({ lead, deal, draft, lastFromThem, today, onEdi
               )}
             </span>
           )}
-          <span className="sm:ml-auto">
-            <Signal lead={lead} today={today} />
-          </span>
+          {lead.doNotContact && <span className="font-medium text-[var(--color-hot)] sm:ml-auto">Asked not to be contacted. The CRM won&apos;t email them.</span>}
         </div>
 
         <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
@@ -148,18 +114,7 @@ export default function LeadHero({ lead, deal, draft, lastFromThem, today, onEdi
           </div>
         )}
 
-        {draft && (
-          <div className="well mt-5 px-4 py-3.5 sm:px-5">
-            <p className="flex items-center gap-2 text-sm text-[var(--color-text-dim)]">
-              <SparkIcon />
-              {draft.kind === "reply" ? "Your reply, drafted" : `Follow-up ${draft.followUpNumber ?? ""}, drafted`}
-            </p>
-            <p className="mt-1.5 line-clamp-4 text-[16px] leading-[1.6] whitespace-pre-line text-[var(--color-text)]">{draft.body}</p>
-            <Link href="/admin/drafts" className="btn-quiet mt-2 inline-block text-[15px]">
-              Review and send
-            </Link>
-          </div>
-        )}
+        {!closed && !lead.doNotContact && <NextStep key={`${lead.nextAction}|${lead.followUpOn}`} lead={lead} today={today} draft={draft} />}
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           {primary === "Call" && telHref ? (

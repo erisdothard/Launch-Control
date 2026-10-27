@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import LocalDate from "@/components/admin/LocalDate";
 import {
   CalendarIcon,
-  ClockIcon,
-  FlagIcon,
   GlobeIcon,
   MailIcon,
   NoteIcon,
@@ -44,11 +42,6 @@ function Row({ icon, label, children }: { icon: React.ReactNode; label: string; 
 const Empty = ({ children = "Not on file" }: { children?: React.ReactNode }) => (
   <span className="text-[var(--color-text-dim)]">{children}</span>
 );
-
-function followUpDate(date: string) {
-  const [y, m, d] = date.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
 
 export default function LeadFacts({ lead, editing, onDone }: LeadFactsProps) {
   const router = useRouter();
@@ -186,23 +179,12 @@ export default function LeadFacts({ lead, editing, onDone }: LeadFactsProps) {
         <Row icon={<CalendarIcon />} label="Added">
           <LocalDate iso={lead.createdAt} options={SHORT_DATE} />
         </Row>
-        <Row icon={<ClockIcon />} label="Last emailed">
-          {lead.lastContactedAt ? <LocalDate iso={lead.lastContactedAt} options={SHORT_DATE} /> : <Empty>Not yet</Empty>}
-        </Row>
         {lead.lastReplyAt && (
           <Row icon={<ReplyIcon />} label="Last reply from them">
             <LocalDate iso={lead.lastReplyAt} options={SHORT_DATE} />
           </Row>
         )}
-        <Row icon={<FlagIcon />} label="Next follow-up">
-          {lead.followUpOn ? followUpDate(lead.followUpOn) : <Empty>None set</Empty>}
-          {lead.followUpCount > 0 && (
-            <span className="text-[var(--color-text-dim)]">
-              {" · "}
-              {lead.followUpCount === 1 ? "one sent" : `${lead.followUpCount} sent`}
-            </span>
-          )}
-        </Row>
+        {/* Last emailed and the next follow-up live in the hero's Next step, not here too. */}
         <Row icon={<NoteIcon />} label="Notes">
           {lead.notes ? <span className="whitespace-pre-wrap">{lead.notes}</span> : <Empty>No notes yet</Empty>}
         </Row>

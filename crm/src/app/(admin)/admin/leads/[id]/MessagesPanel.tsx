@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Composer from "@/components/inbox/Composer";
@@ -30,7 +30,6 @@ function defaultAccount(accounts: EmailAccount[], messages: EmailMessage[]): str
 export default function MessagesPanel({ leadId, leadEmail, contactName, suggestedOpener, messages, accounts }: MessagesPanelProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const endRef = useRef<HTMLDivElement>(null);
   const unread = messages.some((m) => m.direction === "in" && !m.readAt);
   const lastInbound = [...messages].reverse().find((m) => m.direction === "in");
   const lastSubject = [...messages].reverse().find((m) => m.subject)?.subject ?? "";
@@ -44,10 +43,6 @@ export default function MessagesPanel({ leadId, leadEmail, contactName, suggeste
     const id = window.setInterval(() => router.refresh(), POLL_MS);
     return () => window.clearInterval(id);
   }, [router]);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "nearest" });
-  }, [messages.length]);
 
   // The lead's own address first; a reply's sender only when the lead has none (bounces come from system addresses).
   const initial = useMemo(
@@ -76,7 +71,8 @@ export default function MessagesPanel({ leadId, leadEmail, contactName, suggeste
         </p>
       </div>
 
-      <div className="max-h-[36rem] overflow-y-auto px-5 sm:px-7">
+      {/* No inner scroll box: the page scrolls. Older messages fold into one line each instead. */}
+      <div className="px-5 sm:px-7">
         {messages.length === 0 ? (
           <p className="py-8 text-[16px] text-[var(--color-text-muted)]">Start the conversation below. Replies show up here automatically.</p>
         ) : (
@@ -92,7 +88,6 @@ export default function MessagesPanel({ leadId, leadEmail, contactName, suggeste
             ))}
           </ol>
         )}
-        <div ref={endRef} />
       </div>
 
       <div className="border-t border-[var(--color-border)] px-2 pt-4 pb-3 sm:px-4">

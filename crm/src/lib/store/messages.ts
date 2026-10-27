@@ -193,16 +193,36 @@ export async function getInbox(limit = 100, client?: StoreClient): Promise<Inbox
   }));
 }
 
+/**
+ * Unread conversations in the Inbox: the sidebar badge. Counted per conversation (not per
+ * message) with the same key the Inbox list groups by, so the badge and the Inbox folder agree.
+ */
 export async function getUnreadCount(client?: StoreClient): Promise<number> {
   const supabase = await getStoreClient(client);
-  const { count, error } = await supabase
+  const { data, error } = await supabase
     .from("email_messages")
-    .select("id", { count: "exact", head: true })
+    .select("id, conversation_id, lead_id")
     .eq("direction", "in")
     .eq("folder", "inbox")
-    .is("read_at", null);
+    .neq("status", "failed")
+    .is("read_at", null)
+    .limit(1000);
   if (error) return 0;
-  return count ?? 0;
+  return new Set(data.map(threadKeyOf)).size;
+}
+
+/** Leads waiting on our reply (the one "Replies needed" definition, matchesView "needs-reply"). */
+export async function getReplyNeededLeadIds(client?: StoreClient): Promise<Set<string>> {
+  const supabase = await getStoreClient(client);
+  const { data, error } = await supabase
+    .from("leads")
+    .select("id")
+    .eq("awaiting", "us")
+    .eq("do_not_contact", false)
+    .not("status", "in", "(converted,lost)")
+    .limit(5000);
+  if (error) throw error;
+  return new Set(data.map((r) => r.id));
 }
 
 // ---- Inbox (v2): the whole mailbox, grouped into conversations ---------------------------------
@@ -228,7 +248,9 @@ export interface ThreadSummary {
 }
 
 export interface InboxCounts {
+  /** Unread conversations in the Inbox (incoming mail nobody has opened). */
   unread: number;
+  /** Leads waiting on our reply: the same number Today and Leads show as "Replies needed". */
   needsReply: number;
 }
 
@@ -303,8 +325,13 @@ function group(rows: LightRow[]): Grouped[] {
 
 const unreadIn = (g: Grouped) => g.rows.filter((r) => r.direction === "in" && !r.read_at && r.folder !== "archive").length;
 const inInbox = (g: Grouped) => g.rows.some((r) => r.folder === "inbox");
-// Waiting on us: their message is the last word and either nobody has opened it or it's a lead's.
-const needsReply = (g: Grouped) => inInbox(g) && g.rows[0].direction === "in" && (unreadIn(g) > 0 || g.rows.some((r) => r.lead_id));
+// Replies needed: their message is the last word, on a lead whose move it is. Mail from someone
+// who isn't a lead is plain incoming mail (counted as unread), never a reply "needed".
+const leadOf = (g: Grouped) => g.rows.find((r) => r.lead_id)?.lead_id ?? null;
+const needsReply = (replyLeads: Set<string>) => (g: Grouped) => {
+  const lead = leadOf(g);
+  return inInbox(g) && g.rows[0].direction === "in" && lead !== null && replyLeads.has(lead);
+};
 
 // PostgREST returns at most 1000 rows a request, so the scan reads in pages of this size.
 const SCAN_PAGE = 1000;
@@ -330,17 +357,18 @@ async function scan(supabase: StoreClient, folders: MailFolder[], q: string): Pr
   return out;
 }
 
-function countsOf(groups: Grouped[]): InboxCounts {
+function countsOf(groups: Grouped[], replyLeads: Set<string>): InboxCounts {
   return {
     unread: groups.filter((g) => inInbox(g) && unreadIn(g) > 0).length,
-    needsReply: groups.filter(needsReply).length,
+    needsReply: replyLeads.size,
   };
 }
 
-/** Unread conversations in the Inbox and conversations waiting on a reply. */
+/** Unread conversations in the Inbox and leads waiting on a reply. */
 export async function getInboxCounts(client?: StoreClient): Promise<InboxCounts> {
   const supabase = await getStoreClient(client);
-  return countsOf(group(await scan(supabase, ["inbox", "sent"], "")));
+  const [rows, replyLeads] = await Promise.all([scan(supabase, ["inbox", "sent"], ""), getReplyNeededLeadIds(supabase)]);
+  return countsOf(group(rows), replyLeads);
 }
 
 /** One page of a folder's conversations, newest first, plus the folder counts. Drafts live in drafts.ts. */
@@ -352,9 +380,9 @@ export async function getInboxPage(
   const supabase = await getStoreClient(client);
   const q = opts.q ?? "";
   const page = Math.max(0, opts.page ?? 0);
-  const live = await scan(supabase, ["inbox", "sent"], "");
+  const [live, replyLeads] = await Promise.all([scan(supabase, ["inbox", "sent"], ""), getReplyNeededLeadIds(supabase)]);
   const liveGroups = group(live);
-  const counts = countsOf(liveGroups);
+  const counts = countsOf(liveGroups, replyLeads);
 
   let groups: Grouped[];
   if (folder === "archive") groups = group(await scan(supabase, ["archive"], q));
@@ -364,7 +392,7 @@ export async function getInboxPage(
       folder === "inbox"
         ? source.filter(inInbox)
         : folder === "needs"
-          ? source.filter(needsReply)
+          ? source.filter(needsReply(replyLeads))
           : source.filter((g) => g.rows.some((r) => r.folder === "sent"));
   }
 

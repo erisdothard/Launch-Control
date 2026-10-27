@@ -11,7 +11,7 @@ interface LeadsPageProps {
 }
 
 // With no view chosen, open on the first one that has work in it, so the page starts on what to do.
-const WORK_VIEWS: LeadView[] = ["needs-reply", "follow-up", "in-play"];
+const WORK_VIEWS: LeadView[] = ["needs-reply", "follow-up", "new-inquiries", "in-play"];
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const params = await searchParams;
@@ -36,9 +36,6 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         subtitle={lede}
         actions={
           <>
-            <Link href="/admin/campaigns/new" className="btn btn-secondary">
-              Mass email
-            </Link>
             <Link href="/admin/leads/import" className="btn btn-secondary">
               Import
             </Link>

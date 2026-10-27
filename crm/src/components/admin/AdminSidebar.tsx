@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { Role } from "@/lib/auth/roles";
 import { BrandLockup } from "@/components/brand/BrandMark";
 import { isOwner } from "@/lib/auth/owner";
+import { WORK_LABELS } from "@/lib/store/types";
 
 const crmItems = [
   {
@@ -23,16 +24,6 @@ const crmItems = [
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 5.5h14v9H3z" />
         <path d="M3 6l7 5 7-5" />
-      </svg>
-    ),
-  },
-  {
-    label: "Mass email",
-    href: "/admin/campaigns",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 8v4h3l5 4V4L6 8z" />
-        <path d="M14 7.5a3.5 3.5 0 0 1 0 5M16 5a7 7 0 0 1 0 10" />
       </svg>
     ),
   },
@@ -89,6 +80,16 @@ const crmItems = [
     ),
   },
   {
+    label: "Campaigns",
+    href: "/admin/campaigns",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 8v4h3l5 4V4L6 8z" />
+        <path d="M14 7.5a3.5 3.5 0 0 1 0 5M16 5a7 7 0 0 1 0 10" />
+      </svg>
+    ),
+  },
+  {
     label: "Lead Gen",
     href: "/admin/lead-gen",
     icon: (
@@ -136,11 +137,13 @@ const opsItem = {
 };
 
 // Saved views: the questions Max asks most, one click each (the Leads page's own views).
+// Labels come from WORK_LABELS so the sidebar, Today, Inbox and Leads use the same words.
 const savedViews = [
-  { label: "Needs reply", href: "/admin/leads?view=needs-reply", dot: "var(--color-hot)" },
-  { label: "Follow-up due", href: "/admin/leads?view=follow-up", dot: "var(--color-warm)" },
-  { label: "Meetings & deals", href: "/admin/leads?view=in-play", dot: "var(--color-accent)" },
-  { label: "Waiting on them", href: "/admin/leads?view=waiting", dot: "var(--color-text-dim)" },
+  { label: WORK_LABELS.reply, href: "/admin/leads?view=needs-reply", dot: "var(--color-hot)" },
+  { label: WORK_LABELS.followup, href: "/admin/leads?view=follow-up", dot: "var(--color-warm)" },
+  { label: WORK_LABELS.new, href: "/admin/leads?view=new-inquiries", dot: "var(--color-accent)" },
+  { label: "Meetings & deals", href: "/admin/leads?view=in-play", dot: "var(--color-steel)" },
+  { label: "Gone quiet", href: "/admin/leads?view=quiet", dot: "var(--color-text-dim)" },
 ];
 
 interface AdminSidebarProps {
@@ -158,12 +161,14 @@ const demoUrl = process.env.NEXT_PUBLIC_DEMO_MODE === "1" ? null : (process.env.
 export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, drafts }: AdminSidebarProps) {
   const pathname = usePathname();
   const search = useSearchParams();
-  // Drafts live inside the Inbox now, so the Inbox badge counts both: everything waiting on Max.
-  const inboxCount = unread + drafts;
+  // The Inbox badge is incoming mail nobody has opened. Drafts are counted on their own line: a
+  // drafted email is work to check, not someone waiting.
+  const draftsActive = pathname === "/admin/inbox" && search.get("folder") === "drafts";
 
   function isActive(href: string): boolean {
     if (href.includes("?")) return pathname === href.split("?")[0] && search.get("view") === new URLSearchParams(href.split("?")[1]).get("view");
     if (href === "/admin/dashboard") return pathname === "/admin/dashboard" || pathname === "/admin";
+    if (href === "/admin/inbox") return pathname.startsWith(href) && !draftsActive;
     if (href === "/admin/leads") return pathname.startsWith(href) && !savedViews.some((v): boolean => isActive(v.href));
     return pathname.startsWith(href);
   }
@@ -194,16 +199,34 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
         <ul className="space-y-0.5">
           {crmItems.map((item) => {
             const active = isActive(item.href);
-            const count = item.href === "/admin/inbox" ? inboxCount : 0;
+            const count = item.href === "/admin/inbox" ? unread : 0;
             return (
               <li key={item.href}>
-                <Link href={item.href} aria-current={active ? "page" : undefined} className={itemClass(active)}>
+                <Link
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  aria-label={count > 0 ? `${item.label}, ${count} unread` : undefined}
+                  className={itemClass(active)}
+                >
                   <span className="shrink-0">{item.icon}</span>
                   {item.label}
                   {count > 0 && (
-                    <span className="ml-auto rounded-full bg-[var(--color-livery-red)] px-2 text-[12.5px] leading-5 font-medium text-white tabular">{count}</span>
+                    <span className="ml-auto rounded-full bg-[var(--color-livery-red)] px-2 text-[13px] leading-5 font-medium text-white tabular">{count}</span>
                   )}
                 </Link>
+                {item.href === "/admin/inbox" && drafts > 0 && (
+                  <Link
+                    href="/admin/inbox?folder=drafts"
+                    aria-current={draftsActive ? "page" : undefined}
+                    aria-label={`Drafts, ${drafts} to check`}
+                    className={`flex items-center rounded-[var(--radius-sm)] py-1.5 pr-3 pl-[44px] text-[14.5px] transition-colors ${
+                      draftsActive ? "bg-[var(--color-bg-card)] text-[var(--color-text)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
+                    }`}
+                  >
+                    Drafts
+                    <span className="ml-auto px-2 text-[14px] text-[var(--color-text-dim)] tabular">{drafts}</span>
+                  </Link>
+                )}
               </li>
             );
           })}

@@ -4,14 +4,16 @@ import { getLeads } from "@/lib/store/leads";
 import { getTasks } from "@/lib/store/tasks";
 import { outlookOnlyEvents } from "@/lib/email/outlookCalendar";
 import { teamTodayISO } from "@/lib/leads/followUp";
+import { matchesView } from "@/lib/store/types";
 import CalendarClient, { type CalendarLead, type DatedItem } from "./CalendarClient";
+import { parseShow } from "./kinds";
 
 const MONTH = /^(\d{4})-(\d{2})$/;
 // The grid shows up to 6 days either side of the month; pad the UTC query so no timezone loses an event.
 const PAD_DAYS = 8;
 
 interface CalendarPageProps {
-  searchParams: Promise<{ m?: string; lead?: string; day?: string }>;
+  searchParams: Promise<{ m?: string; lead?: string; day?: string; show?: string }>;
 }
 
 export default async function CalendarPage({ searchParams }: CalendarPageProps) {
@@ -31,17 +33,27 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     .map((l) => ({ id: l.id, name: l.businessName }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  const today = teamTodayISO();
+  const dayLabel = (d: string) => {
+    const [y, m, dd] = d.split("-").map(Number);
+    return new Date(y, m - 1, dd).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+  // Follow-ups are the same leads Today and Leads count as "Follow-ups due" (on today, overdue ones
+  // included, so today's count matches), plus the ones scheduled for later days.
   const dated: DatedItem[] = [
     ...leads
-      .filter((l) => l.followUpOn && l.status !== "converted" && l.status !== "lost")
-      .map<DatedItem>((l) => ({
-        key: `f-${l.id}`,
-        kind: "followup",
-        date: l.followUpOn!,
-        title: l.businessName,
-        detail: l.nextAction || "Follow up",
-        href: `/admin/leads/${l.id}`,
-      })),
+      .filter((l) => matchesView(l, "follow-up", today) || (matchesView(l, "waiting", today) && l.followUpOn))
+      .map<DatedItem>((l) => {
+        const overdue = l.followUpOn! < today;
+        return {
+          key: `f-${l.id}`,
+          kind: "followup",
+          date: overdue ? today : l.followUpOn!,
+          title: l.businessName,
+          detail: `${l.nextAction || "Follow up"}${overdue ? ` · overdue since ${dayLabel(l.followUpOn!)}` : ""}`,
+          href: `/admin/leads/${l.id}`,
+        };
+      }),
     ...tasks
       .filter((t) => t.dueDate && !t.done)
       .map<DatedItem>((t) => ({
@@ -56,7 +68,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
   return (
     <>
-      <AdminHeader title="Calendar" subtitle="Meetings, follow-ups and tasks in one place. Pick a day to see it, or add a meeting to it." />
+      <AdminHeader title="Calendar" subtitle="Your appointments, with follow-ups and tasks when you want them. Use the switches to show or hide each kind." />
       <CalendarClient
         year={year}
         month={month}
@@ -66,7 +78,8 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         presetLeadId={params.lead ?? null}
         presetDay={params.day ?? null}
         outlookError={outlook.error}
-        today={teamTodayISO()}
+        today={today}
+        initialShow={parseShow(params.show)}
       />
     </>
   );

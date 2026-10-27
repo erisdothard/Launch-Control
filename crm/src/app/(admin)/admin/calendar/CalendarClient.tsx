@@ -7,6 +7,7 @@ import type { CalendarEvent } from "@/lib/store/types";
 
 import { useMounted } from "@/components/admin/LocalDate";
 import { deleteEventAction, saveEventAction } from "./actions";
+import { DEFAULT_SHOW, KIND_BAR, KIND_LABEL, KINDS, type CalendarKind } from "./kinds";
 
 export interface CalendarLead {
   id: string;
@@ -33,16 +34,12 @@ interface CalendarClientProps {
   presetDay: string | null;
   outlookError: boolean;
   today: string; // the team's calendar day, from the server
+  initialShow: CalendarKind[];
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-// Kind is a small coloured bar, never a filled surface: yellow meeting, orange follow-up, steel task.
-const KIND_BAR = {
-  event: "bg-[var(--color-accent)]",
-  followup: "bg-[var(--color-livery-orange)]",
-  task: "bg-[var(--color-steel)]",
-} as const;
-const KIND_LABEL = { followup: "Follow-up", task: "Task" } as const;
+
+const kindOf = (e: CalendarEvent): CalendarKind => (e.leadId ? "meeting" : "event");
 
 const inputClass = "field";
 const labelClass = "mb-1.5 block text-sm text-[var(--color-text-dim)]";
@@ -228,7 +225,27 @@ function EventForm({ draft, leads, onDone }: { draft: Draft; leads: CalendarLead
   );
 }
 
-export default function CalendarClient({ year, month, events, dated, leads, presetLeadId, presetDay, outlookError, today }: CalendarClientProps) {
+export default function CalendarClient({ year, month, events: allEvents, dated: allDated, leads, presetLeadId, presetDay, outlookError, today, initialShow }: CalendarClientProps) {
+  // Which kinds show. Kept in the URL (replaceState, no reload) so a filtered view survives month
+  // changes and can be bookmarked.
+  const [show, setShow] = useState<ReadonlySet<CalendarKind>>(() => new Set(initialShow));
+  const showParam = KINDS.filter((k) => show.has(k.key)).map((k) => k.key).join(",") || "none";
+  const showQuery = showParam === DEFAULT_SHOW.join(",") ? "" : `&show=${showParam}`;
+  function toggleKind(kind: CalendarKind) {
+    setShow((prev) => {
+      const next = new Set(prev);
+      if (next.has(kind)) next.delete(kind);
+      else next.add(kind);
+      const param = KINDS.filter((k) => next.has(k.key)).map((k) => k.key).join(",") || "none";
+      const url = new URL(window.location.href);
+      if (param === DEFAULT_SHOW.join(",")) url.searchParams.delete("show");
+      else url.searchParams.set("show", param);
+      window.history.replaceState(null, "", url);
+      return next;
+    });
+  }
+  const events = useMemo(() => allEvents.filter((e) => show.has(kindOf(e))), [allEvents, show]);
+  const dated = useMemo(() => allDated.filter((d) => show.has(d.kind)), [allDated, show]);
   const [notice, setNotice] = useState<string | null>(outlookError ? "Couldn't load the Outlook calendar just now; showing CRM events only." : null);
   const inMonth = (day: string) => day.startsWith(monthParam(year, month));
   const [selected, setSelected] = useState(presetDay && inMonth(presetDay) ? presetDay : inMonth(today) ? today : `${monthParam(year, month)}-01`);
@@ -269,21 +286,53 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
   const navClass =
     "flex h-11 min-w-11 items-center justify-center rounded-[var(--radius-sm)] px-3 text-base text-[var(--color-text-muted)] transition-colors duration-150 hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text)]";
 
+  const hiddenOnDay =
+    allEvents.filter((e) => !show.has(kindOf(e)) && eventDays(e).includes(selected)).length +
+    allDated.filter((d) => !show.has(d.kind) && d.date === selected).length;
+  // Counts are for the month on screen, whether shown or not, so a hidden kind still says what it holds.
+  const monthCount = (kind: CalendarKind) =>
+    kind === "meeting" || kind === "event"
+      ? allEvents.filter((e) => kindOf(e) === kind && eventDays(e).some(inMonth)).length
+      : allDated.filter((d) => d.kind === kind && inMonth(d.date)).length;
+
   return (
+    <>
+    <div role="group" aria-label="Show on the calendar" className="mb-5 flex flex-wrap gap-2">
+      {KINDS.map((k) => {
+        const on = show.has(k.key);
+        return (
+          <button
+            key={k.key}
+            type="button"
+            aria-pressed={on}
+            onClick={() => toggleKind(k.key)}
+            className={`flex h-11 items-center gap-2.5 rounded-full px-4 text-[15px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-steel)] ${
+              on
+                ? "bg-[var(--color-bg-card)] text-[var(--color-text)] shadow-[inset_0_0_0_1px_var(--color-border-bright)]"
+                : "text-[var(--color-text-dim)] shadow-[inset_0_0_0_1px_var(--color-border)] hover:text-[var(--color-text)]"
+            }`}
+          >
+            <span aria-hidden="true" className={`h-3.5 w-[3px] rounded-full ${on ? KIND_BAR[k.key] : "bg-[var(--color-text-dim)]/50"}`} />
+            {k.label}
+            <span className="tabular text-[var(--color-text-dim)]">{monthCount(k.key)}</span>
+          </button>
+        );
+      })}
+    </div>
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
       <section aria-label={title} className="card overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <h2 className="text-lg font-semibold whitespace-nowrap tracking-[-0.02em] text-[var(--color-steel)] sm:text-[22px]">{title}</h2>
           <div className="flex items-center gap-1">
-            <Link href={`/admin/calendar?m=${prev}`} aria-label="Previous month" className={navClass}>
+            <Link href={`/admin/calendar?m=${prev}${showQuery}`} aria-label="Previous month" className={navClass}>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M11 4L6 9l5 5" />
               </svg>
             </Link>
-            <Link href="/admin/calendar" className={navClass}>
+            <Link href={`/admin/calendar${showQuery ? `?${showQuery.slice(1)}` : ""}`} className={navClass}>
               Today
             </Link>
-            <Link href={`/admin/calendar?m=${next}`} aria-label="Next month" className={navClass}>
+            <Link href={`/admin/calendar?m=${next}${showQuery}`} aria-label="Next month" className={navClass}>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M7 4l5 5-5 5" />
               </svg>
@@ -328,7 +377,7 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
                 <span className="hidden flex-col gap-1 sm:flex">
                   {items?.events.slice(0, 3).map((e) => (
                     <span key={e.id} className="flex min-w-0 gap-1.5 text-sm leading-tight text-[var(--color-text)]">
-                      <span aria-hidden="true" className={`w-[3px] shrink-0 self-stretch rounded-full ${KIND_BAR.event}`} />
+                      <span aria-hidden="true" className={`w-[3px] shrink-0 self-stretch rounded-full ${KIND_BAR[kindOf(e)]}`} />
                       <span className="min-w-0">
                         {!e.allDay && <span className="block font-mono text-[13px] text-[var(--color-text-dim)]">{shortTime(e.startsAt)}</span>}
                         <span className="block truncate">{e.title}</span>
@@ -345,7 +394,8 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
                 </span>
                 {count > 0 && (
                   <span className="flex gap-1 pl-1 sm:hidden" aria-hidden="true">
-                    {items?.events.length ? <span className={`h-1.5 w-1.5 rounded-full ${KIND_BAR.event}`} /> : null}
+                    {items?.events.some((e) => kindOf(e) === "meeting") ? <span className={`h-1.5 w-1.5 rounded-full ${KIND_BAR.meeting}`} /> : null}
+                    {items?.events.some((e) => kindOf(e) === "event") ? <span className={`h-1.5 w-1.5 rounded-full ${KIND_BAR.event}`} /> : null}
                     {items?.dated.some((d) => d.kind === "followup") ? <span className={`h-1.5 w-1.5 rounded-full ${KIND_BAR.followup}`} /> : null}
                     {items?.dated.some((d) => d.kind === "task") ? <span className={`h-1.5 w-1.5 rounded-full ${KIND_BAR.task}`} /> : null}
                   </span>
@@ -394,12 +444,12 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
               const when = e.allDay ? "All day" : timeLabel(e.startsAt);
               const inner = (
                 <>
-                  <span aria-hidden="true" className={`w-[3px] self-stretch rounded-full ${KIND_BAR.event}`} />
+                  <span aria-hidden="true" className={`w-[3px] self-stretch rounded-full ${KIND_BAR[kindOf(e)]}`} />
                   <span className={`pt-px text-sm text-[var(--color-text-dim)] tabular ${e.allDay ? "" : "font-mono"}`}>{when}</span>
                   <span className="min-w-0">
                     <span className="block text-base font-medium text-[var(--color-text)] group-hover:text-white">{e.title}</span>
                     <span className="mt-0.5 block text-sm text-[var(--color-text-muted)]">
-                      {e.allDay ? "Meeting" : `Until ${timeLabel(e.endsAt)}`}
+                      {e.allDay ? (kindOf(e) === "meeting" ? "Meeting" : "Event") : `Until ${timeLabel(e.endsAt)}`}
                       {e.leadId && leadName.get(e.leadId) ? ` · ${leadName.get(e.leadId)}` : ""}
                     </span>
                     {e.location && <span className="mt-0.5 block truncate text-sm text-[var(--color-text-dim)]">{e.location}</span>}
@@ -443,18 +493,15 @@ export default function CalendarClient({ year, month, events, dated, leads, pres
           </ul>
         )}
 
-        <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1 text-sm text-[var(--color-text-dim)]">
-          <span className="flex items-center gap-2">
-            <span className={`h-3.5 w-[3px] rounded-full ${KIND_BAR.event}`} /> Meeting
-          </span>
-          <span className="flex items-center gap-2">
-            <span className={`h-3.5 w-[3px] rounded-full ${KIND_BAR.followup}`} /> Follow-up
-          </span>
-          <span className="flex items-center gap-2">
-            <span className={`h-3.5 w-[3px] rounded-full ${KIND_BAR.task}`} /> Task
-          </span>
-        </div>
+        {hiddenOnDay > 0 && !draft && (
+          <p className="mt-4 text-[15px] text-[var(--color-text-dim)]">
+            {hiddenOnDay === 1 ? "One more item on this day is" : `${hiddenOnDay} more items on this day are`} hidden. Turn{" "}
+            {KINDS.filter((k) => !show.has(k.key)).map((k) => k.label.toLowerCase()).join(" or ")} on above the calendar to see{" "}
+            {hiddenOnDay === 1 ? "it" : "them"}.
+          </p>
+        )}
       </aside>
     </div>
+    </>
   );
 }

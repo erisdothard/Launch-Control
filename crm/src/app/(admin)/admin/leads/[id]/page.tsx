@@ -32,7 +32,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     <LeadDetailClient
       lead={lead}
       deal={deal}
-      draft={draft ? { kind: draft.kind, followUpNumber: draft.followUpNumber, body: draft.body } : null}
+      draft={draft ? { id: draft.id, kind: draft.kind, followUpNumber: draft.followUpNumber, body: draft.body } : null}
       lastFromThem={lastIn ? { body: lastIn.bodyText, at: lastIn.createdAt } : null}
       activity={leadActivity}
       meetings={meetings}

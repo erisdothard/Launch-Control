@@ -9,7 +9,7 @@ import { DEMO_ACCOUNTS, DEMO_COUNTS, DEMO_DRAFTS, demoConversation, demoLead, de
 import { BackIcon } from "@/components/inbox/icons";
 import { countWord, inboxHref, parseFolder } from "@/components/inbox/url";
 import Link from "next/link";
-import { getPendingDrafts } from "@/lib/store/drafts";
+import { getPendingDrafts, type EmailDraft } from "@/lib/store/drafts";
 import {
   getConversation,
   getEmailAccounts,
@@ -32,13 +32,18 @@ function primaryAccount(accounts: EmailAccount[]): string {
   return (active.find((a) => a.provider === "outlook" && !a.mailbox) ?? active.find((a) => a.provider === "outlook") ?? active[0])?.id ?? "";
 }
 
-function lede(needs: number, drafts: number): string {
-  const people = needs === 1 ? "One person is" : `${countWord(needs)} people are`;
-  const ready = drafts === 1 ? "one draft is" : `${countWord(drafts).toLowerCase()} drafts are`;
-  if (needs && drafts) return `${people} waiting on a reply, and ${ready} ready to send. Start at the top of Needs reply.`;
-  if (needs) return `${people} waiting on a reply. Start at the top of Needs reply.`;
-  if (drafts) return `Nobody is waiting on you. ${ready.charAt(0).toUpperCase()}${ready.slice(1)} ready to check and send.`;
-  return "You're caught up. New mail lands here within a couple of minutes.";
+// The same three numbers, in the same words, as Today and Leads: unread mail, replies needed (a
+// lead wrote last and it's our move) and drafts waiting to be checked. Drafts are never "waiting".
+function lede(unread: number, needs: number, drafts: EmailDraft[]): string {
+  const parts: string[] = [];
+  parts.push(unread === 0 ? "No unread mail." : unread === 1 ? "One unread conversation." : `${countWord(unread)} unread conversations.`);
+  parts.push(needs === 0 ? "No replies needed." : needs === 1 ? "One reply needed." : `${countWord(needs)} replies needed.`);
+  if (drafts.length) {
+    const followUps = drafts.filter((d) => d.kind === "follow_up").length;
+    const what = followUps === drafts.length ? (drafts.length === 1 ? "follow-up" : "follow-ups") : followUps === 0 ? (drafts.length === 1 ? "reply" : "replies") : drafts.length === 1 ? "email" : "emails";
+    parts.push(`${countWord(drafts.length)} drafted ${what} ${drafts.length === 1 ? "is" : "are"} in Drafts for you to check and send.`);
+  }
+  return parts.join(" ");
 }
 
 export default async function InboxPage({ searchParams }: { searchParams: Search }) {
@@ -106,7 +111,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Search
         <p className="mt-4 px-2 text-[15px] text-[var(--color-text-muted)]">
           Writing to many people at once?{" "}
           <Link href="/admin/campaigns/new" className="btn-quiet text-[15px] text-[var(--color-text)]">
-            Use Mass email
+            Start a campaign
           </Link>
           . Each person gets their own copy.
         </p>
@@ -142,7 +147,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Search
   return (
     <>
       <div className={open ? "hidden lg:block" : undefined}>
-        <AdminHeader title="Inbox" subtitle={lede(counts.needsReply, drafts.length)} />
+        <AdminHeader title="Inbox" subtitle={lede(counts.unread, counts.needsReply, drafts)} />
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:h-[calc(100dvh-15rem)] lg:min-h-[560px] lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] xl:grid-cols-[188px_minmax(320px,336px)_minmax(0,1fr)]">
         <aside className="hidden xl:block">
@@ -154,8 +159,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Search
             <Link href={inboxHref({ folder, compose: true, demo })} scroll={false} className="btn btn-primary btn-sm">
               Compose
             </Link>
-            <Link href="/admin/campaigns/new" className="btn btn-secondary btn-sm">
-              Mass email
+            <Link href="/admin/campaigns/new" className="btn-quiet text-[15px]">
+              New campaign
             </Link>
           </div>
           <div className="mb-4 xl:hidden">

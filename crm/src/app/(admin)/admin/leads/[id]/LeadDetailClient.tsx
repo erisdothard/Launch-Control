@@ -10,11 +10,12 @@ import { scoreBand } from "@/lib/leadgen/factors";
 import { BackIcon, SparkIcon } from "@/components/records/icons";
 import {
   markLeadNotAFitAction,
+  markLeadQuietAction,
+  reopenLeadAction,
   deleteLeadAction,
   convertLeadAction,
   convertLeadToDealAction,
 } from "../actions";
-import NextStepCard from "./NextStepCard";
 import LeadHero, { type HeroDraft, type HeroQuote } from "./LeadHero";
 import LeadFacts from "./LeadFacts";
 
@@ -166,7 +167,7 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
-  const [confirm, setConfirm] = useState<"delete" | "not-a-fit" | null>(null);
+  const [confirm, setConfirm] = useState<"delete" | "not-a-fit" | "quiet" | null>(null);
   const [dealValue, setDealValue] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const closed = lead.status === "converted" || lead.status === "lost";
@@ -186,6 +187,17 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
     run(async () => {
       await markLeadNotAFitAction(lead.id);
       setConfirm(null);
+      router.refresh();
+    });
+  const handleQuiet = () =>
+    run(async () => {
+      await markLeadQuietAction(lead.id);
+      setConfirm(null);
+      router.refresh();
+    });
+  const handleReopen = () =>
+    run(async () => {
+      await reopenLeadAction(lead.id);
       router.refresh();
     });
   const handleDelete = () =>
@@ -214,9 +226,6 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
 
       <div className="mt-4 flex flex-col gap-4 lg:mt-6 lg:grid lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start lg:gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <div className="contents lg:flex lg:flex-col lg:gap-4">
-          <div className="order-1 lg:order-none">
-            <NextStepCard key={`${lead.nextAction}|${lead.followUpOn}`} lead={lead} today={today} />
-          </div>
           <div className="order-3 lg:order-none">
             <LeadFacts key={editing ? "edit" : "view"} lead={lead} editing={editing} onDone={() => setEditing(false)} />
           </div>
@@ -261,6 +270,16 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
             <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--color-border)] pt-4">
               {confirm === null && (
                 <>
+                  {!closed && lead.status !== "nurture" && (
+                    <button type="button" onClick={() => setConfirm("quiet")} className="btn-quiet">
+                      Gone quiet
+                    </button>
+                  )}
+                  {(lead.status === "nurture" || lead.status === "lost") && !lead.doNotContact && (
+                    <button type="button" onClick={handleReopen} disabled={isPending} className="btn-quiet">
+                      Reopen
+                    </button>
+                  )}
                   {!closed && (
                     <button type="button" onClick={() => setConfirm("not-a-fit")} className="btn-quiet">
                       Not a fit
@@ -280,6 +299,21 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
                     </button>
                     <button type="button" onClick={() => setConfirm(null)} className="btn-quiet">
                       Keep it open
+                    </button>
+                  </div>
+                </div>
+              )}
+              {confirm === "quiet" && (
+                <div className="w-full">
+                  <p className="text-[15px] text-[var(--color-text)]">
+                    Move to Gone quiet? Follow-ups stop and they leave the daily list, but they aren&apos;t lost: a reply brings them straight back.
+                  </p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <button type="button" onClick={handleQuiet} disabled={isPending} className="btn btn-secondary btn-sm">
+                      Move it
+                    </button>
+                    <button type="button" onClick={() => setConfirm(null)} className="btn-quiet">
+                      Keep it active
                     </button>
                   </div>
                 </div>

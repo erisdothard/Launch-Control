@@ -11,7 +11,7 @@ export interface FolderCounts {
 
 const ITEMS: { folder: InboxFolder; label: string; icon: React.ReactNode; count?: keyof FolderCounts }[] = [
   { folder: "inbox", label: "Inbox", icon: <InboxIcon />, count: "unread" },
-  { folder: "needs", label: "Needs reply", icon: <ReplyNeededIcon />, count: "needsReply" },
+  { folder: "needs", label: "Replies needed", icon: <ReplyNeededIcon />, count: "needsReply" },
   { folder: "drafts", label: "Drafts", icon: <DraftIcon />, count: "drafts" },
   { folder: "sent", label: "Sent", icon: <SentIcon /> },
   { folder: "archive", label: "Archive", icon: <ArchiveIcon /> },
@@ -33,8 +33,8 @@ export function FolderColumn({ folder, counts, demo, composePrimary }: FolderNav
         <PenIcon />
         Compose
       </Link>
-      <Link href="/admin/campaigns/new" className="btn btn-secondary btn-sm mb-5 w-full">
-        Mass email
+      <Link href="/admin/campaigns/new" className="btn-quiet mb-5 px-3 py-1.5 text-[15px]">
+        New campaign
       </Link>
       {ITEMS.map((item) => {
         const on = item.folder === folder;

@@ -3,7 +3,7 @@ import { getLeads } from "./leads";
 import { getDeals } from "./deals";
 import { getPendingDrafts, type EmailDraft } from "./drafts";
 import { getEvents } from "./calendar";
-import { matchesView, WEBSITE_LEAD_SOURCE, type CalendarEvent, type Deal, type DealStage, type Lead } from "./types";
+import { matchesView, type CalendarEvent, type Deal, type DealStage, type Lead } from "./types";
 import { teamTodayISO } from "@/lib/leads/followUp";
 import { emailConfig } from "@/lib/email/config";
 import { teamLocalToUtc } from "@/lib/email/merge";
@@ -237,11 +237,6 @@ async function lastInboundByLead(leadIds: string[], client?: StoreClient): Promi
   return out;
 }
 
-function isInquiry(lead: Lead): boolean {
-  const source = lead.source.trim().toLowerCase();
-  return source === WEBSITE_LEAD_SOURCE.toLowerCase() || source === "inquiry";
-}
-
 interface Ctx {
   now: Date;
   today: string;
@@ -311,7 +306,8 @@ function followUpItem(lead: Lead, draft: EmailDraft | null, ctx: Ctx): TodayItem
   const ordinal = ["", "First", "Second", "Third", "Fourth", "Fifth"][number] ?? `Follow-up ${number}`;
   const lastWrote = lead.lastContactedAt ? `You last wrote ${whenSaid(lead.lastContactedAt, ctx.now)}` : "No reply yet";
   const wantsCall = !draft && !!lead.phone && (CALL_HINT.test(lead.nextAction) || !lead.email);
-  const noteText = lead.nextAction?.trim() || `${lastWrote}. No reply yet.`;
+  const chased = lead.lastContactedAt !== null;
+  const noteText = lead.nextAction?.trim() || (chased ? `${lastWrote}. No reply yet.` : "A follow-up date was set for this lead.");
   return {
     ...b,
     kind: "followup",
@@ -320,8 +316,8 @@ function followUpItem(lead: Lead, draft: EmailDraft | null, ctx: Ctx): TodayItem
     draft: draft ? { id: draft.id, subject: draft.subject, body: draft.body, to: draft.to } : null,
     waitLabel,
     quote: null,
-    note: { text: noteText, said: wantsCall ? lead.phone : `${ordinal} follow-up · ${lastWrote}` },
-    summary: lead.nextAction?.trim() || `${lastWrote}, no reply. ${ordinal} follow-up is due.`,
+    note: { text: noteText, said: wantsCall ? lead.phone : chased ? `${ordinal} follow-up · ${lastWrote}` : "Not emailed yet" },
+    summary: lead.nextAction?.trim() || (chased ? `${lastWrote}, no reply. ${ordinal} follow-up is due.` : "Follow-up date has come."),
     meta: [waitLabel, draft ? "Follow-up drafted" : wantsCall ? lead.phone : "No draft yet"],
     startHint:
       callHint(lead, b.firstName, ctx) ??
@@ -352,10 +348,14 @@ function inquiryItem(lead: Lead, ctx: Ctx): TodayItem {
   };
 }
 
-/** Rank everything waiting on Max: drafted replies, other replies, follow-ups, then new inquiries. One item per lead. */
+/**
+ * Max's work, ranked: replies needed (oldest wait first), then follow-ups due (most overdue first),
+ * then new inquiries. One item per lead. Membership is matchesView's, the same definition the Leads
+ * tabs, the Inbox's Replies needed and the Tasks summary count, so the numbers always agree. A
+ * pending draft rides along on its lead; it never puts a lead in the queue by itself.
+ */
 export function buildQueue(leads: Lead[], drafts: EmailDraft[], deals: Deal[], events: CalendarEvent[], inbound: Map<string, Inbound>, now: Date): TodayItem[] {
   const today = teamTodayISO(now, TEAM_TIME_ZONE);
-  const byId = new Map(leads.map((l) => [l.id, l]));
   const openValue = new Map<string, number>();
   for (const d of deals) {
     if (!d.fromLeadId || d.stage === "won" || d.stage === "lost") continue;
@@ -365,46 +365,31 @@ export function buildQueue(leads: Lead[], drafts: EmailDraft[], deals: Deal[], e
   for (const e of events) if (e.leadId && !callToday.has(e.leadId)) callToday.set(e.leadId, e);
   const ctx: Ctx = { now, today, inbound, openValue, callToday };
 
-  const seen = new Set<string>();
-  const out: TodayItem[] = [];
-  const push = (item: TodayItem) => {
-    if (seen.has(item.leadId)) return;
-    seen.add(item.leadId);
-    out.push(item);
-  };
-  const usable = (lead: Lead | undefined): lead is Lead => !!lead && !lead.doNotContact && lead.status !== "lost";
-
-  const waitedSince = (d: EmailDraft) => d.replyingTo?.at ?? d.createdAt;
-  const replyDrafts = drafts.filter((d) => d.kind === "reply").sort((a, b) => waitedSince(a).localeCompare(waitedSince(b)));
-  for (const d of replyDrafts) {
-    const lead = byId.get(d.leadId);
-    if (usable(lead)) push(replyItem(lead, d, ctx));
+  const replyDraft = new Map<string, EmailDraft>();
+  const followDraft = new Map<string, EmailDraft>();
+  for (const d of drafts) {
+    const map = d.kind === "reply" ? replyDraft : followDraft;
+    if (!map.has(d.leadId)) map.set(d.leadId, d);
   }
 
-  const needsReply = leads
+  const waitedSince = (l: Lead) => replyDraft.get(l.id)?.replyingTo?.at ?? l.lastReplyAt ?? l.createdAt;
+  const replies = leads
     .filter((l) => matchesView(l, "needs-reply", today))
-    .sort((a, b) => (a.lastReplyAt ?? a.createdAt).localeCompare(b.lastReplyAt ?? b.createdAt));
-  for (const lead of needsReply) push(replyItem(lead, null, ctx));
+    .sort((a, b) => waitedSince(a).localeCompare(waitedSince(b)))
+    .map((l) => replyItem(l, replyDraft.get(l.id) ?? null, ctx));
 
-  const followDrafts = drafts.filter((d) => d.kind === "follow_up");
-  const followDraftByLead = new Map(followDrafts.map((d) => [d.leadId, d]));
-  const followLeads = new Map<string, Lead>();
-  for (const d of followDrafts) {
-    const lead = byId.get(d.leadId);
-    if (usable(lead)) followLeads.set(lead.id, lead);
-  }
-  for (const lead of leads) if (matchesView(lead, "follow-up", today)) followLeads.set(lead.id, lead);
-  const dueOf = (l: Lead) => l.followUpOn ?? teamDay(followDraftByLead.get(l.id)?.createdAt ?? l.createdAt);
-  for (const lead of [...followLeads.values()].sort((a, b) => dueOf(a).localeCompare(dueOf(b)))) {
-    push(followUpItem(lead, followDraftByLead.get(lead.id) ?? null, ctx));
-  }
+  const dueOf = (l: Lead) => l.followUpOn ?? today;
+  const followUps = leads
+    .filter((l) => matchesView(l, "follow-up", today))
+    .sort((a, b) => dueOf(a).localeCompare(dueOf(b)) || (a.lastContactedAt ?? "").localeCompare(b.lastContactedAt ?? ""))
+    .map((l) => followUpItem(l, followDraft.get(l.id) ?? null, ctx));
 
   const inquiries = leads
-    .filter((l) => isInquiry(l) && l.status === "new" && l.lastContactedAt === null && !l.doNotContact)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  for (const lead of inquiries) push(inquiryItem(lead, ctx));
+    .filter((l) => matchesView(l, "new-inquiries", today))
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map((l) => inquiryItem(l, ctx));
 
-  return out;
+  return [...replies, ...followUps, ...inquiries];
 }
 
 // ---------------------------------------------------------------------------

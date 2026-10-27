@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useMounted } from "@/components/admin/LocalDate";
-import type { Task, TaskRelatedType } from "@/lib/store/types";
+import Link from "next/link";
+import { WORK_LABELS, type Task, type TaskRelatedType, type WorkCounts } from "@/lib/store/types";
 import { createTaskAction, setTaskDoneAction, deleteTaskAction } from "./actions";
 
 interface RelatedOption {
@@ -15,6 +16,39 @@ interface RelatedOption {
 interface TasksListClientProps {
   tasks: Task[];
   relatedOptions: RelatedOption[];
+  /** The same counts Today shows, so this page never says "nothing to do" while Today has work. */
+  work: WorkCounts;
+}
+
+/** Replies, follow-ups and new inquiries live on Today; this says how many, with a way there. */
+function TodaySummary({ work }: { work: WorkCounts }) {
+  const rows = [
+    { label: WORK_LABELS.reply, one: "reply needed", n: work.replies, href: "/admin/leads?view=needs-reply", tone: "text-[var(--color-hot)]" },
+    { label: WORK_LABELS.followup, one: "follow-up due", n: work.followUps, href: "/admin/leads?view=follow-up", tone: "text-[var(--color-warm)]" },
+    { label: WORK_LABELS.new, one: "new inquiry", n: work.inquiries, href: "/admin/leads?view=new-inquiries", tone: "text-[var(--color-text)]" },
+  ];
+  const total = work.replies + work.followUps + work.inquiries;
+  return (
+    <section aria-labelledby="on-today-heading" className="well flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <h2 id="on-today-heading" className="text-[15px] font-normal text-[var(--color-text-dim)]">
+          On Today
+        </h2>
+        <p className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-[16px] text-[var(--color-text-muted)]">
+          {rows.map((r) => (
+            <Link key={r.label} href={r.href} className="hover:text-[var(--color-text)]">
+              <span className={`tabular font-semibold ${r.n > 0 ? r.tone : "text-[var(--color-text-dim)]"}`}>{r.n}</span> {r.n === 1 ? r.one : r.label.toLowerCase()}
+            </Link>
+          ))}
+        </p>
+      </div>
+      {total > 0 && (
+        <Link href="/admin/dashboard" className="btn btn-secondary btn-sm shrink-0 self-start sm:self-auto">
+          Go to Today
+        </Link>
+      )}
+    </section>
+  );
 }
 
 type DueState = "overdue" | "today" | "later" | "none";
@@ -111,7 +145,7 @@ function TaskRow({
   );
 }
 
-export default function TasksListClient({ tasks, relatedOptions }: TasksListClientProps) {
+export default function TasksListClient({ tasks, relatedOptions, work }: TasksListClientProps) {
   const router = useRouter();
   const mounted = useMounted();
   const [, startTransition] = useTransition();
@@ -170,7 +204,8 @@ export default function TasksListClient({ tasks, relatedOptions }: TasksListClie
 
   return (
     <div className="max-w-[900px]">
-      <form onSubmit={handleAdd} className="card p-5 sm:p-6" aria-labelledby="add-task-heading">
+      <TodaySummary work={work} />
+      <form onSubmit={handleAdd} className="card mt-6 p-5 sm:p-6" aria-labelledby="add-task-heading">
         <h2 id="add-task-heading" className="text-[17px] font-semibold text-[var(--color-text)]">
           Add a task
         </h2>
@@ -205,13 +240,13 @@ export default function TasksListClient({ tasks, relatedOptions }: TasksListClie
       <section aria-labelledby="open-heading" className="mt-9">
         <div className="mb-1 flex items-baseline justify-between">
           <h2 id="open-heading" className="text-[17px] font-semibold text-[var(--color-text)]">
-            To do
+            Additional tasks
           </h2>
           <span className="text-sm text-[var(--color-text-dim)] tabular">{open.length}</span>
         </div>
         {open.length === 0 ? (
           <p className="border-t border-[var(--color-border)] py-6 text-base text-[var(--color-text-muted)]">
-            Nothing left to do. Add a task above when something comes up.
+            No additional tasks. Add one above when something comes up that the CRM doesn&apos;t track for you.
           </p>
         ) : (
           <ul className="border-t border-[var(--color-border)]">{open.map(row)}</ul>
