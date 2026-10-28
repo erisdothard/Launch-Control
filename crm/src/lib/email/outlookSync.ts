@@ -233,16 +233,17 @@ async function syncMailbox(db: Admin, account: { id: string; address: string; sy
 }
 
 /**
- * Sync the app-only mailbox if the last sync was long enough ago. Never throws: a page load must
- * not fail because Outlook had a bad moment.
+ * Sync the app-only mailbox if the last sync was at least `minGapMs` ago. Returns how many changed
+ * messages Outlook handed over, or null when it didn't run. Never throws: a page load must not fail
+ * because Outlook had a bad moment.
  */
-export async function syncOutlookIfDue(): Promise<void> {
-  if (!outlookAppOnly()) return;
+export async function syncOutlookIfDue(minGapMs: number = MIN_GAP_MS): Promise<number | null> {
+  if (!outlookAppOnly()) return null;
   const db = createServiceRoleClient();
-  if (!db) return;
+  if (!db) return null;
   try {
     const { data: beat } = await db.from("worker_heartbeats").select("beat_at").eq("name", HEARTBEAT).maybeSingle();
-    if (beat && Date.now() - new Date(beat.beat_at).getTime() < MIN_GAP_MS) return;
+    if (beat && Date.now() - new Date(beat.beat_at).getTime() < minGapMs) return null;
     // Claim the slot before the slow part, so a burst of page loads runs one sync, not ten.
     await db.from("worker_heartbeats").upsert({ name: HEARTBEAT, beat_at: new Date().toISOString(), detail: { started: true } });
 
@@ -256,7 +257,9 @@ export async function syncOutlookIfDue(): Promise<void> {
     let seen = 0;
     for (const box of boxes) seen += await syncMailbox(db, box);
     await db.from("worker_heartbeats").upsert({ name: HEARTBEAT, beat_at: new Date().toISOString(), detail: { every_s: MIN_GAP_MS / 1000, last_pass: { seen } } });
+    return seen;
   } catch (err) {
     console.error("[outlook-sync] failed:", err instanceof Error ? err.message : err);
+    return null;
   }
 }

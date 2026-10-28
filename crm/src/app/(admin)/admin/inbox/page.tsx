@@ -1,4 +1,5 @@
 import AdminHeader from "@/components/admin/AdminHeader";
+import CheckMail from "@/components/inbox/CheckMail";
 import Composer from "@/components/inbox/Composer";
 import DraftPane from "@/components/inbox/DraftPane";
 import { FolderChips, FolderColumn } from "@/components/inbox/FolderNav";
@@ -147,7 +148,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Search
   return (
     <>
       <div className={open ? "hidden lg:block" : undefined}>
-        <AdminHeader title="Inbox" subtitle={lede(counts.unread, counts.needsReply, drafts)} />
+        <AdminHeader title="Inbox" subtitle={lede(counts.unread, counts.needsReply, drafts)} actions={<CheckMail demo={demo} />} />
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:h-[calc(100dvh-15rem)] lg:min-h-[560px] lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] xl:grid-cols-[188px_minmax(320px,336px)_minmax(0,1fr)]">
         <aside className="hidden xl:block">

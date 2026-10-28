@@ -28,7 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   } = await supabase.auth.getUser();
   const role = roleFromUser(user);
   // New mail is pulled in after the page is sent (at most every 90s), so it never slows a load.
-  if (user && !isDemoMode()) after(syncOutlookIfDue);
+  if (user && !isDemoMode()) after(() => syncOutlookIfDue());
   const [company, unread, drafts, demo] = await Promise.all([
     getCompanyInfo(),
     user ? getUnreadCount() : Promise.resolve(0),

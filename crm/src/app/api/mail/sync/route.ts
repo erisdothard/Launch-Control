@@ -16,6 +16,6 @@ function authorized(request: NextRequest): boolean {
 
 export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  await syncOutlookIfDue();
-  return NextResponse.json({ ok: true });
+  const seen = await syncOutlookIfDue();
+  return NextResponse.json({ ok: true, ran: seen !== null });
 }
