@@ -150,6 +150,24 @@ export const siteSchema = z.object({
       cta: linkSchema,
     }),
   }),
+  /** Client films: a proposed system cut for one prospect, on an unlisted page Max sends them.
+      Not in the nav or the sitemap, and marked noindex. Files are versioned, never overwritten. */
+  clientFilms: z.array(
+    z.object({
+      slug: z.string().regex(/^[a-z0-9-]+$/),
+      client: z.string(),
+      title: z.string(),
+      intro: z.string(),
+      note: z.string(),
+      poster: z.string().startsWith("/video/"),
+      sources: z.object({ desk: z.string().startsWith("/video/"), phone: z.string().startsWith("/video/") }),
+      label: z.string(),
+      metaTitle: z.string(),
+      metaDescription: z.string(),
+      cta: linkSchema,
+      home: z.string(),
+    }),
+  ),
   /** How an engagement runs: four stages in a row. Concise and visual, not a new chapter. */
   process: z.object({
     id: z.literal("process"),
@@ -406,6 +424,23 @@ const content: SiteContent = {
       cta: { label: "Book a demo", href: "/#book" },
     },
   },
+  clientFilms: [
+    {
+      slug: "arrive-drive",
+      client: "Arrive Drive Motorsports",
+      title: "A proposed system for Arrive Drive Motorsports.",
+      intro:
+        "From a driver's first inquiry to a confirmed seat: their license and racing experience in one record, their pick of event and car, a quote that shows what's included, and every booking approved by Dustin.",
+      note: "Proposed workflow. Sample drivers and prices.",
+      poster: "/video/arrive-drive-v1-poster.webp",
+      sources: { desk: "/video/arrive-drive-v1-1080.mp4", phone: "/video/arrive-drive-v1-720.mp4" },
+      label: "A proposed Arrive Drive system: a driver's inquiry goes from the website form to a booking Dustin approves",
+      metaTitle: "Arrive Drive Motorsports × Launch Control",
+      metaDescription: "A proposed system for Arrive Drive: driver records, experience and car selection, quotes, and bookings Dustin approves.",
+      cta: { label: "Talk it through with Max", href: "mailto:maxwell@golaunchcontrol.com?subject=Arrive%20Drive%20demo" },
+      home: "golaunchcontrol.com",
+    },
+  ],
   process: {
     id: "process",
     title: "How we work",
