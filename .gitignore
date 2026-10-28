@@ -14,3 +14,7 @@
 .DS_Store
 .thumbnails/
 .hyperframes/
+
+# demo video: real names for the scrub list stay local (public repo); renders are build output
+demo-video/launch-control-crm/build/private.json
+demo-video/launch-control-crm/renders/

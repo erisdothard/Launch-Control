@@ -129,6 +129,27 @@ export const siteSchema = z.object({
       .min(1)
       .max(6),
   }),
+  /** The CRM sales film: our own CRM, start to finish, rendered from real screens with sample data.
+      Files are versioned (crm-demo-v1-*), never overwritten in place. */
+  film: z.object({
+    id: z.literal("film"),
+    title: z.string(),
+    intro: z.string(),
+    note: z.string(),
+    poster: z.string().startsWith("/video/"),
+    sources: z.object({ desk: z.string().startsWith("/video/"), phone: z.string().startsWith("/video/") }),
+    label: z.string(),
+    primaryCta: linkSchema,
+    /** The share page at /demo: the link that goes out in emails and messages. Its own title and
+        description feed the link preview; the CTA goes back to the booking form on the home page. */
+    share: z.object({
+      path: z.literal("/demo"),
+      metaTitle: z.string(),
+      metaDescription: z.string(),
+      home: z.string(),
+      cta: linkSchema,
+    }),
+  }),
   /** How an engagement runs: four stages in a row. Concise and visual, not a new chapter. */
   process: z.object({
     id: z.literal("process"),
@@ -210,7 +231,7 @@ const content: SiteContent = {
     title: "Launch Control. Business development systems, built and run.",
     description:
       "Launch Control helps businesses find new customers, convert opportunities into revenue, and build the systems that make growth repeatable: market development, outreach, websites, CRM and automation.",
-    url: "https://launch-control-flame.vercel.app",
+    url: "https://www.golaunchcontrol.com",
     ogHeadline: "We build the whole engine. Then we launch it.",
   },
   nav: [
@@ -366,6 +387,24 @@ const content: SiteContent = {
         },
       },
     ],
+  },
+  film: {
+    id: "film",
+    title: "Watch one lead become a customer.",
+    intro:
+      "Our CRM, start to finish. The inquiry lands, the reply goes out, the follow-up sets itself, the call gets booked and the deal is won. Every screen is the real product.",
+    note: "Sample data throughout.",
+    poster: "/video/crm-demo-v1-poster.webp",
+    sources: { desk: "/video/crm-demo-v1-1080.mp4", phone: "/video/crm-demo-v1-720.mp4" },
+    label: "Launch Control CRM: a driver's inquiry goes from the website form to a won deal",
+    primaryCta: { label: "Book a demo", href: "#book" },
+    share: {
+      path: "/demo",
+      metaTitle: "Launch Control CRM: watch one lead become a customer",
+      metaDescription: "Every inquiry answered. Every deal tracked. The CRM built for motorsport businesses, start to finish on real screens.",
+      home: "golaunchcontrol.com",
+      cta: { label: "Book a demo", href: "/#book" },
+    },
   },
   process: {
     id: "process",

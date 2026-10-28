@@ -22,12 +22,15 @@ PAGES = {
     "calendar": "/admin/calendar",
 }
 STATES = {
-    "today_new": "today", "lead_new": "lead", "lead_compose": "lead", "lead_sent": "lead",
+    "today_before": "today", "today_new": "today", "lead_new": "lead", "lead_meeting": "lead", "lead_compose": "lead", "lead_sent": "lead",
     "today_reply_closed": "today", "today_reply_open": "today", "calendar_call": "calendar",
     "deals_before": "board", "deals_after": "board", "today_morning": "today",
 }
-# Real client data that must never reach the video.
-FORBIDDEN = re.compile(r"client-a|client-b|client-c|Client C|maxwell@|Maxwell|eris@|Eris|Alex|arrivedrive|646\.942|Test Driver|E2E|, Max\.", re.I)
+# Real names, addresses and numbers live in build/private.json (gitignored; the repo is public).
+# "forbidden": a capture containing any match is refused. "replace": [real, sample] pairs scrub() applies.
+# Shape: build/private.example.json.
+PRIVATE = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "private.json")))
+FORBIDDEN = re.compile(PRIVATE["forbidden"], re.I)
 
 
 def main() -> None:
@@ -48,7 +51,7 @@ def main() -> None:
         for state, kind in STATES.items():
             page.goto(BASE + PAGES[kind], wait_until="networkidle")
             time.sleep(2.5)
-            page.add_script_tag(content=js)
+            page.add_script_tag(content=f"window.__SCRUB = {json.dumps(PRIVATE['replace'])};\n" + js)
             miss = page.evaluate(f"HF.run('{state}')")
             time.sleep(2.0)
             rects[state] = page.evaluate("HF.rects()")

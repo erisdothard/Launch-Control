@@ -10,21 +10,21 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
-ORDER = ["today_new", "lead_new", "lead_sent", "today_reply_closed", "today_reply_open",
+ORDER = ["today_before", "today_new", "lead_new", "lead_sent", "lead_meeting", "today_reply_closed", "today_reply_open",
          "calendar_call", "deals_before", "deals_after", "today_morning"]
 
 RAIL = ["Inquiry", "Reply", "Follow-up", "Call", "Deal", "Won"]
-LIVERY = '<div class="rule"><i style="width:50%;background:var(--color-accent)"></i><i style="width:30%;background:var(--color-livery-orange)"></i><i style="width:20%;background:var(--color-livery-red)"></i></div>'
+LIVERY = '<div class="rule"><i style="width:40%;background:var(--color-livery-red)"></i><i style="width:25%;background:var(--color-livery-orange)"></i><i style="width:30%;background:var(--color-accent)"></i><i style="width:5%;background:var(--color-livery-green)"></i></div>'
 CAPTIONS = {
     2: ("02 · Inquiry", "Every inquiry lands on Today.", "Who wrote, what they want, and what to do first.",
         ["Lead created from your website form", "Marked due today", "First on your list"]),
     3: ("03 · Reply", "Reply once. The follow-up is already set.", "If he goes quiet, the next email is drafted for you. If he answers, it stops.",
         ["Sent from your own mailbox", "Status: Contacted", "Follow-up due Friday"]),
-    4: ("04 · He writes back", "Your answer is already written.", "Read it, change it if you want, and send. Nothing goes out without you.",
-        ["His reply cancelled the follow-up", "Answer drafted for you", "You approve every send"]),
-    5: ("05 · The call", "Book the call. It lands everywhere.", "On his record, in your Outlook, and his status moves on its own.",
+    4: ("04 · He writes back", "Your answer is already written.", "Read it, change it if you want, and send. Replies never go out on their own.",
+        ["His reply cancelled the follow-up", "Answer drafted for you", "You approve every reply"]),
+    5: ("05 · The call", "Book the call. Everything updates.", "It's on his record and in your Outlook, and his status moves on its own. Then create the deal right there.",
         ["On Jake's record", "In your Outlook calendar", "Status: Meeting set"]),
-    6: ("06 · Won", "Drag it to Won. He's a customer.", "The pipeline updates itself and the follow-ups stop.",
+    6: ("06 · Won", "Drag it to Won. He's a customer.", "When he signs, drag the deal to Won. The pipeline and his record update together.",
         ["Deal marked Won", "Customer created", "Follow-ups stopped"]),
     7: ("07 · Every morning", "One list. In order. Drafts ready.", "Replies, follow-ups and new inquiries, with your pipeline beside them.",
         ["Replies needed first", "Follow-ups due next", "New inquiries after"]),
@@ -62,8 +62,9 @@ def main() -> None:
     floater = m.group(0).replace('data-hf="jakecard"', "") if m else ""
 
     rects = json.load(open(os.path.join(cap, "rects.json")))
-    tpl = open(os.path.join(HERE, "template.html")).read()
+    tpl = open(os.path.join(HERE, "template.tpl")).read()
     js = open(os.path.join(HERE, "timeline.js")).read().replace("__RECTS__", json.dumps(rects))
+    tpl = re.sub(r' data-hf-id="[^"]*"', "", tpl)
     page = (tpl.replace("{{RAIL}}", rail_html()).replace("{{CAPTIONS}}", captions_html())
             .replace("{{SCREENS}}", html_screens).replace("{{TIMELINE}}", js)
             .replace('<div id="floater"></div>', f'<div id="floater">{floater}</div>'))

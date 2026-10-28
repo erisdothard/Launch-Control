@@ -1,0 +1,13 @@
+{
+  "forbidden": "real-client-name|real-teammate@example.com|555\\.000",
+  "replace": [
+    [
+      "Real Teammate",
+      "Alex Morgan"
+    ],
+    [
+      "real-client@example.com",
+      "jake.turner@gmail.com"
+    ]
+  ]
+}
