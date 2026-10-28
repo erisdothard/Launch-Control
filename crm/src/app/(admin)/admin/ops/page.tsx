@@ -12,12 +12,14 @@ import { getOps, type AgentState, type CheckState, type OpsAgent, type OpsCheck,
 
 // Agent Ops: is everything running, what each agent is doing, and what they just did.
 // Owner-only until it has proven itself. The Crew board (agent_runs, the brief, the pipeline, the
-// halt) leads; the CRM-side checks follow; the story video stays secondary under "How it works".
+// halt) leads; the CRM-side checks follow; the Pit Report video stays secondary under "Pit Report".
+// The worker rebuilds that video from live rows (tools/leadgen/leadgen/pit_report.py) and overwrites
+// the "latest" files below.
 
 // Private bucket; the page hands out a short-lived signed URL only after the owner check.
 const BUCKET = "ops-private";
-const VIDEO = "agent-story-v1.mp4";
-const POSTER = "agent-story-v1.jpg";
+const VIDEO = "pit-report-latest.mp4";
+const POSTER = "pit-report-latest.jpg";
 const SIGNED_SECONDS = 60 * 60;
 
 const CHECK_DOT: Record<CheckState, string> = {
@@ -171,13 +173,13 @@ export default async function OpsPage({ searchParams }: { searchParams: Promise<
 
           <details className="card group overflow-hidden">
             <summary className="flex cursor-pointer list-none items-center justify-between px-6 py-5 text-[16px] font-semibold text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] sm:px-8">
-              How it works
-              <span className="text-[14px] font-normal text-[var(--color-text-dim)] group-open:hidden">23-second video</span>
+              Pit Report
+              <span className="text-[14px] font-normal text-[var(--color-text-dim)] group-open:hidden">Each agent&apos;s results, from live CRM rows</span>
             </summary>
             {video ? (
               <video src={video} poster={poster ?? undefined} controls playsInline preload="none" className="block aspect-video w-full bg-black" />
             ) : (
-              <p className="px-6 pb-6 text-[15px] text-[var(--color-text-muted)] sm:px-8">The video shows up here as soon as it&apos;s uploaded.</p>
+              <p className="px-6 pb-6 text-[15px] text-[var(--color-text-muted)] sm:px-8">The Pit Report shows up here once the worker has built it.</p>
             )}
           </details>
         </div>

@@ -16,6 +16,8 @@ RUN uv python install && uv sync --frozen --no-dev --no-install-project
 COPY leadgen ./leadgen
 COPY config.yaml ./
 COPY seeds ./seeds
+# Pit Report: rendered garage plates and the fonts the cards are set in.
+COPY assets ./assets
 RUN uv sync --frozen --no-dev
 
 # gosom runs the Playwright installer on every start; it is a no-op when the browsers are present,

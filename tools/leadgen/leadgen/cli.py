@@ -1,4 +1,4 @@
-"""`python -m leadgen run|export ...`"""
+"""`python -m leadgen run|worker|backfill|export|pit-report ...`"""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from leadgen import pit_report
 from leadgen.backfill import backfill
 from leadgen.config import PACKAGE_ROOT, load_config, load_env, supabase_env
 from leadgen.export import latest_run_file, read_jsonl, write_csv
@@ -49,6 +50,10 @@ def build_parser() -> argparse.ArgumentParser:
     b = sub.add_parser("backfill", help="apply current scoring caps and contact finding to leads already in the CRM")
     b.add_argument("--config", default=str(PACKAGE_ROOT / "config.yaml"))
     b.add_argument("--no-crawl", action="store_true", help="only re-apply score caps; don't re-read websites")
+
+    pr = sub.add_parser("pit-report", help="build the Pit Report video from live rows (optionally upload it)")
+    pr.add_argument("--out", required=True, help="folder for the MP4, the poster and the card stills")
+    pr.add_argument("--upload", action="store_true", help="also upload to the private ops-private bucket")
 
     e = sub.add_parser("export", help="write a CSV of scored leads")
     e.add_argument("--config", default=str(PACKAGE_ROOT / "config.yaml"))
@@ -119,6 +124,21 @@ def cmd_backfill(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_pit_report(args: argparse.Namespace) -> int:
+    env = supabase_env()
+    if env is None:
+        raise RuntimeError("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set")
+    store = Store(*env)
+    facts = pit_report.collect(store)
+    built = pit_report.build(facts, Path(args.out), save_frames=True)
+    lines = [f"video: {built.video.resolve()} ({built.seconds:.1f}s)", f"poster: {built.poster.resolve()}",
+             *(f"card: {p.resolve()}" for p in built.frames)]
+    if args.upload:
+        lines += [f"uploaded: {p}" for p in pit_report.upload(store, built, facts.as_of)]
+    sys.stdout.write("\n".join(lines) + "\n")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     logging.basicConfig(
@@ -134,6 +154,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "backfill":
             return cmd_backfill(args)
+        if args.command == "pit-report":
+            return cmd_pit_report(args)
         return cmd_run(args) if args.command == "run" else cmd_export(args)
     except (RuntimeError, FileNotFoundError, ValueError) as exc:
         log.error("%s", exc)
