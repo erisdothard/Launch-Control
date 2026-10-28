@@ -54,20 +54,14 @@ own recap (proof it's running for them).
 - No time or speed claims anywhere: no hours, "faster", "overnight".
 - The visual serves the message. Rendering polish is not the job.
 
-## 5. Where it actually stands (2026-10-27)
+## 5. Where it stands (2026-10-27)
 
-The garage depicts the designed system. Only part of it runs today:
+- **Running:** all five agents, on the Railway worker. Every pass is a row in `agent_runs`, shown on
+  `/admin/ops` in the CRM.
+- **Real so far:** 299 businesses scanned, 126 kept, 37 good fits, 33 emails sent to 32 businesses.
+- **Zero so far:** prospect replies, meetings, wins. The old "3 replies / 1 won" was our own test
+  lead. Never count it.
+- **Waiting on a person:** the Outreach Writer's first-email drafts sit in Campaigns until someone
+  approves them.
 
-- **Real:** lead-gen runs (2 runs: 299 found, 129 kept), scoring with reasons, 34 drafts, 56 emails sent
-  to 34 leads. The CRM, sending and inbox sync.
-- **Zero so far:** prospect replies. The 3 inbound messages and the 1 "converted" lead are our own
-  E2E test lead plus one unlinked message. Never count them as results.
-- **Defined but not running:** all five agents are prompt files in `.claude/agents/`. Nothing
-  schedules them, so they run only when someone opens a session in this repo.
-- **Not built:** the `agent_runs` / `outcomes` / `system_flags` migration isn't applied (the tables
-  return 404), so nothing can be logged and the board can't be live.
-- **Known wrong:** the Prospector's usable-rate (score ≥ 60, phone counts) doesn't match what Max
-  actually picks (site read + email found + score ≥ 55). See the 10-27 lead-gen diagnosis.
-
-So the order of work is: **make the agents real → log to `agent_runs` → bind the board to that
-data → then the visual is honest.** Not the other way around.
+Next: once real replies come in, the board and the garage overlay show them. Never the other way around.

@@ -55,6 +55,5 @@ Prospector, Mission Control, Strategist and the board can't disagree.
 
 ## Needs Eris
 
-- Postal address for the CAN-SPAM footer (legally required on commercial email).
-- `railway login` (interactive) so the worker can be confirmed before the Mac copy is retired.
-- Cohorts: drop the motorsport-vs-freight A/B until a freight list exists (proposed: yes).
+- Approve or drop the first-email drafts in Campaigns.
+- One GitHub token so the Prospector can ask for a code review on its own (optional).
