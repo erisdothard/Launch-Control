@@ -22,7 +22,7 @@ export function Avatar({ name, initials, size = 36 }: { name: string; initials: 
     <span
       aria-hidden="true"
       className="grid shrink-0 place-items-center rounded-full font-semibold"
-      style={{ width: size, height: size, background: bg, color: fg, fontSize: size >= 48 ? 16 : 13 }}
+      style={{ width: size, height: size, background: bg, color: fg, fontSize: size >= 44 ? 15 : 14 }}
     >
       {initials}
     </span>
