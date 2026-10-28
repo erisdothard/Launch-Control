@@ -53,6 +53,9 @@ export interface TodayItem {
   startHint: string;
   /** Last send failure recorded on the draft. */
   error: string | null;
+  /** Follow-ups only: the due day (YYYY-MM-DD, team time) and how many days past it. */
+  dueOn?: string;
+  lateDays?: number;
 }
 
 export interface AgendaEvent {
@@ -323,6 +326,8 @@ function followUpItem(lead: Lead, draft: EmailDraft | null, ctx: Ctx): TodayItem
       callHint(lead, b.firstName, ctx) ??
       (late > 0 ? `Start with ${b.firstName}; the follow-up is overdue.` : `Start with ${b.firstName}; the follow-up is due today.`),
     error: draft?.error ?? null,
+    dueOn: due,
+    lateDays: Math.max(0, late),
   };
 }
 

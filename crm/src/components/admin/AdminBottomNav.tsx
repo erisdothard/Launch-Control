@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Role } from "@/lib/auth/roles";
 import { isOwner } from "@/lib/auth/owner";
+import { NAV_HREF, NAV_KEYS, type NavKey } from "@/lib/nav/order";
+import { useNavOrder } from "./useNavOrder";
+import NavReorder from "./NavReorder";
 
 const mainTabs = [
   {
@@ -138,8 +141,24 @@ const baseMoreLinks = [
   },
 ];
 
-export default function AdminBottomNav({ userEmail }: { role: Role; userEmail: string }) {
+const KEY_BY_HREF = new Map(NAV_KEYS.map((k) => [NAV_HREF[k], k]));
+const NAV_TABS = new Map([...mainTabs, ...baseMoreLinks].flatMap((t) => (KEY_BY_HREF.has(t.href) ? [[KEY_BY_HREF.get(t.href)!, t] as const] : [])));
+const EXTRA_LINKS = baseMoreLinks.filter((l) => !KEY_BY_HREF.has(l.href));
+
+interface AdminBottomNavProps {
+  role: Role;
+  userEmail: string;
+  userId: string;
+  navOrder: NavKey[] | null;
+}
+
+// Phones: the user's first four nav items are the tab bar; the rest sit under More, in their order.
+export default function AdminBottomNav({ userEmail, userId, navOrder }: AdminBottomNavProps) {
   const pathname = usePathname();
+  const { order, save } = useNavOrder(userId, navOrder);
+  const [draft, setDraft] = useState<NavKey[] | null>(null);
+  const ordered = order.map((k) => NAV_TABS.get(k)!);
+  const barTabs = ordered.slice(0, 4);
   // The panel is open only for the path it was opened on, so navigating closes it.
   const [openedAt, setOpenedAt] = useState<string | null>(null);
   const moreOpen = openedAt === pathname;
@@ -150,7 +169,7 @@ export default function AdminBottomNav({ userEmail }: { role: Role; userEmail: s
     return pathname.startsWith(href);
   }
 
-  const moreLinks = isOwner(userEmail) ? [...baseMoreLinks, opsLink] : baseMoreLinks;
+  const moreLinks = [...ordered.slice(4), ...EXTRA_LINKS, ...(isOwner(userEmail) ? [opsLink] : [])];
   const isMoreActive = moreLinks.some((link) => isActive(link.href));
 
   useEffect(() => {
@@ -212,13 +231,45 @@ export default function AdminBottomNav({ userEmail }: { role: Role; userEmail: s
                 </Link>
               </li>
             ))}
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(order);
+                  setOpenedAt(null);
+                }}
+                className="flex w-full items-center gap-3.5 rounded-[2px] px-4 py-3.5 text-base font-medium text-[var(--color-text-muted)] transition-colors active:bg-white/[0.05] active:text-[var(--color-text)]"
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M7 4v12M7 4L4 7M7 4l3 3M13 16V4M13 16l-3-3M13 16l3-3" />
+                </svg>
+                Customize menu
+              </button>
+            </li>
           </ul>
         </div>
       </div>
 
+      {draft && (
+        <div role="dialog" aria-modal="true" aria-label="Customize menu" onKeyDown={(e) => e.key === "Escape" && setDraft(null)} className="fixed inset-0 z-[5] overflow-y-auto bg-[var(--color-bg-primary)] px-4 pt-5 pb-[calc(24px+env(safe-area-inset-bottom))]">
+          <h2 className="mb-1 text-[19px] font-semibold text-[var(--color-text)]">Customize menu</h2>
+          <p className="mb-4 text-[15px] text-[var(--color-text-muted)]">The first four show in the bar at the bottom; the rest are under More.</p>
+          <NavReorder
+            large
+            items={draft.map((k) => ({ key: k, label: NAV_TABS.get(k)!.label, icon: NAV_TABS.get(k)!.icon, note: k === "inbox" ? "Drafts moves with it" : undefined }))}
+            onChange={setDraft}
+            onDone={() => {
+              save(draft);
+              setDraft(null);
+            }}
+            onReset={() => setDraft([...NAV_KEYS])}
+          />
+        </div>
+      )}
+
       {/* Bottom tab bar */}
       <nav className="flex items-center justify-around border-t border-[var(--color-border)] bg-[var(--color-bg-card)] px-2 pb-[env(safe-area-inset-bottom)]">
-        {mainTabs.map((tab) => {
+        {barTabs.map((tab) => {
           const active = isActive(tab.href);
           return (
             <Link

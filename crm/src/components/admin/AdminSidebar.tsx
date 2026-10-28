@@ -5,11 +5,15 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { Role } from "@/lib/auth/roles";
 import { BrandLockup } from "@/components/brand/BrandMark";
 import { isOwner } from "@/lib/auth/owner";
-import { WORK_LABELS } from "@/lib/store/types";
+import { useState } from "react";
+import { NAV_KEYS, type NavKey } from "@/lib/nav/order";
+import { useNavOrder } from "./useNavOrder";
+import NavReorder from "./NavReorder";
 
 const crmItems = [
   {
     label: "Today",
+    key: "today" as NavKey,
     href: "/admin/dashboard",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -19,6 +23,7 @@ const crmItems = [
   },
   {
     label: "Inbox",
+    key: "inbox" as NavKey,
     href: "/admin/inbox",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -29,6 +34,7 @@ const crmItems = [
   },
   {
     label: "Leads",
+    key: "leads" as NavKey,
     href: "/admin/leads",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -41,6 +47,7 @@ const crmItems = [
   },
   {
     label: "Pipeline",
+    key: "pipeline" as NavKey,
     href: "/admin/deals",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -51,6 +58,7 @@ const crmItems = [
   },
   {
     label: "Customers",
+    key: "customers" as NavKey,
     href: "/admin/customers",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -61,6 +69,7 @@ const crmItems = [
   },
   {
     label: "Calendar",
+    key: "calendar" as NavKey,
     href: "/admin/calendar",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -71,6 +80,7 @@ const crmItems = [
   },
   {
     label: "Tasks",
+    key: "tasks" as NavKey,
     href: "/admin/tasks",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -81,6 +91,7 @@ const crmItems = [
   },
   {
     label: "Campaigns",
+    key: "campaigns" as NavKey,
     href: "/admin/campaigns",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -91,6 +102,7 @@ const crmItems = [
   },
   {
     label: "Lead Gen",
+    key: "leadgen" as NavKey,
     href: "/admin/lead-gen",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -136,16 +148,6 @@ const opsItem = {
   ),
 };
 
-// Saved views: the questions Max asks most, one click each (the Leads page's own views).
-// Labels come from WORK_LABELS so the sidebar, Today, Inbox and Leads use the same words.
-const savedViews = [
-  { label: WORK_LABELS.reply, href: "/admin/leads?view=needs-reply", dot: "var(--color-hot)" },
-  { label: WORK_LABELS.followup, href: "/admin/leads?view=follow-up", dot: "var(--color-warm)" },
-  { label: WORK_LABELS.new, href: "/admin/leads?view=new-inquiries", dot: "var(--color-accent)" },
-  { label: "Meetings & deals", href: "/admin/leads?view=in-play", dot: "var(--color-steel)" },
-  { label: "Gone quiet", href: "/admin/leads?view=quiet", dot: "var(--color-text-dim)" },
-];
-
 interface AdminSidebarProps {
   role: Role;
   userEmail: string;
@@ -153,12 +155,21 @@ interface AdminSidebarProps {
   logoUrl: string | null;
   unread: number;
   drafts: number;
+  /** For the per-user nav order (localStorage key). */
+  userId: string;
+  /** The order saved on the server, once that's switched on. */
+  navOrder: NavKey[] | null;
 }
 
 // The real CRM links to the demo deployment so Max can open it in front of a client. The demo itself has no such link.
 const demoUrl = process.env.NEXT_PUBLIC_DEMO_MODE === "1" ? null : (process.env.NEXT_PUBLIC_DEMO_URL ?? null);
 
-export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, drafts }: AdminSidebarProps) {
+export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, drafts, userId, navOrder }: AdminSidebarProps) {
+  const { order, save } = useNavOrder(userId, navOrder);
+  // Reorder mode holds a working copy; Done saves it.
+  const [draft, setDraft] = useState<NavKey[] | null>(null);
+  const byKey = new Map(crmItems.map((i) => [i.key, i]));
+  const ordered = order.map((k) => byKey.get(k)!);
   const pathname = usePathname();
   const search = useSearchParams();
   // The Inbox badge is incoming mail nobody has opened. Drafts are counted on their own line: a
@@ -169,7 +180,6 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
     if (href.includes("?")) return pathname === href.split("?")[0] && search.get("view") === new URLSearchParams(href.split("?")[1]).get("view");
     if (href === "/admin/dashboard") return pathname === "/admin/dashboard" || pathname === "/admin";
     if (href === "/admin/inbox") return pathname.startsWith(href) && !draftsActive;
-    if (href === "/admin/leads") return pathname.startsWith(href) && !savedViews.some((v): boolean => isActive(v.href));
     return pathname.startsWith(href);
   }
 
@@ -196,8 +206,19 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
       </Link>
 
       <nav className="flex-1 overflow-y-auto" aria-label="CRM">
+        {draft ? (
+          <NavReorder
+            items={draft.map((k) => ({ ...byKey.get(k)!, note: k === "inbox" ? "+ Drafts" : undefined }))}
+            onChange={setDraft}
+            onDone={() => {
+              save(draft);
+              setDraft(null);
+            }}
+            onReset={() => setDraft([...NAV_KEYS])}
+          />
+        ) : (
         <ul className="space-y-0.5">
-          {crmItems.map((item) => {
+          {ordered.map((item) => {
             const active = isActive(item.href);
             const count = item.href === "/admin/inbox" ? unread : 0;
             return (
@@ -231,18 +252,7 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
             );
           })}
         </ul>
-
-        <p className="mt-6 mb-1.5 px-3 text-[13px] text-[var(--color-text-dim)]">Saved views</p>
-        <ul className="space-y-0.5">
-          {savedViews.map((v) => (
-            <li key={v.href}>
-              <Link href={v.href} className={itemClass(isActive(v.href))}>
-                <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ background: v.dot }} />
-                {v.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        )}
 
         <ul className="mt-6 space-y-0.5">
           {(isOwner(userEmail) ? [opsItem, ...footItems] : footItems).map((item) => (
@@ -257,6 +267,18 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
       </nav>
 
       {/* Signed in as, change password, sign out */}
+      {!draft && (
+        <button
+          type="button"
+          onClick={() => setDraft(order)}
+          className="mt-2 flex items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-[14px] text-[var(--color-text-dim)] transition-colors hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M7 4v12M7 4L4 7M7 4l3 3M13 16V4M13 16l-3-3M13 16l3-3" />
+          </svg>
+          Customize menu
+        </button>
+      )}
       <div className="mt-3 border-t border-[var(--color-border)] px-1 pt-3">
         <div className="mb-1 flex items-center gap-2.5 px-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] text-[13px] font-semibold text-[var(--color-steel)] uppercase">
