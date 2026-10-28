@@ -68,6 +68,10 @@ const opsLink = {
   ),
 };
 
+// The real CRM links to the client demo so Max can open it in front of a client; same rule as the
+// sidebar. The demo deployment itself has no such link.
+const demoUrl = process.env.NEXT_PUBLIC_DEMO_MODE === "1" ? null : (process.env.NEXT_PUBLIC_DEMO_URL ?? null);
+
 const baseMoreLinks = [
   {
     label: "Customers",
@@ -246,6 +250,21 @@ export default function AdminBottomNav({ userEmail, userId, navOrder }: AdminBot
                 Customize menu
               </button>
             </li>
+            {demoUrl && (
+              <li>
+                <a
+                  href={demoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3.5 rounded-[2px] px-4 py-3.5 text-base font-medium text-[var(--color-text-muted)] transition-colors active:bg-white/[0.05] active:text-[var(--color-text)]"
+                >
+                  <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center">
+                    <span className="h-2 w-2 rounded-full bg-[var(--color-accent)]" />
+                  </span>
+                  Open the client demo
+                </a>
+              </li>
+            )}
           </ul>
         </div>
       </div>

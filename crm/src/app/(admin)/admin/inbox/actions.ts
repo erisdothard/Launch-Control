@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { addressList, sendEmail, validAttachment, type EmailAttachment, type SendResult } from "@/lib/email/send";
 import { currentCrmUserEmail } from "@/lib/email/session";
+import { syncOutlookIfDue } from "@/lib/email/outlookSync";
 import { isEmail } from "@/lib/email/text";
 import { createLead } from "@/lib/store/leads";
 import {
@@ -165,4 +166,13 @@ export async function searchContactsAction(q: string): Promise<ContactMatch[]> {
   } catch {
     return [];
   }
+}
+
+/** "Check mail" and the Inbox's once-a-minute refresh: pull from Outlook now, then reload the lists. */
+export async function checkMail(): Promise<ActionResult> {
+  if (!(await currentCrmUserEmail())) return { ok: false, error: SIGN_IN };
+  // A short gap still stops two open tabs from syncing on top of each other.
+  await syncOutlookIfDue(10_000);
+  revalidateInbox();
+  return { ok: true };
 }
