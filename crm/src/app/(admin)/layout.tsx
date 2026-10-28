@@ -16,8 +16,7 @@ export const dynamic = "force-dynamic";
 // The demo deployment keeps its walkthrough step in the demo schema; the real CRM has none.
 async function demoState(): Promise<{ step: number } | null> {
   if (!isDemoMode()) return null;
-  const db = createServiceRoleClient();
-  if (!db) return { step: 0 };
+  const db = createServiceRoleClient() ?? (await createServerSupabaseClient());
   return { step: (await readDemoState(db)).step };
 }
 
