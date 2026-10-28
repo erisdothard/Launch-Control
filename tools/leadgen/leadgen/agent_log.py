@@ -47,7 +47,10 @@ def agent_run(store: Store, agent: str) -> Iterator[Run]:
     try:
         yield run
     except Exception as exc:
-        _finish(store, run, "failed", error=f"{type(exc).__name__}: {exc}"[:500])
+        # A StoreError carries PostgREST's response text, which can echo row contents (lead data).
+        from leadgen.draft_feedback import safe_error
+        error = safe_error(exc) if isinstance(exc, StoreError) else f"{type(exc).__name__}: {exc}"
+        _finish(store, run, "failed", error=error[:500])
         raise
     _finish(store, run, run.status)
 

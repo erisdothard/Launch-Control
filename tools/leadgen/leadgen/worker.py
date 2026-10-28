@@ -9,8 +9,10 @@ gates every send call (inside campaigns.py and automation.send_due_follow_ups), 
 checks each finished run, and a light "crew" thread wakes every automation pass, runs the Outreach
 Writer when outreach_writer.due() allows (at most every 30 minutes, backing off after a model error),
 and checks every CREW_CHECK_S whether Mission Control's daily brief or the Strategist's weekly review
-is due. The crew thread heartbeats as "crew" each pass. Every agent call is wrapped: one agent
-failing never stops the worker.
+is due. Right after the Mission Control check, notify.send_brief emails the brief; every crew pass
+also runs notify.check_alerts (a new outbound halt, a real prospect reply). Notify is internal
+mail, not an agent: no Guardian, no send caps. The crew thread heartbeats as "crew" each pass.
+Every agent call is wrapped: one agent failing never stops the worker.
 """
 
 from __future__ import annotations
@@ -22,7 +24,17 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from leadgen import agent_log, automation, campaigns, mission_control, outlook_sync, outreach_writer, prospector, strategist
+from leadgen import (
+    agent_log,
+    automation,
+    campaigns,
+    mission_control,
+    notify,
+    outlook_sync,
+    outreach_writer,
+    prospector,
+    strategist,
+)
 from leadgen.config import Config, supabase_env
 from leadgen.filters import CONTACT_FIELDS
 from leadgen.gmail_sync import start_background_sync
@@ -112,7 +124,9 @@ def crew_pass(store: Store, check_due: bool) -> dict[str, bool]:
         run_agent("outreach-writer", lambda: outreach_writer.run_once(store))
     if check_due:
         run_agent("mission-control", lambda: mission_control.run_daily(store))
+        run_agent("notify-brief", lambda: notify.send_brief(store))
         run_agent("strategist", lambda: strategist.run_weekly(store))
+    run_agent("notify-alerts", lambda: notify.check_alerts(store))
     return ran
 
 

@@ -7,8 +7,9 @@ what happened, what each agent did, and the ONE decision that needs him.
 
 One LLM call writes the brief. Without ANTHROPIC_API_KEY, or if the call fails, a deterministic
 brief is written from the same facts. The brief goes in agent_runs.decision and the numbers in
-agent_runs.evidence; it is never emailed. Generated copy may not carry time or speed words: the
-model is told so, and any sentence that still has one is removed and flagged in the evidence.
+agent_runs.evidence; the worker then has notify.py email it to Eris. Generated copy may not
+carry time or speed words: the model is told so, and any sentence that still has one is removed
+and flagged in the evidence.
 """
 
 from __future__ import annotations
