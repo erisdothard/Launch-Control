@@ -432,8 +432,8 @@ const content: SiteContent = {
       intro:
         "From a driver's first inquiry to a confirmed seat: their license and racing experience in one record, their pick of event and car, a quote that shows what's included, and every booking approved by Dustin.",
       note: "Proposed workflow. Sample drivers and prices.",
-      poster: "/video/arrive-drive-v2-poster.webp",
-      sources: { desk: "/video/arrive-drive-v2-1080.mp4", phone: "/video/arrive-drive-v2-720.mp4" },
+      poster: "/video/arrive-drive-v3-poster.webp",
+      sources: { desk: "/video/arrive-drive-v3-1080.mp4", phone: "/video/arrive-drive-v3-720.mp4" },
       label: "A proposed Arrive Drive system: a driver's inquiry goes from the website form to a booking Dustin approves",
       metaTitle: "Arrive Drive Motorsports × Launch Control",
       metaDescription: "A proposed system for Arrive Drive: driver records, experience and car selection, quotes, and bookings Dustin approves.",

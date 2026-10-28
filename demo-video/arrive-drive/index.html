@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div data-hf-id="hf-32aq" id="root" data-composition-id="main" data-start="0" data-duration="75" data-width="1920" data-height="1080">
-      <section data-hf-id="hf-09r2" id="stage" class="clip layer" data-start="0" data-duration="75" data-track-index="1">
+    <div data-hf-id="hf-32aq" id="root" data-composition-id="main" data-start="0" data-duration="150" data-width="1920" data-height="1080">
+      <section data-hf-id="hf-09r2" id="stage" class="clip layer" data-start="0" data-duration="150" data-track-index="1">
         <!-- Background -->
         <div data-hf-id="hf-h7ee" id="bg-fill" class="layer"></div>
         <div data-hf-id="hf-fy3p" id="bg-grid" class="layer"></div>
@@ -284,6 +284,30 @@
 // Arrive Drive CRM walkthrough. One paused timeline, all coordinates in 1920x1080 camera space.
 window.__timelines = window.__timelines || {};
 const tl = gsap.timeline({ paused: true });
+
+// ---------- pace ----------
+// Max: even at the slowest playback speed the cut moved too fast to read. Every beat below is
+// written on the original 75 s clock; PACE stretches when things happen (so each screen and
+// caption holds twice as long) while MOTION only slightly slows how long each move takes, so it
+// reads calmly instead of in slow motion. Long ambient tweens (2 s and up) stretch with PACE.
+const PACE = 2;
+const MOTION = 1.2;
+const paceAt = (p) => (typeof p === "number" ? p * PACE : p);
+const paceVars = (v) => {
+  if (!v || typeof v !== "object") return v;
+  const out = { ...v };
+  if (typeof out.duration === "number") out.duration *= out.duration >= 2 ? PACE : MOTION;
+  if (typeof out.stagger === "number") out.stagger *= MOTION;
+  return out;
+};
+for (const m of ["to", "from", "set"]) {
+  const raw = tl[m].bind(tl);
+  tl[m] = (target, vars, at) => raw(target, paceVars(vars), paceAt(at));
+}
+{
+  const raw = tl.fromTo.bind(tl);
+  tl.fromTo = (target, fromVars, toVars, at) => raw(target, fromVars, paceVars(toVars), paceAt(at));
+}
 
 const VIEW_CX = 960;
 const VIEW_CY = 470; // visual centre above the caption strip
