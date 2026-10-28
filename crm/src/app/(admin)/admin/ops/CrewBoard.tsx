@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LiveryRail } from "@/components/today/shared";
-import { CREW, type AgentRun, type CrewKey, type HaltFlag } from "@/lib/agents/crew";
+import { CREW, keyNumbers, type AgentRun, type CrewKey, type HaltFlag } from "@/lib/agents/crew";
 import { USABLE_TARGET, type PipelineSnapshot } from "@/lib/agents/metrics";
 import type { AgentState, OpsAgent, OpsCheck } from "@/lib/store/ops";
 import { clearHalt } from "./actions";
@@ -126,8 +126,11 @@ export function RightNow({ halt, checks, waiting, when, notice }: { halt: HaltFl
           </span>
         )}
         {fine.map((c) => (
-          <span key={c.key} className="flex items-center gap-2" title={c.detail}>
-            <Dot color={DOT.good} /> {c.label}
+          <span key={c.key} className="flex items-center gap-2">
+            <Dot color={DOT.good} />
+            <span>
+              <span className="text-[var(--color-text)]">{c.label}</span> · {c.detail}
+            </span>
           </span>
         ))}
         {sending && (
@@ -288,6 +291,9 @@ export function Crew({ runs, seats, when }: { runs: Record<CrewKey, AgentRun | n
           // the fallback when there's no seat for this agent.
           const headline = seat?.headline ?? (run?.decision || `${agent.name} hasn't run yet.`);
           const detail = seat?.detail ?? "";
+          // What the agent itself logged on its last pass, shown under the CRM sentence.
+          const decision = seat && run?.decision?.trim() && run.decision !== headline ? run.decision : "";
+          const numbers = run ? keyNumbers(run.evidence) : [];
           return (
             <li
               key={agent.key}
@@ -314,10 +320,27 @@ export function Crew({ runs, seats, when }: { runs: Record<CrewKey, AgentRun | n
                     </>
                   )}
                 </p>
+                {run && seat && <p className="mt-0.5 pl-[18px] text-[14px] text-[var(--color-text-dim)]">{seat.stateLabel}</p>}
               </div>
               <div className="min-w-0">
                 <p className="text-[16px] text-[var(--color-text)]">{headline}</p>
                 {detail && <p className="text-[15px] text-[var(--color-text-muted)]">{detail}</p>}
+                {decision && (
+                  <p className="mt-2 text-[15px] break-words text-[var(--color-text-muted)]">
+                    <span className="font-semibold text-[var(--color-text)]">Last pass: </span>
+                    {decision}
+                  </p>
+                )}
+                {numbers.length > 0 && (
+                  <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+                    {numbers.map((n) => (
+                      <div key={n.label} className="flex gap-1.5 text-[14px]">
+                        <dt className="text-[var(--color-text-dim)]">{n.label}</dt>
+                        <dd className="text-[var(--color-text-muted)] tabular-nums">{n.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
                 {run?.status === "failed" && run.error && <p className="mt-1 text-[14px] break-words text-[var(--color-hot)]">{run.error}</p>}
               </div>
               {seat?.href && seat.action && (

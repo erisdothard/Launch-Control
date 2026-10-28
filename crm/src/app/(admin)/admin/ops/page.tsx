@@ -8,7 +8,8 @@ import { whenSaid } from "@/lib/store/today";
 import { Brief, Crew, Funnel, RightNow } from "./CrewBoard";
 import { getOps, type OpsEvent } from "@/lib/store/ops";
 
-// Agent Ops, top to bottom: what needs you right now, today's brief, the pipeline, one line per
+// Agent Ops, top to bottom: the crew story (the animated paddock walk-through of how the agents hand
+// a lead along), what needs you right now, today's brief, the pipeline, one line per
 // agent, and what they just did. Owner-only until it has proven itself. The Pit Report video stays
 // secondary under "Pit Report".
 // The worker rebuilds that video from live rows (tools/leadgen/leadgen/pit_report.py) and overwrites
@@ -19,6 +20,10 @@ const BUCKET = "ops-private";
 const VIDEO = "pit-report-latest.mp4";
 const POSTER = "pit-report-latest.jpg";
 const SIGNED_SECONDS = 60 * 60;
+// The paddock story, rendered from assets-src/paddock-car-story.blend. Its lead is staged to show how
+// the crew works; the real numbers are everything below it.
+const STORY = "agent-story-v2.mp4";
+const STORY_POSTER = "agent-story-v2.jpg";
 
 async function signedUrl(path: string): Promise<string | null> {
   const db = createServiceRoleClient();
@@ -68,8 +73,10 @@ export default async function OpsPage({ searchParams }: { searchParams: Promise<
   const haltParam = (await searchParams).halt;
   const notice = typeof haltParam === "string" ? (HALT_NOTICE[haltParam] ?? null) : null;
   const now = new Date();
-  const [ops, video, poster, runs, halt, pipeline, campaigns] = await Promise.all([
+  const [ops, story, storyPoster, video, poster, runs, halt, pipeline, campaigns] = await Promise.all([
     getOps(),
+    signedUrl(STORY),
+    signedUrl(STORY_POSTER),
     signedUrl(VIDEO),
     signedUrl(POSTER),
     lastRuns(supabase),
@@ -91,6 +98,20 @@ export default async function OpsPage({ searchParams }: { searchParams: Promise<
   return (
     <div className="max-w-[1204px]">
       <AdminHeader title="Agent Ops" subtitle={ops.lede} />
+
+      <section aria-labelledby="ops-story" className="card mb-12 overflow-hidden">
+        {story ? (
+          <video src={story} poster={storyPoster ?? undefined} controls autoPlay muted loop playsInline preload="auto" className="block aspect-video w-full bg-black" />
+        ) : (
+          <p className="px-6 py-6 text-[15px] text-[var(--color-text-muted)] sm:px-8">The crew story shows up here once it&apos;s uploaded.</p>
+        )}
+        <div className="flex flex-wrap items-baseline justify-between gap-2 px-6 py-4 sm:px-8">
+          <h2 id="ops-story" className="text-[17px] font-semibold text-[var(--color-text)]">
+            How the crew works
+          </h2>
+          <p className="text-[14px] text-[var(--color-text-dim)]">One lead through the paddock, start to finish. The lead is a sample; the live numbers are below.</p>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-x-11 gap-y-12 min-[1100px]:grid-cols-[minmax(0,1fr)_300px]">
         <div className="flex min-w-0 flex-col gap-10">
