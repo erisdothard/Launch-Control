@@ -1,4 +1,5 @@
 import { getStoreClient, type StoreClient } from "./db";
+import { AUTOMATION_SENDER, startOfTeamDay } from "@/lib/email/teamDay";
 
 // Emails the worker wrote for a person to look over (tools/leadgen/leadgen/automation.py):
 // a reply to every message a lead sends, and follow-ups when automatic sending is off. They show
@@ -173,4 +174,32 @@ export async function claimDraft(id: string, sentBy: string, client?: StoreClien
     .select("id");
   if (error) throw error;
   return (data ?? []).length > 0;
+}
+
+export interface AutopilotPulse {
+  /** Leads waiting on an answer, by how many follow-ups they've had (index 0 = only the first email). */
+  onTrack: number[];
+  goneQuiet: number;
+  sentToday: number;
+  draftsWaiting: number;
+}
+
+/** What the follow-up track is doing right now, for the Autopilot tab. Same filters as the worker's queue. */
+export async function getAutopilotPulse(maxFollowUps: number, client?: StoreClient): Promise<AutopilotPulse> {
+  const supabase = await getStoreClient(client);
+  const [waiting, quiet, sent, drafts] = await Promise.all([
+    supabase.from("leads").select("follow_up_count").eq("awaiting", "them").in("status", ["contacted", "replied"]).limit(10000),
+    supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "nurture"),
+    supabase
+      .from("email_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("sent_by", AUTOMATION_SENDER)
+      .eq("status", "sent")
+      .gte("created_at", startOfTeamDay()),
+    supabase.from("email_drafts").select("id", { count: "exact", head: true }).eq("status", "pending"),
+  ]);
+  for (const r of [waiting, quiet, sent, drafts]) if (r.error) throw r.error;
+  const onTrack = Array.from({ length: maxFollowUps + 1 }, () => 0);
+  for (const row of waiting.data ?? []) onTrack[Math.min(row.follow_up_count ?? 0, maxFollowUps)] += 1;
+  return { onTrack, goneQuiet: quiet.count ?? 0, sentToday: sent.count ?? 0, draftsWaiting: drafts.count ?? 0 };
 }

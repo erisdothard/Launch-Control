@@ -3,15 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendAsAccount, type SendResult } from "@/lib/email/send";
 import { primaryOutlookAccount } from "@/lib/email/outlookAccount";
-import { emailConfig } from "@/lib/email/config";
+import { AUTOMATION_SENDER, startOfTeamDay } from "@/lib/email/teamDay";
 import { claimDraft, markDraft } from "@/lib/store/drafts";
 import { outboundHalt } from "@/lib/agents/halt";
 
 // Sends the follow-up drafts the worker wrote (tools/leadgen/leadgen/automation.py), when the team
 // has switched automatic sending on in Settings. The worker calls this every pass with
 // AUTOMATION_SECRET; nothing else can reach it. Replies are never sent from here: a person sends those.
-const SENT_BY = "automation";
-const TEAM_TZ = emailConfig.teamTimeZone;
+const SENT_BY = AUTOMATION_SENDER;
 
 function authorized(request: NextRequest): boolean {
   const secret = process.env.AUTOMATION_SECRET;
@@ -20,15 +19,6 @@ function authorized(request: NextRequest): boolean {
   const given = Buffer.from(header.slice(7));
   const expected = Buffer.from(secret);
   return given.length === expected.length && timingSafeEqual(given, expected);
-}
-
-/** Midnight at the start of the team's day, as a UTC instant, for the daily cap. */
-function startOfTeamDay(now = new Date()): string {
-  const day = new Intl.DateTimeFormat("en-CA", { timeZone: TEAM_TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
-  const noonUtc = new Date(`${day}T12:00:00Z`);
-  const noonLocal = new Date(noonUtc.toLocaleString("en-US", { timeZone: TEAM_TZ }));
-  const offsetMs = noonUtc.getTime() - noonLocal.getTime();
-  return new Date(new Date(`${day}T00:00:00Z`).getTime() + offsetMs).toISOString();
 }
 
 export async function POST(request: NextRequest) {

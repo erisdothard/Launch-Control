@@ -6,6 +6,8 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { LEAD_VIEWS, type Lead, type LeadView } from "@/lib/store/types";
 import StatusBadge from "@/components/admin/StatusBadge";
 import ContactFilterChips from "@/components/admin/ContactFilterChips";
+import DueFilterChips from "@/components/admin/DueFilterChips";
+import type { DueFilterKey } from "@/lib/leads/dueFilter";
 import LocalDate from "@/components/admin/LocalDate";
 import { followUpState } from "@/lib/leads/followUp";
 import { Avatar, Check } from "@/components/compose/ui";
@@ -34,6 +36,12 @@ function LastContact({ lead }: { lead: Lead }) {
   return <span className="text-[var(--color-text-dim)]">Never emailed</span>;
 }
 
+// "Oct 25" from a team-local YYYY-MM-DD, built from its parts so no time zone shifts the day.
+function shortDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function NextStep({ lead, today }: { lead: Lead; today: string }) {
   const due = followUpState(lead.followUpOn, today);
   if (!due && !lead.nextAction) return <span className="text-[var(--color-text-dim)]">Nothing set</span>;
@@ -41,7 +49,11 @@ function NextStep({ lead, today }: { lead: Lead; today: string }) {
   return (
     <span className="min-w-0">
       {lead.nextAction && <span className="block truncate text-[var(--color-text-muted)]">{lead.nextAction}</span>}
-      {due && <span className={`block text-[14px] font-medium ${tone}`}>{due.label === "Overdue" || due.label === "Due today" ? due.label : `On ${due.label}`}</span>}
+      {due && (
+        <span className={`block text-[14px] font-medium ${tone}`}>
+          {due.label === "Due today" ? due.label : due.label === "Overdue" ? `Overdue · since ${shortDate(lead.followUpOn!)}` : `On ${due.label}`}
+        </span>
+      )}
     </span>
   );
 }
@@ -52,10 +64,12 @@ interface LeadsTableClientProps {
   counts: Record<LeadView, number>;
   searchQuery: string;
   today: string;
+  due: DueFilterKey | null;
+  dueCounts: Record<DueFilterKey, number>;
 }
 
 // The leads list. Tick people (or everyone in the view) to email them together.
-export default function LeadsTableClient({ leads, view, counts, searchQuery, today }: LeadsTableClientProps) {
+export default function LeadsTableClient({ leads, view, counts, searchQuery, today, due, dueCounts }: LeadsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -162,6 +176,10 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
         <ContactFilterChips />
       </div>
 
+      <div className="mb-4">
+        <DueFilterChips active={due} counts={dueCounts} />
+      </div>
+
       {hint && <p className="mb-2 text-[15px] text-[var(--color-text-dim)]">{hint}</p>}
 
       <div className="card overflow-hidden">
@@ -235,7 +253,15 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
           })}
           {leads.length === 0 && (
             <li className="px-5 py-14 text-center text-[16px] text-[var(--color-text-muted)]">
-              {view === "needs-reply" ? "Nobody is waiting on a reply." : view === "follow-up" ? "No follow-ups are due." : "No leads here."}
+              {due === "overdue"
+                ? "Nothing overdue here."
+                : due === "today"
+                  ? "Nothing due today here."
+                  : view === "needs-reply"
+                    ? "Nobody is waiting on a reply."
+                    : view === "follow-up"
+                      ? "No follow-ups are due."
+                      : "No leads here."}
             </li>
           )}
         </ul>

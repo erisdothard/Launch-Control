@@ -5,9 +5,10 @@ import { LEAD_VIEWS, type LeadView } from "@/lib/store/types";
 import LeadsTableClient from "./LeadsTableClient";
 import { parseHas } from "@/lib/leads/contactFilter";
 import { teamTodayISO } from "@/lib/leads/followUp";
+import { byFollowUpDate, dueBucket, parseDue, type DueFilterKey } from "@/lib/leads/dueFilter";
 
 interface LeadsPageProps {
-  searchParams: Promise<{ view?: string; search?: string; has?: string }>;
+  searchParams: Promise<{ view?: string; search?: string; has?: string; due?: string }>;
 }
 
 // With no view chosen, open on the first one that has work in it, so the page starts on what to do.
@@ -21,7 +22,15 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const view: LeadView =
     LEAD_VIEWS.find((v) => v.key === params.view)?.key ?? WORK_VIEWS.find((v) => counts[v] > 0) ?? "all";
 
-  const leads = await getLeads({ view, today, search: search || undefined, has: parseHas(params.has) });
+  const inView = await getLeads({ view, today, search: search || undefined, has: parseHas(params.has) });
+
+  // The follow-up date filter splits whatever view you're in; its counts are for that view.
+  const due = parseDue(params.due);
+  const dueCounts: Record<DueFilterKey, number> = { overdue: 0, today: 0, upcoming: 0, none: 0 };
+  for (const lead of inView) dueCounts[dueBucket(lead.followUpOn, today)] += 1;
+  const filtered = due ? inView.filter((lead) => dueBucket(lead.followUpOn, today) === due) : inView;
+  // Date-driven lists read soonest first, so overdue and due today stop being mixed in by when they were added.
+  const leads = due || view === "follow-up" || view === "waiting" ? byFollowUpDate(filtered) : filtered;
 
   const n = leads.length;
   const lede =
@@ -45,7 +54,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
           </>
         }
       />
-      <LeadsTableClient leads={leads} view={view} counts={counts} searchQuery={search} today={today} />
+      <LeadsTableClient leads={leads} view={view} counts={counts} searchQuery={search} today={today} due={due} dueCounts={dueCounts} />
     </>
   );
 }
