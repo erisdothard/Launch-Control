@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import AdminShell from "@/components/admin/AdminShell";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { roleFromUser } from "@/lib/auth/roles";
@@ -7,6 +8,7 @@ import { getPendingDraftCount } from "@/lib/store/drafts";
 import { isDemoMode } from "@/lib/demo/mode";
 import { readDemoState } from "@/lib/demo/seed";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { syncOutlookIfDue } from "@/lib/email/outlookSync";
 
 // The CRM is always live, per-request data — there is nothing to prerender.
 export const dynamic = "force-dynamic";
@@ -25,6 +27,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     data: { user },
   } = await supabase.auth.getUser();
   const role = roleFromUser(user);
+  // New mail is pulled in after the page is sent (at most every 90s), so it never slows a load.
+  if (user && !isDemoMode()) after(syncOutlookIfDue);
   const [company, unread, drafts, demo] = await Promise.all([
     getCompanyInfo(),
     user ? getUnreadCount() : Promise.resolve(0),
