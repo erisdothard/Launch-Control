@@ -1,41 +1,14 @@
 "use server";
 
-import { headers } from "next/headers";
 import { site } from "@/content/site";
 import { log } from "@/lib/log";
+import { clientKey, sendToCrm, takeToken } from "@/lib/inquiry";
 import {
   bookingSchema,
   readBookingForm,
   toFieldErrors,
-  type Booking,
   type BookingState,
 } from "@/lib/bookingSchema";
-
-/* In-memory token bucket per IP. Survives for the life of the server process only. */
-const BUCKET_CAPACITY = 5;
-const REFILL_PER_SECOND = 5 / 60; // five bookings a minute, sustained
-const buckets = new Map<string, { tokens: number; updatedAt: number }>();
-
-function takeToken(key: string): boolean {
-  const now = Date.now();
-  const bucket = buckets.get(key) ?? { tokens: BUCKET_CAPACITY, updatedAt: now };
-  const refilled = Math.min(
-    BUCKET_CAPACITY,
-    bucket.tokens + ((now - bucket.updatedAt) / 1000) * REFILL_PER_SECOND,
-  );
-  if (refilled < 1) {
-    buckets.set(key, { tokens: refilled, updatedAt: now });
-    return false;
-  }
-  buckets.set(key, { tokens: refilled - 1, updatedAt: now });
-  return true;
-}
-
-async function clientKey(): Promise<string> {
-  const h = await headers();
-  const forwarded = h.get("x-forwarded-for");
-  return forwarded?.split(",")[0]?.trim() || h.get("x-real-ip") || "local";
-}
 
 export async function bookLaunch(
   _prev: BookingState,
@@ -54,34 +27,8 @@ export async function bookLaunch(
   }
 
   log.info("booking.received", parsed.data);
-  await sendToCrm(parsed.data);
+  /* The visitor still sees success if the CRM post fails: the booking.received line above keeps the
+     details, and booking.crm_failed flags the ones to enter by hand. */
+  await sendToCrm(parsed.data, "booking");
   return { ok: true };
-}
-
-const CRM_TIMEOUT_MS = 8000;
-
-/*
-  Hands the booking to the CRM (crm/src/app/api/inquiry), where it lands as a lead due for follow-up
-  today. The visitor still sees success if this fails: the booking.received line above keeps the
-  details, and booking.crm_failed flags the ones to enter by hand.
-*/
-async function sendToCrm(booking: Booking): Promise<void> {
-  const url = process.env.CRM_INQUIRY_URL;
-  const secret = process.env.INQUIRY_SECRET;
-  if (!url || !secret) {
-    log.warn("booking.crm_not_configured");
-    return;
-  }
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${secret}` },
-      body: JSON.stringify(booking),
-      cache: "no-store",
-      signal: AbortSignal.timeout(CRM_TIMEOUT_MS),
-    });
-    if (!res.ok) log.error("booking.crm_failed", { status: res.status, email: booking.email });
-  } catch (error) {
-    log.error("booking.crm_failed", { status: 0, email: booking.email, reason: error instanceof Error ? error.name : "unknown" });
-  }
 }
