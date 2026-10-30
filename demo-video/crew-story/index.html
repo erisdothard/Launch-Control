@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Launch Control crew story</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Sora:wght@400;600&display=block" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="51" data-width="1920" data-height="1080">
+      <!-- The paddock render at half pace, last frame held (see build.sh). -->
+      <video id="plate" class="clip" src="assets/paddock-v3c.mp4" data-start="0" data-duration="51" data-track-index="0" muted playsinline></video>
+
+      <section id="overlay" class="clip layer" data-start="0" data-duration="51" data-track-index="1">
+        <div id="scrim" class="layer"></div>
+
+        <!-- One lower third per beat; timing lives in the BEATS table in the script below. -->
+        <div class="beat" id="b0"><div class="stripe"><i></i><i></i><i></i><i></i></div><p class="kicker"><span class="sample-dot"></span>ONE SAMPLE LEAD, START TO FINISH</p><p class="title">LAUNCH CONTROL</p><p class="body">Your AI crew. Each agent has one job, and nothing goes out without you.</p></div>
+        <div class="beat" id="b1"><div class="stripe"><i></i><i></i><i></i><i></i></div><p class="title"><span class="tag">01</span>THE PROSPECTOR</p><p class="body">Finds businesses worth contacting and scores how well each one fits.</p></div>
+        <div class="beat" id="b2"><div class="stripe"><i></i><i></i><i></i><i></i></div><p class="title"><span class="tag">02</span>THE OUTREACH WRITER</p><p class="body">Writes a personal first email from what it learned about them.</p></div>
+        <div class="beat" id="b3"><div class="stripe"><i></i><i></i><i></i><i></i></div><p class="title">RACE CONTROL</p><p class="body">Every email is checked, then waits for your OK.</p></div>
+        <div class="beat" id="b4"><div class="stripe"><i></i><i></i><i></i><i></i></div><p class="title">SENT</p><p class="body">Sent from your own inbox, so replies come straight to you.</p></div>
+        <div class="beat" id="b5"><div class="stripe"><i></i><i></i><i></i><i></i></div><p class="title">A REPLY COMES BACK</p><p class="body">The business writes back, and a meeting lands on your calendar.</p></div>
+        <div class="beat" id="b6"><div class="stripe"><i></i><i></i><i></i><i></i></div><p class="title"><span class="tag">03</span>THE STRATEGIST</p><p class="body">Notices who replies and points the next search at more businesses like them.</p></div>
+        <div class="beat" id="b7"><div class="stripe"><i></i><i></i><i></i><i></i></div><p class="title">EVERY STEP IS LOGGED</p><p class="body">See every step your crew took, on one page.</p></div>
+      </section>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      // [start, end] in seconds on the half-pace plate (render frame / 15).
+      const BEATS = [
+        [0.6, 7.2], [8.1, 15.7], [16.4, 22.4], [23.1, 29.4],
+        [29.9, 34.4], [35.1, 40.0], [40.2, 44.4], [44.7, 50.6],
+      ];
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#scrim", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0.2);
+      BEATS.forEach(([start, end], i) => {
+        const id = `#b${i}`;
+        tl.fromTo(id, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "none" }, start);
+        tl.fromTo(`${id} .stripe`, { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power3.out" }, start);
+        tl.fromTo(`${id} .title`, { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, start + 0.1);
+        tl.fromTo(`${id} .body`, { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, start + 0.25);
+        tl.to(id, { opacity: 0, y: 10, duration: 0.35, ease: "power2.in" }, end - 0.35);
+      });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

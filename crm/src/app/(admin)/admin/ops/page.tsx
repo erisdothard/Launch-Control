@@ -22,8 +22,8 @@ const POSTER = "pit-report-latest.jpg";
 const SIGNED_SECONDS = 60 * 60;
 // The paddock story, rendered from assets-src/paddock-car-story.blend. Its lead is staged to show how
 // the crew works; the real numbers are everything below it.
-const STORY = "agent-story-v2.mp4";
-const STORY_POSTER = "agent-story-v2.jpg";
+const STORY = "agent-story-v3.mp4";
+const STORY_POSTER = "agent-story-v3.jpg";
 
 async function signedUrl(path: string): Promise<string | null> {
   const db = createServiceRoleClient();

@@ -1,0 +1,40 @@
+/* Paddock brand: Michroma display, Sora body, the red-orange-yellow-green stripe. Sized to read on a
+   phone, where this film plays at about a fifth of its width. */
+:root {
+  --ink: #f4f6f8;
+  --muted: #c9ced5;
+  --yellow: #f0c419;
+  --red: #e3261d;
+  --orange: #f07d1a;
+  --green: #2bb24c;
+  --plate: rgba(6, 7, 9, 0.86);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #050607; }
+#root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #050607; }
+.layer { position: absolute; inset: 0; }
+#plate { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover; }
+
+/* A soft floor of shade under the captions so they hold over bright bays. */
+#scrim { background: linear-gradient(to top, rgba(4, 5, 7, 0.78) 0%, rgba(4, 5, 7, 0.45) 22%, rgba(4, 5, 7, 0) 42%); }
+
+/* "Sample lead" lives inside the opening caption: the top corners are scene signage in most shots. */
+.kicker {
+  display: flex; align-items: center; gap: 14px; margin: 0 0 20px;
+  font: 400 30px/1 "Michroma", sans-serif; letter-spacing: 0.08em; color: var(--yellow);
+}
+.sample-dot { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--yellow); }
+
+.beat {
+  position: absolute; left: 48px; right: 48px; bottom: 56px; padding: 36px 52px 42px;
+  background: var(--plate); border-radius: 4px; opacity: 0;
+}
+.stripe { position: absolute; left: 0; right: 0; top: 0; height: 8px; display: flex; transform-origin: left center; }
+.stripe i { display: block; height: 8px; }
+.stripe i:nth-child(1) { width: 42%; background: var(--red); }
+.stripe i:nth-child(2) { width: 26%; background: var(--orange); }
+.stripe i:nth-child(3) { width: 24%; background: var(--yellow); }
+.stripe i:nth-child(4) { width: 8%; background: var(--green); }
+.title { display: block; margin: 0; font: 400 52px/1.15 "Michroma", sans-serif; letter-spacing: 0.04em; color: var(--ink); }
+.tag { display: inline-block; margin-right: 28px; color: var(--yellow); }
+.body { display: block; margin: 18px 0 0; font: 600 64px/1.2 "Sora", sans-serif; color: var(--ink); text-wrap: balance; }

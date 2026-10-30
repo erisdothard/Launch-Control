@@ -1,0 +1,4 @@
+# base plate and renders are build output (large)
+assets/paddock-*.mp4
+renders/
+.hyperframes/
