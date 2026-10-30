@@ -8,9 +8,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { site } from "@/content/site";
 import { BrandMark } from "@/components/ui/BrandMark";
-import { ButtonLink } from "@/components/ui/Button";
 import { LiveryStripe } from "@/components/ui/LiveryStripe";
 import { FilmPlayer } from "@/components/ui/FilmPlayer";
+import { DemoContact } from "./DemoContact";
 
 type Params = Promise<{ client: string }>;
 
@@ -60,15 +60,7 @@ export default async function ClientDemoPage({ params }: { params: Params }) {
         <figure className="m-0 max-w-[calc((100svh-16rem)*16/9)] overflow-hidden border border-border bg-surface">
           <FilmPlayer poster={film.poster} sources={film.sources} label={film.label} />
         </figure>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <ButtonLink href={film.cta.href} variant="primary">
-            {film.cta.label}
-          </ButtonLink>
-          <Link href="/" className="label-mono py-3 text-steel sm:px-4 no-underline hover:text-text">
-            {film.home}
-          </Link>
-          <p className="label-mono m-0 text-subtle sm:ml-auto">{film.note}</p>
-        </div>
+        <DemoContact slug={film.slug} />
       </div>
     </main>
   );
