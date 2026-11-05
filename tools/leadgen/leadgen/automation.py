@@ -59,6 +59,8 @@ class Settings:
     cold_after_days: int
     # What happens cold_after_days after the last follow-up: "nurture", "lost" or "none".
     after_last_follow_up: str = "nurture"
+    # The team's own words on how drafts should sound (Settings > Automation); empty = default voice.
+    writing_style: str = ""
 
 
 class Writer(Protocol):
@@ -109,6 +111,7 @@ def load_settings(store: Store) -> Settings:
         max_follow_ups=len(row.get("follow_up_days") or [3, 4, 7]),
         cold_after_days=int(row.get("cold_after_days", 7)),
         after_last_follow_up=str(row.get("after_last_follow_up") or "nurture"),
+        writing_style=str(row.get("writing_style") or "").strip(),
     )
 
 
@@ -167,7 +170,7 @@ def _lead_brief(lead: dict[str, Any]) -> str:
 
 SYSTEM = (
     f"You write emails for a small business-development team. {COMPANY} "
-    "Write like a sharp, friendly person, not a marketer: short sentences, plain words, no buzzwords, "
+    "Write like a warm, friendly person, not a marketer: plain words, no buzzwords, no pressure, "
     "no exclamation marks, no emoji, no subject line, no sign-off or signature (it is added later). "
     "Start with a one-word greeting and the person's first name when you have it. Never invent facts, "
     "prices, dates or availability that are not in the conversation; if something needs a person's "
@@ -175,27 +178,39 @@ SYSTEM = (
 )
 
 
-def write_reply(writer: Writer, lead: dict[str, Any], messages: list[dict[str, Any]], sender: str) -> str:
+def system_for(style: str) -> str:
+    """The writer's brief, with the team's own style notes last so they win over the defaults."""
+    if not style:
+        return SYSTEM
+    return (
+        f"{SYSTEM}\n\nHow this team wants its emails to sound (follow this over the style defaults above):\n{style}\n\n"
+        "Whatever the notes above say: never invent facts, prices, dates or availability, and output only the email body."
+    )
+
+
+def write_reply(writer: Writer, lead: dict[str, Any], messages: list[dict[str, Any]], sender: str, style: str = "") -> str:
     prompt = (
         f"Draft our reply to their latest message. Sender: {sender or 'the team'}.\n\n"
         f"{_lead_brief(lead)}\n\nConversation so far:\n\n{_transcript(messages, lead)}\n\n"
-        "Answer what they asked or said directly. If they show interest, propose a short call and ask "
-        "what time works this week. Under 120 words."
+        "Answer what they asked or said directly. Only if they've shown real interest, offer a call and "
+        "let them pick the time; otherwise don't push for one. Under 120 words."
     )
-    return writer.write(SYSTEM, prompt)
+    return writer.write(system_for(style), prompt)
 
 
-def write_follow_up(writer: Writer, lead: dict[str, Any], messages: list[dict[str, Any]], number: int, last: bool) -> str:
+def write_follow_up(writer: Writer, lead: dict[str, Any], messages: list[dict[str, Any]], number: int, last: bool,
+                    style: str = "") -> str:
     tone = (
-        "This is the last follow-up: say you'll close the loop for now and leave the door open."
-        if last else "Add one new, specific reason it's worth a reply; don't repeat the first email."
+        "This is the last follow-up: thank them, say you won't keep filling their inbox, and leave the door open."
+        if last else "Add one new, specific reason it's worth a reply; don't repeat the first email. Keep it light."
     )
     prompt = (
         f"They haven't answered. Write follow-up number {number} as a reply on the same thread.\n\n"
         f"{_lead_brief(lead)}\n\nConversation so far:\n\n{_transcript(messages, lead)}\n\n"
-        f"{tone} End with: \"If it's not a fit, just say so and I won't follow up again.\" Under 70 words."
+        f"{tone} No guilt, no pressure. Somewhere natural, give them an easy way to say no "
+        "(for example: \"If now isn't the right time, just let me know.\"). Under 70 words."
     )
-    return writer.write(SYSTEM, prompt)
+    return writer.write(system_for(style), prompt)
 
 
 def insert_draft(store: Store, row: dict[str, Any]) -> bool:
@@ -206,7 +221,7 @@ def insert_draft(store: Store, row: dict[str, Any]) -> bool:
 
 # --- passes --------------------------------------------------------------------------------------
 
-def draft_replies(store: Store, writer: Writer, limit: int = MAX_DRAFTS_PER_PASS) -> int:
+def draft_replies(store: Store, writer: Writer, limit: int = MAX_DRAFTS_PER_PASS, style: str = "") -> int:
     leads = store._req("GET", "leads", params={
         "awaiting": "eq.us", "do_not_contact": "eq.false", "status": "not.in.(converted)",
         "select": "id,business_name,email,contact_name,contact_title,segment,city,outreach_hook",
@@ -232,7 +247,7 @@ def draft_replies(store: Store, writer: Writer, limit: int = MAX_DRAFTS_PER_PASS
         last_out = next((m for m in reversed(msgs) if m["direction"] == "out"), None)
         sender = names.get(last_out["account_id"], "") if last_out and last_out.get("account_id") else ""
         try:
-            body = write_reply(writer, lead, msgs, sender)
+            body = write_reply(writer, lead, msgs, sender, style)
         except Exception:
             log.exception("reply draft failed for lead %s", lead["id"])
             continue
@@ -266,7 +281,8 @@ def queue_follow_ups(store: Store, writer: Writer, settings: Settings, today: da
             continue
         number = int(lead.get("follow_up_count") or 0) + 1
         try:
-            body = write_follow_up(writer, lead, msgs, number, last=number >= settings.max_follow_ups)
+            last = number >= settings.max_follow_ups
+            body = write_follow_up(writer, lead, msgs, number, last=last, style=settings.writing_style)
         except Exception:
             log.exception("follow-up draft failed for lead %s", lead["id"])
             continue
@@ -400,7 +416,7 @@ def run_once(store: Store, writer: Writer, graph: outlook_sync.GraphClient | Non
     out = {"meetings": 0, "replies": 0, "follow_ups": 0, "sent": 0, "cold": 0}
     steps = (
         ("meetings", lambda: sync_meetings(store, graph, now) if graph else 0),
-        ("replies", lambda: draft_replies(store, writer) if settings.draft_replies else 0),
+        ("replies", lambda: draft_replies(store, writer, style=settings.writing_style) if settings.draft_replies else 0),
         ("follow_ups", lambda: queue_follow_ups(store, writer, settings, team_today(now))),
         ("sent", send_due_follow_ups),
         ("cold", lambda: close_gone_cold(store, settings, now)),

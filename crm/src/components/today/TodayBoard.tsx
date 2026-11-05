@@ -7,6 +7,7 @@ import { useUndoableSend } from "@/components/ui/useUndoableSend";
 import { sendDraftAction } from "@/app/(admin)/admin/drafts/actions";
 import type { TodayItem } from "@/lib/store/today";
 import { defaultSenderId, senderOptions, type SenderAccount } from "@/components/inbox/sender";
+import { useDraftAutosave } from "@/components/inbox/useDraftAutosave";
 import Dropdown, { Chevron, Tick } from "./Dropdown";
 import TodayRow, { type RowAct } from "./TodayRow";
 import DraftPanel from "./DraftPanel";
@@ -57,6 +58,8 @@ export default function TodayBoard({ title, items, nextUp, stats, demo, accounts
   const [notice, setNotice] = useState<string | null>(null);
   const busy = useRef(false);
   const { schedule, toast } = useUndoableSend();
+  // Edits to a draft are kept in the CRM as they're typed, so working through a batch never loses them.
+  const { stateOf, queue: queueSave } = useDraftAutosave(!demo);
 
   const queue = useMemo(() => items.filter((i) => !removed.has(i.key)), [items, removed]);
   const byKey = useMemo(() => new Map(items.map((i) => [i.key, i])), [items]);
@@ -327,7 +330,12 @@ export default function TodayBoard({ title, items, nextUp, stats, demo, accounts
           onClose={closePanel}
           body={current?.draft ? (bodies[current.key] ?? current.draft.body) : ""}
           editing={editing}
-          onBodyChange={(b) => current && setBodies((prev) => ({ ...prev, [current.key]: b }))}
+          onBodyChange={(b) => {
+            if (!current?.draft) return;
+            setBodies((prev) => ({ ...prev, [current.key]: b }));
+            queueSave(current.draft.id, { body: b });
+          }}
+          saveState={stateOf(current?.draft?.id)}
           error={current ? (errors[current.key] ?? current.error) : null}
           notice={notice}
           senders={senders}

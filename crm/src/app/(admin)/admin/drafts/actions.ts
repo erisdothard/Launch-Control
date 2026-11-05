@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { sendEmail, validAttachment, type EmailAttachment, type SendResult } from "@/lib/email/send";
 import { currentCrmUserEmail } from "@/lib/email/session";
-import { AFTER_LAST_FOLLOW_UP, claimDraft, getDraft, markDraft, updateAutomationSettings, type AutomationSettings } from "@/lib/store/drafts";
+import { AFTER_LAST_FOLLOW_UP, WRITING_STYLE_MAX, claimDraft, getDraft, markDraft, saveDraftEdits, updateAutomationSettings, type AutomationSettings } from "@/lib/store/drafts";
 import { getEmailAccounts, getThread } from "@/lib/store/messages";
 
 // Drafts live in the Inbox (Drafts folder); /admin/drafts only redirects there. Today imports
@@ -102,6 +102,36 @@ export async function sendDraftAction(id: string, edits?: DraftEdits): Promise<S
   return result;
 }
 
+/**
+ * Keeps edits to a waiting draft as they're typed, so leaving it (or a refresh) doesn't bring back
+ * the drafted text. A draft that was sent or discarded meanwhile is left alone.
+ */
+export async function saveDraftEditsAction(
+  id: string,
+  edits: { subject?: string; body: string }
+): Promise<{ ok: true } | { ok: false; error: string; gone?: boolean }> {
+  if (!(await currentCrmUserEmail())) return { ok: false, error: "Sign in again to save your changes." };
+  if (
+    !isStr(id, 100) ||
+    typeof edits !== "object" ||
+    edits === null ||
+    (edits.subject !== undefined && !isStr(edits.subject, 1000)) ||
+    !isStr(edits.body, 50_000)
+  ) {
+    return { ok: false, error: "Those changes aren't valid. Reload the page." };
+  }
+  try {
+    if (!(await saveDraftEdits(id, { subject: edits.subject, body: edits.body }))) {
+      return { ok: false, gone: true, error: "This draft was already sent or discarded." };
+    }
+  } catch (err) {
+    // The reason only, never the draft text.
+    console.error("saveDraftEditsAction failed", id, err instanceof Error ? err.message : err);
+    return { ok: false, error: "Couldn't save your changes. Check your connection." };
+  }
+  return { ok: true };
+}
+
 export async function discardDraftAction(id: string): Promise<void> {
   if (!(await currentCrmUserEmail())) throw new Error("Sign in again.");
   const draft = await getDraft(id);
@@ -129,6 +159,9 @@ export async function updateAutomationAction(patch: Partial<AutomationSettings>)
   }
   if (patch.dailySendCap !== undefined && (!Number.isInteger(patch.dailySendCap) || patch.dailySendCap < 0 || patch.dailySendCap > 200)) {
     return { ok: false, error: "Daily limit must be 0 to 200." };
+  }
+  if (patch.writingStyle !== undefined && !isStr(patch.writingStyle, WRITING_STYLE_MAX)) {
+    return { ok: false, error: `Keep it under ${WRITING_STYLE_MAX} characters.` };
   }
   await updateAutomationSettings(patch);
   revalidatePath("/admin/settings");

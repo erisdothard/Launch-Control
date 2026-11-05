@@ -37,7 +37,11 @@ export interface AutomationSettings {
   coldAfterDays: number;
   afterLastFollowUp: AfterLastFollowUp;
   dailySendCap: number;
+  /** How drafts should sound, in the team's words; the worker adds it to the writer's brief. */
+  writingStyle: string;
 }
+
+export const WRITING_STYLE_MAX = 2000;
 
 interface DraftRow {
   id: string;
@@ -128,6 +132,22 @@ export async function markDraft(
   if (error) throw error;
 }
 
+/**
+ * Keeps edits typed into a waiting draft. False when it was sent or discarded meanwhile, so the
+ * editor can say so instead of claiming the change was saved. Subject is optional (Today edits body only).
+ */
+export async function saveDraftEdits(id: string, edits: { subject?: string; body: string }, client?: StoreClient): Promise<boolean> {
+  const supabase = await getStoreClient(client);
+  const { data, error } = await supabase
+    .from("email_drafts")
+    .update({ body_text: edits.body, updated_at: new Date().toISOString(), ...(edits.subject !== undefined && { subject: edits.subject }) })
+    .eq("id", id)
+    .eq("status", "pending")
+    .select("id");
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
 export async function getAutomationSettings(client?: StoreClient): Promise<AutomationSettings> {
   const supabase = await getStoreClient(client);
   const { data, error } = await supabase.from("automation_settings").select("*").eq("id", true).maybeSingle();
@@ -139,6 +159,7 @@ export async function getAutomationSettings(client?: StoreClient): Promise<Autom
     coldAfterDays: data?.cold_after_days ?? 7,
     afterLastFollowUp: AFTER_LAST_FOLLOW_UP.find((v) => v === data?.after_last_follow_up) ?? "nurture",
     dailySendCap: data?.daily_send_cap ?? 25,
+    writingStyle: data?.writing_style ?? "",
   };
 }
 
@@ -154,6 +175,7 @@ export async function updateAutomationSettings(patch: Partial<AutomationSettings
       ...(patch.coldAfterDays !== undefined && { cold_after_days: patch.coldAfterDays }),
       ...(patch.afterLastFollowUp !== undefined && { after_last_follow_up: patch.afterLastFollowUp }),
       ...(patch.dailySendCap !== undefined && { daily_send_cap: patch.dailySendCap }),
+      ...(patch.writingStyle !== undefined && { writing_style: patch.writingStyle }),
     })
     .eq("id", true);
   if (error) throw error;

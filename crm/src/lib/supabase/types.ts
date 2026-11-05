@@ -54,6 +54,7 @@ export type Database = {
           follow_up_days: number[]
           id: boolean
           updated_at: string
+          writing_style: string
         }
         Insert: {
           after_last_follow_up?: string
@@ -64,6 +65,7 @@ export type Database = {
           follow_up_days?: number[]
           id?: boolean
           updated_at?: string
+          writing_style?: string
         }
         Update: {
           after_last_follow_up?: string
@@ -74,6 +76,7 @@ export type Database = {
           follow_up_days?: number[]
           id?: boolean
           updated_at?: string
+          writing_style?: string
         }
         Relationships: []
       }

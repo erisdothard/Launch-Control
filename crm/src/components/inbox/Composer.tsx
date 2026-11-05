@@ -14,6 +14,7 @@ import { SendAsSwitch, SignatureToggle } from "./SendAs";
 import { cannotSendReason, defaultSenderId, senderOptions } from "./sender";
 import { CloseIcon, PaperclipIcon } from "./icons";
 import { fileSize } from "./url";
+import { useDraftAutosave } from "./useDraftAutosave";
 
 export type ComposerMode = "new" | "reply" | "replyAll" | "forward" | "draft";
 
@@ -124,6 +125,17 @@ export default function Composer({
   const fileRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const formId = useId();
+  const { stateOf, queue: queueSave } = useDraftAutosave(Boolean(draftId) && !demo);
+  const saveState = stateOf(draftId);
+  const withQuoted = (own: string) => (quoted ? `${own.replace(/\s+$/, "")}\n\n${quoted}` : own);
+
+  // A drafted email keeps its edits in the CRM as they're typed, so leaving it doesn't undo them.
+  const lastSaved = useRef(`${initial.subject}\n${initialOwn}`);
+  useEffect(() => {
+    if (!draftId || `${fields.subject}\n${fields.body}` === lastSaved.current) return;
+    lastSaved.current = `${fields.subject}\n${fields.body}`;
+    queueSave(draftId, { subject: fields.subject, body: quoted ? `${fields.body.replace(/\s+$/, "")}\n\n${quoted}` : fields.body });
+  }, [draftId, fields.subject, fields.body, quoted, queueSave]);
 
   // Bring back text typed earlier and not sent (drafts start from the drafted text instead).
   useEffect(() => {
@@ -200,7 +212,7 @@ export default function Composer({
     const toList = fields.to.split(/[,;]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
     const lead = leadId ?? (pickedLead && toList.length === 1 && toList[0] === pickedLead.email ? pickedLead.leadId : null);
     const firstTo = toList[0] ?? "";
-    const body = quoted ? `${fields.body.replace(/\s+$/, "")}\n\n${quoted}` : fields.body;
+    const body = withQuoted(fields.body);
     setPhase("held");
     setError(null);
 
@@ -471,6 +483,14 @@ export default function Composer({
           <PaperclipIcon size={18} />
           Attach files
         </button>
+        {draftId && saveState !== "idle" && (
+          <p role="status" aria-live="polite" className="ml-auto text-sm">
+            {saveState === "saving" && <span className="text-[var(--color-text-dim)]">Saving…</span>}
+            {saveState === "saved" && <span className="text-[var(--color-success)]">✓ Changes saved</span>}
+            {saveState === "error" && <span className="text-[var(--color-hot)]">Couldn&apos;t save your changes. Retrying…</span>}
+            {saveState === "gone" && <span className="text-[var(--color-hot)]">This draft was already sent or discarded</span>}
+          </p>
+        )}
         <input
           ref={fileRef}
           type="file"

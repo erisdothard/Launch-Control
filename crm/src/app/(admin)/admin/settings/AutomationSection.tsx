@@ -9,6 +9,8 @@ import { updateAutomationAction } from "../drafts/actions";
 // The worker spaces follow-ups three business days apart; only how many there are is a setting.
 const FOLLOW_UP_GAP = "3 business days";
 const MAX_FOLLOW_UPS = 6;
+// Same limit as WRITING_STYLE_MAX in the drafts store (server-only, so not imported here).
+const STYLE_MAX = 2000;
 
 const OUTCOMES: { id: AfterLastFollowUp; label: string; node: string; hint: string }[] = [
   { id: "nurture", label: "Gone quiet", node: "Gone quiet", hint: "Off your daily list, not lost. They come back the moment they write." },
@@ -197,12 +199,15 @@ export default function AutomationSection({ settings, pulse }: { settings: Autom
   const [wait, setWait] = useState(settings.coldAfterDays);
   const [after, setAfter] = useState<AfterLastFollowUp>(settings.afterLastFollowUp);
   const [cap, setCap] = useState(settings.dailySendCap);
+  const [style, setStyle] = useState(settings.writingStyle);
 
   // Number changes come in bursts (+ + +), so they save once the clicking stops.
   const queued = useRef<Partial<AutomationSettings>>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
+    // Left the page mid-typing: still save what was waiting.
+    if (Object.keys(queued.current).length > 0) void updateAutomationAction(queued.current);
   }, []);
 
   function flush() {
@@ -353,6 +358,30 @@ export default function AutomationSection({ settings, pulse }: { settings: Autom
             <p className="mt-2 text-sm text-[var(--color-text-muted)]">{outcome.hint}</p>
           </div>
         </div>
+      </div>
+
+      <div className="card p-5 sm:p-8">
+        <label htmlFor="writing-style" className="text-[19px] font-semibold text-[var(--color-text)]">
+          How drafts should sound
+        </label>
+        <p className="mt-1.5 text-[15px] text-[var(--color-text-muted)]">
+          Every new reply and follow-up is written this way. Drafts already waiting keep their wording; edit those in Drafts.
+        </p>
+        <textarea
+          id="writing-style"
+          value={style}
+          maxLength={STYLE_MAX}
+          rows={4}
+          placeholder="For example: Warm and relaxed, never pushy. Don't ask for a call unless they bring it up. Sign off with “Best,”."
+          onChange={(e) => {
+            setStyle(e.target.value);
+            save({ writingStyle: e.target.value });
+          }}
+          className="mt-4 w-full rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-4 py-3 text-[16px] leading-relaxed text-[var(--color-text)] placeholder:text-[var(--color-text-dim)]"
+        />
+        <p className="mt-2 text-right text-sm text-[var(--color-text-dim)] tabular">
+          {style.length} / {STYLE_MAX}
+        </p>
       </div>
 
       <div className="card flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:p-8">

@@ -27,8 +27,10 @@ def test_team_today_is_chicago_day() -> None:
 class RecordingWriter:
     def __init__(self) -> None:
         self.prompts: list[str] = []
+        self.systems: list[str] = []
 
     def write(self, system: str, prompt: str) -> str:
+        self.systems.append(system)
         self.prompts.append(prompt)
         return "Hi Paul, body"
 
@@ -38,14 +40,32 @@ MSGS = [{"id": "m1", "direction": "out", "from_address": "max@x.com", "to_addres
          "subject": "Hello", "body_text": "First email", "created_at": "2026-10-15T10:00:00Z", "account_id": "a1"}]
 
 
-def test_last_follow_up_closes_the_loop_and_every_one_offers_an_out() -> None:
+def test_last_follow_up_leaves_the_door_open_without_pressure() -> None:
     w = RecordingWriter()
     automation.write_follow_up(w, LEAD, MSGS, 3, last=True)
     automation.write_follow_up(w, LEAD, MSGS, 1, last=False)
-    assert "close the loop" in w.prompts[0]
-    assert "close the loop" not in w.prompts[1]
-    assert all("If it's not a fit" in p for p in w.prompts)
+    assert "leave the door open" in w.prompts[0]
+    assert "leave the door open" not in w.prompts[1]
+    assert all("If it's not a fit" not in p and "No guilt, no pressure" in p for p in w.prompts)
+    assert all("easy way to say no" in p for p in w.prompts)
     assert all("Acme Freight" in p and "First email" in p for p in w.prompts)
+
+
+def test_team_style_reaches_every_draft_and_defaults_stay_without_it() -> None:
+    w = RecordingWriter()
+    style = "Warm, never pushy. Sign off with Best."
+    automation.write_reply(w, LEAD, MSGS, "Max", style)
+    automation.write_follow_up(w, LEAD, MSGS, 1, last=False, style=style)
+    automation.write_reply(w, LEAD, MSGS, "Max")
+    assert all(style in s and s.endswith("output only the email body.") for s in w.systems[:2])
+    assert w.systems[2] == automation.SYSTEM
+
+
+def test_reply_only_offers_a_call_on_real_interest() -> None:
+    w = RecordingWriter()
+    automation.write_reply(w, LEAD, MSGS, "Max")
+    assert "Only if they've shown real interest" in w.prompts[0]
+    assert "what time works this week" not in w.prompts[0]
 
 
 def test_one_failing_step_does_not_stop_the_rest(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -57,8 +77,8 @@ def test_one_failing_step_does_not_stop_the_rest(monkeypatch: pytest.MonkeyPatch
         raise RuntimeError("graph down")
 
     monkeypatch.setattr(automation, "sync_meetings", boom)
-    monkeypatch.setattr(automation, "draft_replies", lambda *a: calls.append("replies") or 2)
-    monkeypatch.setattr(automation, "queue_follow_ups", lambda *a: calls.append("follow_ups") or 1)
+    monkeypatch.setattr(automation, "draft_replies", lambda *a, **k: calls.append("replies") or 2)
+    monkeypatch.setattr(automation, "queue_follow_ups", lambda *a, **k: calls.append("follow_ups") or 1)
     monkeypatch.setattr(automation, "send_due_follow_ups", lambda: calls.append("sent") or 1)
     monkeypatch.setattr(automation, "close_gone_cold", lambda *a: calls.append("cold") or 0)
     out = automation.run_once(object(), RecordingWriter(), graph=object())  # type: ignore[arg-type]
@@ -179,3 +199,14 @@ def test_silent_lead_can_still_be_closed_as_lost_or_left_alone() -> None:
     left = FakeStore([{"id": "l1"}], pending=[])
     assert automation.close_gone_cold(left, automation.Settings(True, 3, 14, "none"), now) == 0  # type: ignore[arg-type]
     assert left.patches == []
+
+
+def test_run_once_passes_the_team_style_to_both_drafting_passes(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, str] = {}
+    monkeypatch.setattr(automation, "load_settings", lambda store: automation.Settings(True, 3, 7, "nurture", "Warm."))
+    monkeypatch.setattr(automation, "sync_meetings", lambda *a: 0)
+    monkeypatch.setattr(automation, "close_gone_cold", lambda *a: 0)
+    monkeypatch.setattr(automation, "draft_replies", lambda *a, **k: seen.setdefault("replies", k.get("style", "")) and 0)
+    monkeypatch.setattr(automation, "queue_follow_ups", lambda store, writer, settings, today: seen.setdefault("follow_ups", settings.writing_style) and 0)
+    automation.run_once(object(), RecordingWriter(), None)  # type: ignore[arg-type]
+    assert seen == {"replies": "Warm.", "follow_ups": "Warm."}

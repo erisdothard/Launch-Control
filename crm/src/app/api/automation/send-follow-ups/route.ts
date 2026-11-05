@@ -21,6 +21,9 @@ function authorized(request: NextRequest): boolean {
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
+// A draft touched this recently is skipped this run: it may be mid-edit.
+const EDIT_QUIET_MS = 15 * 60_000;
+
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const admin = createServiceRoleClient();
@@ -46,6 +49,8 @@ export async function POST(request: NextRequest) {
     .select("id, lead_id, to_address, subject, body_text, leads(awaiting, do_not_contact, status)")
     .eq("status", "pending")
     .eq("kind", "follow_up")
+    // Someone edited it recently (edits save as they type): leave it until they've finished.
+    .lt("updated_at", new Date(Date.now() - EDIT_QUIET_MS).toISOString())
     .order("created_at", { ascending: true })
     .limit(room);
   if (error) return NextResponse.json({ error: "could not read drafts" }, { status: 500 });

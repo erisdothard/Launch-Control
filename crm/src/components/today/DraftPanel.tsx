@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { TodayItem } from "@/lib/store/today";
 import { senderName, signatureOf, type SenderAccount } from "@/components/inbox/sender";
+import type { DraftSaveState } from "@/components/inbox/useDraftAutosave";
 import Dropdown, { Chevron, Tick } from "./Dropdown";
 import { Chip, type RowAct } from "./TodayRow";
 import { Avatar, money, primaryLabel } from "./shared";
@@ -22,6 +23,8 @@ interface DraftPanelProps {
   body: string;
   editing: boolean;
   onBodyChange: (body: string) => void;
+  /** Whether the latest edit is saved in the CRM yet. */
+  saveState: DraftSaveState;
   error: string | null;
   notice: string | null;
   senders: SenderAccount[];
@@ -124,7 +127,15 @@ export default function DraftPanel(p: DraftPanelProps) {
               <dd>{item.draft.subject}</dd>
             </dl>
             {p.editing ? (
-              <textarea ref={textRef} className={styles.txt} value={p.body} onChange={(e) => p.onBodyChange(e.target.value)} aria-label="Edit the email" rows={4} />
+              <>
+                <textarea ref={textRef} className={styles.txt} value={p.body} onChange={(e) => p.onBodyChange(e.target.value)} aria-label="Edit the email" rows={4} />
+                <p role="status" aria-live="polite" className="mt-2 h-5 text-sm">
+                  {p.saveState === "saving" && <span className="text-[var(--color-text-dim)]">Saving…</span>}
+                  {p.saveState === "saved" && <span className="text-[var(--color-success)]">✓ Changes saved</span>}
+                  {p.saveState === "error" && <span className="text-[var(--color-hot)]">Couldn&apos;t save your changes. Retrying…</span>}
+                  {p.saveState === "gone" && <span className="text-[var(--color-hot)]">This draft was already sent or discarded</span>}
+                </p>
+              </>
             ) : (
               <div className={styles.txt} aria-label="Email text">
                 {p.body}
