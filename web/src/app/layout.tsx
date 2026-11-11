@@ -1,26 +1,32 @@
 import type { Metadata } from "next";
-import { Chivo_Mono, Michroma, Sora } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { site } from "@/content/site";
 
-const sora = Sora({
+// Self-hosted copies of the Google Fonts files (github.com/google/fonts, OFL licences in src/fonts/),
+// so builds never fetch from Google. Sora and Chivo Mono are variable fonts; the weight ranges cover the
+// weights the site used to request.
+const sora = localFont({
+  src: "../fonts/sora-v1.woff2",
   variable: "--font-sora",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: "400 600",
+  style: "normal",
   display: "swap",
 });
 
-const michroma = Michroma({
+const michroma = localFont({
+  src: "../fonts/michroma-v1.woff2",
   variable: "--font-michroma",
-  subsets: ["latin"],
-  weight: ["400"],
+  weight: "400",
+  style: "normal",
   display: "swap",
 });
 
-const chivoMono = Chivo_Mono({
+const chivoMono = localFont({
+  src: "../fonts/chivo-mono-v1.woff2",
   variable: "--font-chivo-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: "400 500",
+  style: "normal",
   display: "swap",
 });
 

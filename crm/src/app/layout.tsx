@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Chivo_Mono, Michroma, Sora } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 // The site's three faces (web/src/app/layout.tsx): Sora body, Michroma for the wordmark, labels and
-// buttons, Chivo Mono for numbers and utility labels.
-const sora = Sora({ variable: "--font-sora", subsets: ["latin"], weight: ["300", "400", "500", "600"], display: "swap" });
-const michroma = Michroma({ variable: "--font-michroma", subsets: ["latin"], weight: ["400"], display: "swap" });
-const chivoMono = Chivo_Mono({ variable: "--font-chivo-mono", subsets: ["latin"], weight: ["400", "500"], display: "swap" });
+// buttons, Chivo Mono for numbers and utility labels. Self-hosted copies of the Google Fonts files
+// (github.com/google/fonts, OFL licences in src/fonts/) so builds never fetch from Google.
+const sora = localFont({ src: "../fonts/sora-v1.woff2", variable: "--font-sora", weight: "300 600", style: "normal", display: "swap" });
+const michroma = localFont({ src: "../fonts/michroma-v1.woff2", variable: "--font-michroma", weight: "400", style: "normal", display: "swap" });
+const chivoMono = localFont({ src: "../fonts/chivo-mono-v1.woff2", variable: "--font-chivo-mono", weight: "400 500", style: "normal", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Launch Control CRM",
