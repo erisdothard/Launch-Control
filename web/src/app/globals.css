@@ -13,9 +13,16 @@ html {
   color: var(--color-text);
   color-scheme: dark;
   scroll-behavior: auto; /* Lenis owns smooth scrolling */
+  /* Nothing may make the page wider than the screen, even for a moment while a phone rotates:
+     iOS keeps the old zoom if it does (RotationZoomFix handles the rest). clip, not hidden, so
+     sticky sections keep working. */
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
+  overflow-x: clip;
   font-family: var(--font-body);
   font-size: var(--text-body);
   line-height: 1.55;

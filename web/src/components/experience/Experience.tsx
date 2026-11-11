@@ -236,7 +236,7 @@ export function Experience({ children }: { children: ReactNode }) {
       {mode === "full" && (
         <div
           ref={canvasWrap}
-          className="fixed inset-0 pointer-events-none"
+          className="fixed inset-0 overflow-hidden pointer-events-none"
           style={{ opacity: 0, transition: "opacity 1.2s var(--ease-ui)" }}
           aria-hidden="true"
         >

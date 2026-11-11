@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { site } from "@/content/site";
+import { RotationZoomFix } from "@/components/system/RotationZoomFix";
 
 // Self-hosted copies of the Google Fonts files (github.com/google/fonts, OFL licences in src/fonts/),
 // so builds never fetch from Google. Sora and Chivo Mono are variable fonts; the weight ranges cover the
@@ -49,7 +50,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${sora.variable} ${michroma.variable} ${chivoMono.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col bg-background text-text">{children}</body>
+      <body className="min-h-full flex flex-col bg-background text-text">
+        {children}
+        <RotationZoomFix />
+      </body>
     </html>
   );
 }
