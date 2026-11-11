@@ -21,7 +21,9 @@ const COMPANY = "Launch Control";
 // logo. NEXT_PUBLIC_DEMO_COMPANY names it on the demo deployment; the real CRM never sets either.
 const DEMO_COMPANY = process.env.NEXT_PUBLIC_DEMO_MODE === "1" ? (process.env.NEXT_PUBLIC_DEMO_COMPANY ?? "").trim() : "";
 
-export type LogoSource = "cid" | "url" | "preview";
+// "none": no images and no web font at all, for mass email. Gmail files a message carrying the
+// List-Unsubscribe header plus signature images under Promotions (measured 2026-11-10/11).
+export type LogoSource = "cid" | "url" | "preview" | "none";
 
 /** The drawn name for a cid: send; width and height in CSS px from renderNameImage. */
 export interface NameImageRef {
@@ -81,7 +83,7 @@ export function signatureHtml(
   const personName = escapeHtml(name.trim());
   const nameStyle = `${NAME_FONT}font-size:15px;line-height:21px;color:${INK};`;
   // Image when it can be reached: inline for a cid send, by URL for the rest. Alt text is the name.
-  const nameSrc = source === "cid" && nameImage ? `cid:${NAME_CID}` : source !== "cid" && accountId ? `${source === "preview" ? "" : NAME_URL.replace(/\/api.*$/, "")}/api/email/signature-name?account=${encodeURIComponent(accountId)}` : "";
+  const nameSrc = source === "none" ? "" : source === "cid" && nameImage ? `cid:${NAME_CID}` : source !== "cid" && accountId ? `${source === "preview" ? "" : NAME_URL.replace(/\/api.*$/, "")}/api/email/signature-name?account=${encodeURIComponent(accountId)}` : "";
   const nameCell = nameSrc
     ? `<img src="${nameSrc}" alt="${personName}" height="${nameImage?.height ?? NAME_H}"${nameImage ? ` width="${nameImage.width}"` : ""} style="display:block;height:${nameImage?.height ?? NAME_H}px;width:${nameImage ? `${nameImage.width}px` : "auto"};border:0;outline:none;${nameStyle}">`
     : personName;
@@ -96,11 +98,11 @@ export function signatureHtml(
     line(contact, `${GAP}font-size:13px;line-height:17px;color:${INK};`),
     ...smallLines(lines).map((l) => line(escapeHtml(l), `${GAP}font-size:11px;line-height:15px;color:${GRAY};`, true)),
   ].join("");
-  const logoCell = DEMO_COMPANY
+  const logoCell = DEMO_COMPANY || source === "none"
     ? ""
     : `<td valign="middle" style="padding:0 14px 0 0;vertical-align:middle;"><a href="${SITE}" style="text-decoration:none;"><img src="${logoSrc(source)}" width="${LOGO_W}" height="${LOGO_H}" alt="Launch Control" style="display:block;width:${LOGO_W}px;height:${LOGO_H}px;border:0;outline:none;"></a></td>`;
   const rule = DEMO_COMPANY ? "" : "padding:0 0 0 14px;border-left:2px solid #f0c419;";
-  return `${FONT_FACE}<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;${FONT}color:${INK};">
+  return `${source === "none" ? "" : FONT_FACE}<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;${FONT}color:${INK};">
 <tr>
 ${logoCell}
 <td valign="middle" style="${rule}vertical-align:middle;"><table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;">${rows}</table></td>

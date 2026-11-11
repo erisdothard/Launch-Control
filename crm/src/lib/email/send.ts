@@ -222,11 +222,11 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
     lines: account.signature_lines,
   };
   const sign = input.includeSignature !== false && Boolean(account.signature_name.trim());
-  // Mass email goes out as plain text with the signature as text. Measured in Gmail on 2026-11-10:
-  // the designed signature (logo and name images) together with the List-Unsubscribe header lands
-  // in Promotions; either one alone lands in Primary. The unsubscribe header stays, so the images go.
+  // Mass email keeps the signature's layout but carries no images. Measured in Gmail 2026-11-10/11:
+  // the List-Unsubscribe header together with the logo and name images lands in Promotions; the
+  // same signature without images, or the images without the header, lands in Primary.
   const designed = sign && !input.unsubscribeBaseUrl;
-  const signed = sign ? { text: emailText(body, signature), html: designed ? emailHtml(body, signature) : null } : { text: body, html: null };
+  const signed = sign ? { text: emailText(body, signature), html: emailHtml(body, signature, designed ? "url" : "none") } : { text: body, html: null };
   const toLine = to.join(", ");
   const headers = input.unsubscribeBaseUrl ? listUnsubscribe(to[0], lead?.id ?? null, input.unsubscribeBaseUrl, account.address) : undefined;
 
