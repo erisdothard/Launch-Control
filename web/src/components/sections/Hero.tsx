@@ -14,6 +14,8 @@ const { hero } = site;
   the first drag (globals.css, keyed off Experience's data attributes).
   The section behind this (Experience) is STAGE_SCREENS tall; this one-screen frame sticks to the
   top of the window while the engine runs its stage, then scrolls away with the page.
+  Short screens (phones and foldables in landscape) tighten the spacing, and the column centres
+  "safely": when it is taller than the screen it starts below the nav instead of sliding under it.
 */
 export function Hero() {
   return (
@@ -23,9 +25,9 @@ export function Hero() {
         className="pointer-events-none absolute inset-0 bg-background/60 md:bg-transparent md:bg-gradient-to-r md:from-background/90 md:via-background/65 md:to-transparent"
         style={{ opacity: "calc(0.78 + 0.22 * var(--stage-explode, 0))" }}
       />
-      <div className="relative mx-auto flex h-full w-full max-w-content-max flex-col justify-center px-6 pb-32 pt-16 lg:px-12">
-        <LiveryStripe className="mb-8" />
-        <ul className="label-mono m-0 mb-6 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-muted">
+      <div className="relative mx-auto flex h-full w-full max-w-content-max flex-col justify-center-safe px-6 pb-32 pt-16 lg:px-12 [@media(max-height:640px)]:pb-6 [@media(max-height:640px)]:pt-[4.5rem]">
+        <LiveryStripe className="mb-8 [@media(max-height:640px)]:mb-4" />
+        <ul className="label-mono m-0 mb-6 [@media(max-height:640px)]:mb-3 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-muted">
           {hero.eyebrow.map((item, i) => (
             <li key={item} className="flex gap-x-3">
               {item}
@@ -34,8 +36,8 @@ export function Hero() {
           ))}
         </ul>
         <h1 id="hero-title" className="max-w-[16ch] text-hero">{hero.title}</h1>
-        <p className="mt-8 max-w-[52ch] text-lead text-muted">{hero.body}</p>
-        <div className="mt-10 flex flex-wrap gap-4">
+        <p className="mt-8 max-w-[52ch] text-lead text-muted [@media(max-height:640px)]:mt-4">{hero.body}</p>
+        <div className="mt-10 flex flex-wrap gap-4 [@media(max-height:640px)]:mt-6">
           <ButtonLink href={hero.primaryCta.href}>{hero.primaryCta.label}</ButtonLink>
           <ButtonLink href={hero.secondaryCta.href} variant="secondary">
             {hero.secondaryCta.label}

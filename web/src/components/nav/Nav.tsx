@@ -6,8 +6,10 @@
   is the one yellow item, drawn as a small outlined button so it reads as the call to action.
   The CRM login (site.login) sits just left of it as a muted utility link, outside the ≤4 items.
   Below sm the bar is wordmark + Menu only (the outlined CTA and the wordmark do not both fit on
-  a 375px phone); the Menu opens a solid panel under the bar listing every item, Book a launch
-  last in yellow, so every section stays reachable on a phone. A passive scroll listener toggles a data attribute,
+  a 375px phone). From sm to lg (foldables, tablets in portrait) it is wordmark + CTA + Menu: the
+  full row of links only fits from lg, and squeezed in earlier it wraps "What we do" onto three
+  lines. The Menu opens a solid panel under the bar listing every item, Book a launch last in
+  yellow, so every section stays reachable. A passive scroll listener toggles a data attribute,
   so React never re-renders for it and it works with or without the 3D loop.
 */
 
@@ -52,12 +54,12 @@ export function Nav() {
           {site.brand.wordmark}
         </a>
         <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
-          <ul className="hidden items-center gap-6 m-0 p-0 list-none sm:flex md:gap-8">
+          <ul className="hidden items-center gap-8 m-0 p-0 list-none lg:flex">
             {links.map((item) => (
               <li key={item.href}>
                 <a
                   href={item.href}
-                  className="label-mono text-muted no-underline hover:text-text"
+                  className="label-mono whitespace-nowrap text-muted no-underline hover:text-text"
                   style={{ transition: "color var(--duration-fast) var(--ease-ui)" }}
                 >
                   {item.label}
@@ -67,7 +69,7 @@ export function Nav() {
           </ul>
           <a
             href={site.login.href}
-            className="label-mono hidden text-muted no-underline hover:text-text sm:inline"
+            className="label-mono hidden whitespace-nowrap text-muted no-underline hover:text-text lg:inline"
             style={{ transition: "color var(--duration-fast) var(--ease-ui)" }}
           >
             {site.login.label}
@@ -80,7 +82,7 @@ export function Nav() {
             aria-expanded={open}
             aria-controls="nav-menu"
             onClick={() => setOpen((value) => !value)}
-            className="label-mono min-h-9 cursor-pointer border-0 bg-transparent px-0 text-muted hover:text-text sm:hidden"
+            className="label-mono min-h-9 cursor-pointer border-0 bg-transparent px-0 text-muted hover:text-text lg:hidden"
           >
             {open ? site.navMenu.close : site.navMenu.open}
           </button>
@@ -89,7 +91,7 @@ export function Nav() {
       <ul
         id="nav-menu"
         hidden={!open}
-        className="m-0 flex list-none flex-col border-t border-border p-0 sm:hidden"
+        className="m-0 flex list-none flex-col border-t border-border p-0 lg:hidden"
       >
         {items.map((item) => (
           <li key={item.href} className="border-b border-border last:border-b-0">
