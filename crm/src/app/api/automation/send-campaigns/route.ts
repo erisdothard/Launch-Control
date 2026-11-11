@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendEmail, type SendResult } from "@/lib/email/send";
 import { isAutoReply, isHardBounce, isSenderProblem } from "@/lib/email/deliverability";
 import { findOptOut } from "@/lib/email/optOut";
+import { undeliverableReason } from "@/lib/email/verifyAddress";
 import { outboundHalt } from "@/lib/agents/halt";
 import { emailConfig, outlookAppOnly } from "@/lib/email/config";
 import { renderMerge } from "@/lib/email/merge";
@@ -21,7 +22,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 //   2. sends up to each campaign's per-minute pace of pending first emails, one email per person;
 //   3. sends due automatic follow-ups to people who haven't replied;
 //   4. marks a campaign sent when nobody is left pending.
-// Every send re-checks suppressions and do-not-contact right before it goes.
+// Every send re-checks suppressions and do-not-contact right before it goes; first emails also
+// re-check that the address's domain accepts mail (lib/email/verifyAddress.ts).
 export const maxDuration = 60;
 
 const SENT_BY = "campaign";
@@ -348,8 +350,11 @@ export async function POST(request: NextRequest) {
         // Paused or cancelled from the CRM while this call was running: stop here.
         const { data: live } = await admin.from("email_campaigns").select("status").eq("id", c.id).maybeSingle();
         if (live?.status !== "sending") break;
-        const why = await blocked(admin, r.email, r.lead_id);
-        if (why === undefined) continue;
+        const optedOut = await blocked(admin, r.email, r.lead_id);
+        if (optedOut === undefined) continue;
+        // Defence in depth behind the check at save: an address that can now only bounce (dead
+        // domain, provider typo) is skipped with the reason. A DNS timeout reads as fine, never a skip.
+        const why = optedOut ?? (await undeliverableReason(r.email).catch(() => null));
         if (why) {
           await admin.from("campaign_recipients").update({ status: "skipped", skip_reason: why }).eq("id", r.id).eq("status", "pending");
           out.skipped += 1;

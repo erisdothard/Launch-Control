@@ -32,7 +32,7 @@ export interface Candidate {
   origin: string;
 }
 
-export type ExcludeReason = "do_not_contact" | "call_list" | "suppressed" | "missing_email" | "invalid" | "duplicate" | "recent";
+export type ExcludeReason = "do_not_contact" | "call_list" | "suppressed" | "missing_email" | "invalid" | "undeliverable" | "duplicate" | "recent";
 
 export const EXCLUDE_LABELS: Record<ExcludeReason, { title: string; why: string; overridable: boolean }> = {
   do_not_contact: { title: "Asked not to be contacted", why: "These leads are marked do not contact.", overridable: false },
@@ -40,6 +40,11 @@ export const EXCLUDE_LABELS: Record<ExcludeReason, { title: string; why: string;
   suppressed: { title: "Unsubscribed or bounced", why: "These addresses opted out or bounced before.", overridable: false },
   missing_email: { title: "No email address", why: "Add an address on their record to include them.", overridable: false },
   invalid: { title: "Address doesn't look right", why: "These can't be delivered as written.", overridable: false },
+  undeliverable: {
+    title: "Can't receive email",
+    why: "Their domain doesn't accept email, or the address looks like a typo. Fix the address on their record to include them.",
+    overridable: false,
+  },
   duplicate: { title: "Already on the list", why: "Each address gets one email.", overridable: false },
   recent: { title: "Emailed recently", why: "Skipped by your recent-contact rule. Include anyone you still want to reach.", overridable: true },
 };
@@ -86,6 +91,8 @@ export interface AudienceContext {
   /** Keys Max included despite the recent-contact rule. */
   overrides: Set<string>;
   now: number;
+  /** Address -> why it can't receive mail (lib/email/addressCheck.ts). Empty until checked. */
+  undeliverable: Map<string, string>;
 }
 
 export function buildContext(
@@ -93,7 +100,8 @@ export function buildContext(
   suppressed: Iterable<string>,
   skipDays: number,
   overrides: Iterable<string>,
-  now = Date.now()
+  now = Date.now(),
+  undeliverable: Map<string, string> = new Map()
 ): AudienceContext {
   const leadsByEmail = new Map<string, AudienceLead>();
   for (const l of leads) if (l.email.trim()) leadsByEmail.set(l.email.trim().toLowerCase(), l);
@@ -104,6 +112,7 @@ export function buildContext(
     skipDays,
     overrides: new Set(overrides),
     now,
+    undeliverable,
   };
 }
 
@@ -146,6 +155,8 @@ export function evaluateAudience(candidates: Candidate[], ctx: AudienceContext):
     else if (lead?.doNotContact) push("do_not_contact");
     else if (lead?.callList) push("call_list");
     else if (ctx.suppressed.has(email)) push("suppressed");
+    // Before the recent-contact rule, so "Include anyway" can never put a dead address back on.
+    else if (ctx.undeliverable.has(email)) push("undeliverable", ctx.undeliverable.get(email));
     else if (
       ctx.skipDays > 0 &&
       lead?.lastContactedAt &&

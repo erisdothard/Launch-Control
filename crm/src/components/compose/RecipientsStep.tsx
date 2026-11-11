@@ -36,6 +36,8 @@ interface RecipientsStepProps {
   candidates: Candidate[];
   included: Recipient[];
   excluded: Recipient[];
+  /** The server is checking new domains can receive email; anyone that can't moves to Left out. */
+  checking: boolean;
   skipDays: number;
   onSkipDays: (days: number) => void;
   onAdd: (add: Candidate[]) => void;
@@ -68,7 +70,7 @@ function SourceRow({ label, sub, n, onAdd, added }: { label: string; sub?: strin
 // Step 1: who gets it. Add from views, statuses, sources, one by one, or a pasted/uploaded list;
 // the list on the right dedupes and sets aside anyone who shouldn't get it, saying why.
 export default function RecipientsStep(props: RecipientsStepProps) {
-  const { leads, candidates, included, excluded, skipDays, onSkipDays, onAdd, onRemove, onClear, onOverride, note } = props;
+  const { leads, candidates, included, excluded, checking, skipDays, onSkipDays, onAdd, onRemove, onClear, onOverride, note } = props;
   const [source, setSource] = useState<Source>("view");
   const [query, setQuery] = useState("");
   const [paste, setPaste] = useState("");
@@ -275,6 +277,9 @@ export default function RecipientsStep(props: RecipientsStepProps) {
           </div>
           {note && <p className="px-4 pt-1 text-[15px] text-[var(--color-text-muted)] sm:px-6">{note}</p>}
           <p className="px-4 pt-1 text-[15px] text-[var(--color-text-dim)] sm:px-6">Each person gets their own email. Nobody sees who else got it.</p>
+          <p role="status" className={checking ? "px-4 pt-1 text-[14px] text-[var(--color-text-dim)] sm:px-6" : "sr-only"}>
+            {checking ? "Checking these addresses can receive email…" : ""}
+          </p>
 
           <ul className="mt-3">
             {included.slice(0, shown).map((r) => {

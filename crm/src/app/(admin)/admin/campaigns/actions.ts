@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { MAX_TOTAL_MB, validAttachment } from "@/lib/email/attachments";
-import { buildContext, evaluateAudience, EXCLUDE_LABELS, type Candidate } from "@/components/compose/audience";
+import { buildContext, evaluateAudience, EXCLUDE_LABELS, isValidEmail, type Candidate } from "@/components/compose/audience";
+import type { DomainVerdict } from "@/lib/email/addressCheck";
+import { undeliverableAddresses, verifyDomains } from "@/lib/email/verifyAddress";
 import {
   MAX_ATTACHMENTS,
   MAX_PER_MINUTE,
@@ -170,7 +172,10 @@ async function validate(p: CampaignPayload, forSending: boolean): Promise<Valida
   const candidates = cleanCandidates(p.candidates);
   const [leads, suppressed] = await Promise.all([getAudienceLeads(teamTodayISO()), getSuppressedEmails()]);
   const overrides = Array.isArray(p.overrides) ? p.overrides.filter((k): k is string => typeof k === "string") : [];
-  const { included, excluded } = evaluateAudience(candidates, buildContext(leads, suppressed, skipDays, overrides));
+  // Addresses that can only bounce (dead domain, provider typo) are set aside, not sent. A DNS
+  // lookup that times out counts as fine: this never blocks the save or drops someone on a guess.
+  const undeliverable = await undeliverableAddresses(candidates.map((c) => c.email).filter(isValidEmail));
+  const { included, excluded } = evaluateAudience(candidates, buildContext(leads, suppressed, skipDays, overrides, Date.now(), undeliverable));
   if (forSending && included.length === 0) return "Nobody is on the list yet. Add people in step 1.";
   if (included.length > MAX_RECIPIENTS) return `That's more than ${MAX_RECIPIENTS} people. Split it into smaller campaigns.`;
 
@@ -200,7 +205,8 @@ async function validate(p: CampaignPayload, forSending: boolean): Promise<Valida
         subjectOverride: null,
         bodyOverride: null,
         status: "skipped" as const,
-        skipReason: r.excluded ? EXCLUDE_LABELS[r.excluded].title + (r.detail ? ` (${r.detail})` : "") : null,
+        // Can't-receive reasons are already a plain sentence ("The domain doesn't accept email").
+        skipReason: !r.excluded ? null : r.excluded === "undeliverable" && r.detail ? r.detail : EXCLUDE_LABELS[r.excluded].title + (r.detail ? ` (${r.detail})` : ""),
       })),
   ];
 
@@ -264,6 +270,32 @@ export async function saveCampaignAction(
     return { ok: true, id, count: v.pendingCount };
   } catch {
     return { ok: false, error: "Couldn't save the campaign. Nothing was sent. Try again in a moment." };
+  }
+}
+
+const MAX_CHECK_DOMAINS = 200;
+const DOMAIN = /^[a-z0-9.-]{3,253}$/;
+
+/**
+ * The composer's live check, one call per batch of new domains (debounced in the browser): which of
+ * these domains can't receive email, and why. Only bad verdicts come back; a domain left out is fine
+ * or couldn't be checked. Save runs the same check again, so this only has to be helpful, not trusted.
+ */
+export async function checkDomainsAction(domains: string[]): Promise<ActionResult<{ bad: Record<string, DomainVerdict> }>> {
+  const user = await currentCrmUserEmail();
+  if (!user) return { ok: false, error: "Sign in again to continue." };
+  const clean = (Array.isArray(domains) ? domains : [])
+    .filter((d): d is string => typeof d === "string")
+    .map((d) => d.trim().toLowerCase())
+    .filter((d) => DOMAIN.test(d))
+    .slice(0, MAX_CHECK_DOMAINS);
+  try {
+    const verdicts = await verifyDomains(clean, 8_000);
+    const bad: Record<string, DomainVerdict> = {};
+    for (const [domain, v] of verdicts) if (v.status === "bad") bad[domain] = v;
+    return { ok: true, bad };
+  } catch {
+    return { ok: false, error: "Couldn't check the addresses right now. They'll be checked again when you save." };
   }
 }
 

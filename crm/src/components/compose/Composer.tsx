@@ -8,6 +8,7 @@ import { formatTeamTime, sendDays, teamLocalToUtc } from "@/lib/email/merge";
 import { deleteTemplateAction, saveCampaignAction, saveTemplateAction, sendTestAction } from "@/app/(admin)/admin/campaigns/actions";
 import { buildContext, evaluateAudience, leadCandidate, recipientName, type AudienceLead, type Candidate } from "./audience";
 import RecipientsStep from "./RecipientsStep";
+import { useAddressCheck } from "./useAddressCheck";
 import { defaultSenderId, senderName, senderOptions } from "@/components/inbox/sender";
 import MessageStep from "./MessageStep";
 import SendStep, { type FollowUpDraft } from "./SendStep";
@@ -128,7 +129,11 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
     setDirty(true);
   };
 
-  const ctx = useMemo(() => buildContext(leads, suppressed, skipDays, overrides, openedAt), [leads, suppressed, skipDays, overrides, openedAt]);
+  const { undeliverable, checking } = useAddressCheck(candidates, demo);
+  const ctx = useMemo(
+    () => buildContext(leads, suppressed, skipDays, overrides, openedAt, undeliverable),
+    [leads, suppressed, skipDays, overrides, openedAt, undeliverable]
+  );
   const { included, excluded } = useMemo(() => evaluateAudience(candidates, ctx), [candidates, ctx]);
   const account = accounts.find((a) => a.id === accountId);
   const extraFields = useMemo(() => [...new Set(candidates.flatMap((c) => Object.keys(c.values)))], [candidates]);
@@ -335,6 +340,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
           candidates={candidates}
           included={included}
           excluded={excluded}
+          checking={checking}
           skipDays={skipDays}
           onSkipDays={touch(setSkipDays)}
           onAdd={(add) => {
