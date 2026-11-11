@@ -182,9 +182,11 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
 
       {hint && <p className="mb-2 text-[15px] text-[var(--color-text-dim)]">{hint}</p>}
 
-      <div className="card overflow-hidden">
+      {/* Columns follow the card's own width, not the screen's: beside the sidebar on a narrow
+          or sideways screen the card is far narrower than the window. Under 56rem it stacks. */}
+      <div className="card @container overflow-hidden">
         {/* Column heads double as the select-all control */}
-        <div className="flex items-center gap-4 border-b border-[var(--color-border)] px-4 py-3 sm:px-5 md:grid md:grid-cols-[22px_36px_minmax(0,1fr)_170px_140px_220px]">
+        <div className="flex items-center gap-4 border-b border-[var(--color-border)] px-4 py-3 sm:px-5 @4xl:grid @4xl:grid-cols-[22px_36px_minmax(0,1fr)_170px_140px_220px]">
           <Check
             checked={allInView}
             indeterminate={inViewSelected > 0}
@@ -192,12 +194,12 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
             label={allInView ? "Clear everyone in this view" : "Select everyone in this view"}
             disabled={leads.length === 0}
           />
-          <span className="text-[14px] text-[var(--color-text-dim)] md:col-span-2">
+          <span className="text-[14px] text-[var(--color-text-dim)] @4xl:col-span-2">
             {inViewSelected > 0 ? `${inViewSelected} of ${leads.length} in this view selected` : `Select all ${leads.length} in this view`}
           </span>
-          <span className="hidden text-[14px] text-[var(--color-text-dim)] md:block">Status</span>
-          <span className="hidden text-[14px] text-[var(--color-text-dim)] md:block">Last contact</span>
-          <span className="hidden text-[14px] text-[var(--color-text-dim)] md:block">Next step</span>
+          <span className="hidden text-[14px] text-[var(--color-text-dim)] @4xl:block">Status</span>
+          <span className="hidden text-[14px] text-[var(--color-text-dim)] @4xl:block">Last contact</span>
+          <span className="hidden text-[14px] text-[var(--color-text-dim)] @4xl:block">Next step</span>
         </div>
 
         <ul>
@@ -208,7 +210,7 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
               <li
                 key={lead.id}
                 onClick={() => router.push(`/admin/leads/${lead.id}`)}
-                className={`group grid cursor-pointer grid-cols-[22px_36px_minmax(0,1fr)] items-start gap-x-4 gap-y-2 border-b border-[var(--color-border)] px-4 py-4 transition-colors last:border-0 hover:bg-[var(--color-bg-hover)] sm:px-5 md:grid-cols-[22px_36px_minmax(0,1fr)_170px_140px_220px] ${
+                className={`group grid cursor-pointer grid-cols-[22px_36px_minmax(0,1fr)] items-start gap-x-4 gap-y-2 border-b border-[var(--color-border)] px-4 py-4 transition-colors last:border-0 hover:bg-[var(--color-bg-hover)] sm:px-5 @4xl:grid-cols-[22px_36px_minmax(0,1fr)_170px_140px_220px] ${
                   on ? "bg-[var(--color-accent)]/[0.04]" : ""
                 }`}
               >
@@ -230,22 +232,22 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
                     {lead.phone && <span className="text-[var(--color-text-dim)]"> · {lead.phone}</span>}
                   </div>
                   {/* Phones: status, last contact and next step stack under the name */}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--color-text-muted)] md:hidden">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--color-text-muted)] @4xl:hidden">
                     <StatusBadge status={lead.status} variant="lead" />
                     <LastContact lead={lead} />
                   </div>
-                  <div className="mt-1 text-[14px] md:hidden">
+                  <div className="mt-1 text-[14px] @4xl:hidden">
                     <NextStep lead={lead} today={today} />
                   </div>
                 </div>
-                <div className="hidden min-w-0 pt-0.5 md:block">
+                <div className="hidden min-w-0 pt-0.5 @4xl:block">
                   <StatusBadge status={lead.status} variant="lead" />
                   {lead.statusReason && <div className="mt-1 truncate text-[14px] text-[var(--color-text-dim)]">{lead.statusReason}</div>}
                 </div>
-                <div className="hidden pt-0.5 text-[15px] text-[var(--color-text-muted)] md:block">
+                <div className="hidden pt-0.5 text-[15px] text-[var(--color-text-muted)] @4xl:block">
                   <LastContact lead={lead} />
                 </div>
-                <div className="hidden min-w-0 pt-0.5 text-[15px] md:block">
+                <div className="hidden min-w-0 pt-0.5 text-[15px] @4xl:block">
                   <NextStep lead={lead} today={today} />
                 </div>
               </li>
