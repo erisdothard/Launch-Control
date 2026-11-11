@@ -13,7 +13,10 @@ is due. Right after the Mission Control check, notify.send_brief emails the brie
 also runs notify.check_alerts (a new outbound halt, a real prospect reply). Notify is internal
 mail, not an agent: no Guardian, no send caps. On the same daily/weekly check, pit_report.run_weekly
 rebuilds the /admin/ops Pit Report video when its newest copy in storage is a week old (or missing);
-it is not an agent and logs a line, not an agent_runs row. The crew thread heartbeats as "crew" each pass.
+it is not an agent and logs a line, not an agent_runs row. deliverability.run_once rides the same check
+(mail-tester score of one test email, every RUN_EVERY there). The crew thread heartbeats as "crew" each pass.
+Separately, the campaign, follow-up, calendar and mail-sync loops report each pass to alarms.py, which
+emails Eris when one keeps failing and again when it recovers.
 Every agent call is wrapped: one agent failing never stops the worker.
 """
 
@@ -30,6 +33,7 @@ from leadgen import (
     agent_log,
     automation,
     campaigns,
+    deliverability,
     mission_control,
     notify,
     outlook_sync,
@@ -131,6 +135,8 @@ def crew_pass(store: Store, check_due: bool) -> dict[str, bool]:
         run_agent("strategist", lambda: strategist.run_weekly(store))
         # Not an agent (no agent_runs row): the weekly Pit Report video for /admin/ops.
         run_agent("pit-report", lambda: pit_report.run_weekly(store))
+        # Not an agent either: the mail-tester score of one outreach-shaped email, every RUN_EVERY.
+        run_agent("deliverability", lambda: deliverability.run_once(store))
     run_agent("notify-alerts", lambda: notify.check_alerts(store))
     return ran
 

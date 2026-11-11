@@ -31,12 +31,14 @@ from zoneinfo import ZoneInfo
 import anthropic
 import httpx
 
-from leadgen import outlook_sync
+from leadgen import alarms, outlook_sync
 from leadgen.store import Store
 
 log = logging.getLogger(__name__)
 
 RUN_EVERY_S = 300
+# run_once steps watched by alarms.py: step name -> alarm job.
+ALARMED_STEPS = {"meetings": alarms.MEETINGS, "sent": alarms.FOLLOW_UPS}
 MODEL = "claude-sonnet-5-5"
 TEAM_TZ = ZoneInfo("America/Chicago")
 # Calendar window read each pass: a week back (meetings logged late) to two months out.
@@ -421,12 +423,18 @@ def run_once(store: Store, writer: Writer, graph: outlook_sync.GraphClient | Non
         ("sent", send_due_follow_ups),
         ("cold", lambda: close_gone_cold(store, settings, now)),
     )
-    # Each step stands alone: a calendar outage must not stop the drafts.
+    # Each step stands alone: a calendar outage must not stop the drafts. The CRM follow-up call and
+    # the calendar read also report to alarms.py, so one that fails on every pass gets noticed.
     for name, step in steps:
         try:
             out[name] = step()
-        except Exception:
+        except Exception as exc:
             log.exception("automation step %s failed", name)
+            if name in ALARMED_STEPS:
+                alarms.record(store, ALARMED_STEPS[name], exc)
+        else:
+            if name in ALARMED_STEPS:
+                alarms.record(store, ALARMED_STEPS[name], None)
     return out
 
 

@@ -20,7 +20,7 @@ from typing import Any
 
 import httpx
 
-from leadgen import bounces
+from leadgen import alarms, bounces
 from leadgen.gmail_sync import strip_quoted_reply
 from leadgen.store import Store
 
@@ -125,6 +125,12 @@ def _name(item: dict[str, Any] | None) -> str:
     name = str(((item or {}).get("emailAddress") or {}).get("name") or "").strip()
     # Outlook fills the name with the address itself when it has nothing better.
     return "" if "@" in name and name.lower() == _address(item) else name
+
+
+def _to_mail_tester(m: dict[str, Any]) -> bool:
+    """Sent only to mail-tester inboxes: deliverability.py's test email."""
+    to = _addresses(m.get("toRecipients")) + _addresses(m.get("ccRecipients"))
+    return bool(to) and all(a.rpartition("@")[2] == "mail-tester.com" or a.endswith(".mail-tester.com") for a in to)
 
 
 def _addresses(items: list[dict[str, Any]] | None) -> list[str]:
@@ -253,7 +259,8 @@ def sync_account(store: Store, graph: GraphClient, account: dict[str, Any], now:
             msgs, cursors[folder] = walk_folder(graph, token, _start_url(folder, since))
         for m in msgs:
             m["_folder"] = folder
-        found.extend(msgs)
+        # The deliverability check's test emails to mail-tester are not CRM mail.
+        found.extend(m for m in msgs if not _to_mail_tester(m))
 
     own = store.own_addresses()
     sweep_bounces(store, graph, token, cursors, since, own)
@@ -304,12 +311,16 @@ def sweep_bounces(store: Store, graph: GraphClient, token: str, cursors: dict[st
 
 def sync_all(store: Store, graph: GraphClient) -> None:
     for account in store.outlook_accounts():
+        job = alarms.outlook_job(str(account.get("address") or ""))
         try:
             n = sync_account(store, graph, account)
             if n:
                 log.info("outlook %s: stored %d message(s)", account["address"], n)
-        except Exception:
+        except Exception as exc:
             log.exception("outlook sync failed for %s", account.get("address"))
+            alarms.record(store, job, exc)
+        else:
+            alarms.record(store, job, None)
 
 
 def start_background_sync(store_factory, every_s: float = SYNC_EVERY_S) -> threading.Thread | None:  # noqa: ANN001

@@ -22,7 +22,7 @@ from typing import Any
 
 import anthropic
 
-from leadgen import agent_log, metrics
+from leadgen import agent_log, alarms, metrics
 from leadgen.automation import MODEL, TEAM_TZ, ClaudeWriter, Writer
 from leadgen.copy_rules import TIME_WORDS, scrub_time_words  # noqa: F401  (re-exported for callers)
 from leadgen.store import Store
@@ -80,6 +80,9 @@ def heartbeats(store: Store, now: datetime) -> list[dict[str, Any]]:
     rows = store._req("GET", "worker_heartbeats", params={"select": "name,beat_at,detail"}).json()
     out = []
     for r in rows:
+        # alarms.py keeps its per-job state in "alarm:*" rows, written on change rather than on a beat.
+        if str(r.get("name") or "").startswith(alarms.PREFIX):
+            continue
         age = int((now - _parse(r["beat_at"])).total_seconds())
         every = (r.get("detail") or {}).get("every_s")
         limit = STALE_INTERVALS * every if isinstance(every, (int, float)) and every > 0 else STALE_DEFAULT_S

@@ -20,7 +20,7 @@ from typing import Any
 
 import httpx
 
-from leadgen import guardian
+from leadgen import alarms, guardian
 from leadgen.store import Store
 
 log = logging.getLogger(__name__)
@@ -58,10 +58,18 @@ def run_once(http: httpx.Client | None = None, store: Store | None = None) -> di
         if not guardian.allow_outbound(store):
             log.warning("campaign send skipped: outbound halted by the Guardian")
             return {}
-        return send_due_campaigns(http)
     except Exception:
-        log.exception("campaign send call failed")
+        log.exception("campaign send skipped: the Guardian's gate failed")
         return {}
+    # Only the CRM call itself feeds the alarm: a halt is a decision, not a failure.
+    try:
+        counts = send_due_campaigns(http)
+    except Exception as exc:
+        log.exception("campaign send call failed")
+        alarms.record(store, alarms.CAMPAIGNS, exc)
+        return {}
+    alarms.record(store, alarms.CAMPAIGNS, None)
+    return counts
 
 
 def beat(store: Store, every_s: float, counts: dict[str, int]) -> None:

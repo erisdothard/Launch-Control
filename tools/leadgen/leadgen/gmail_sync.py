@@ -19,6 +19,7 @@ from typing import Any
 
 import httpx
 
+from leadgen import alarms
 from leadgen.store import Store
 
 log = logging.getLogger(__name__)
@@ -176,12 +177,16 @@ def sync_account(store: Store, gmail: GmailClient, account: dict[str, Any]) -> i
 
 def sync_all(store: Store, gmail: GmailClient) -> None:
     for account in store.gmail_accounts():
+        job = alarms.gmail_job(str(account.get("address") or ""))
         try:
             n = sync_account(store, gmail, account)
             if n:
                 log.info("gmail %s: stored %d message(s)", account["address"], n)
-        except Exception:
+        except Exception as exc:
             log.exception("gmail sync failed for %s", account.get("address"))
+            alarms.record(store, job, exc)
+        else:
+            alarms.record(store, job, None)
 
 
 def start_background_sync(store_factory, every_s: float = SYNC_EVERY_S) -> threading.Thread | None:  # noqa: ANN001
