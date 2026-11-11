@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -40,6 +39,7 @@ import httpx
 
 from leadgen import agent_log, metrics, mission_control
 from leadgen.automation import TEAM_TZ
+from leadgen.bounces import BOUNCE_SUBJECT
 from leadgen.copy_rules import scrub_time_words
 from leadgen.outlook_sync import GRAPH, GraphClient, app_mailbox, ms_credentials
 from leadgen.store import Store, StoreError
@@ -58,14 +58,6 @@ REPLY_LOOKBACK = timedelta(days=3)
 WATERMARK_KEY = "watermark:reply"
 _CHUNK = 80
 FOOTER = "Internal notice from the Launch Control worker."
-# Delivery reports filed on a lead's thread. Not a prospect reply, though metrics.py's rule counts them.
-BOUNCE_SUBJECT = re.compile(
-    r"^\s*(undeliverable|undelivered mail|delivery status notification|delivery (has )?failed|"
-    r"delivery failure|mail delivery (failed|failure|subsystem)|returned mail|failure notice|"
-    r"mail system error|non[- ]?delivery)",
-    re.I,
-)
-
 # What each halting Guardian check means, for someone who didn't write the Guardian.
 PLAIN_CHECKS = {
     "bounce_rate": "Too many emails from one mailbox bounced or failed",

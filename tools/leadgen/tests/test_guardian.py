@@ -152,6 +152,14 @@ def test_bounce_rate_over_three_percent_halts_with_exact_numbers(rest: FakeRest)
     assert "2/25" in run["decision"]
 
 
+def test_one_dead_address_counts_once_however_many_sends_it_had(rest: FakeRest) -> None:
+    again = [{**m, "to_address": "p3@shop.com"} for m in sends(2, status="failed", start=40)]
+    healthy(rest, email_messages=sends(38) + again, email_suppressions=[{"email": "p3@shop.com", "reason": "bounce"}])
+    assert guardian.run_once(rest.store(), NOW) is True
+    [b] = checks(rest.runs("guardian")[0], "bounce_rate")
+    assert (b["sends"], b["failed"], b["bounced_after_send"]) == (40, 0, 1)
+
+
 def test_bounces_are_not_judged_under_twenty_sends(rest: FakeRest) -> None:
     healthy(rest, email_messages=sends(10) + sends(5, status="failed", start=10))
     assert guardian.run_once(rest.store(), NOW) is True

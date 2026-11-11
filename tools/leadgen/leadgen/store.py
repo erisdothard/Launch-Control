@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -216,6 +217,25 @@ class Store:
             }).json()
             out.update(r["message_id_header"] for r in rows)
         return out
+
+    def sends_to(self, email: str) -> list[dict[str, Any]]:
+        """Outbound messages addressed to this address (alone or among others): id, status, created_at."""
+        like = re.sub(r"([\\%_*])", r"\\\1", email.lower())
+        rows = self._req("GET", "email_messages", params={
+            "to_address": f"ilike.*{like}*", "direction": "eq.out", "select": "id,status,created_at,to_address",
+            "order": "created_at.desc", "limit": "200",
+        }).json()
+        return [r for r in rows if email.lower() in {a.strip().lower() for a in re.split(r"[,;]", r["to_address"] or "")}]
+
+    def suppress_bounce(self, email: str) -> None:
+        """Never email this address again. An existing row (an unsubscribe, say) is left as it is."""
+        self._req("POST", "email_suppressions", params={"on_conflict": "email"},
+                  prefer="resolution=ignore-duplicates,return=minimal", json={"email": email.lower(), "reason": "bounce"})
+
+    def mark_bounced(self, message_id: str, reason: str) -> None:
+        """A send that looked fine and then bounced: show it as failed, with why."""
+        self._req("PATCH", "email_messages", params={"id": f"eq.{message_id}", "status": "eq.sent"},
+                  prefer="return=minimal", json={"status": "failed", "error": reason})
 
     def attach_provider_ids(self, message_id_header: str, provider_message_id: str, provider_thread_id: str | None) -> None:
         """A CRM send that went out over SMTP has only its Message-ID; add the ids Outlook gave it."""

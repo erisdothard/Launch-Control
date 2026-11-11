@@ -3,8 +3,8 @@
 Runs in the worker in front of every send call (campaigns.py, automation.send_due_follow_ups).
 Plain arithmetic, no LLM:
 
-1. Bounces. Per mailbox, over its last BOUNCE_WINDOW outbound messages: failed sends plus sent
-   messages whose address is now suppressed as a bounce. Above BOUNCE_HALT_RATE halts, once the
+1. Bounces. Per mailbox, over its last BOUNCE_WINDOW outbound messages: failed sends plus addresses
+   now suppressed as a bounce (each dead address once). Above BOUNCE_HALT_RATE halts, once the
    mailbox has BOUNCE_MIN_SENDS sends (fewer is noise).
 2. Caps. Sends per mailbox over the last 24h vs DAILY_SEND_CAP (the CRM's own limit,
    crm/src/lib/email/send.ts), and automatic follow-ups since the start of the team's day vs
@@ -94,8 +94,10 @@ def check_bounces(store: Store, suppressed: dict[str, str]) -> list[Finding]:
             window.append(r)
     findings = []
     for account, window in sorted(per_account.items()):
-        failed = sum(r["status"] == "failed" for r in window)
-        late = len({a for r in window if r["status"] == "sent" and (a := _first_address(r["to_address"])) in bounced})
+        # A dead address counts once, however many sends to it there were and whether its send was
+        # refused on the spot ("failed") or bounced later; other failures count per send.
+        late = len({a for r in window if (a := _first_address(r["to_address"])) in bounced})
+        failed = sum(r["status"] == "failed" and _first_address(r["to_address"]) not in bounced for r in window)
         sends = len(window)
         rate = (failed + late) / sends if sends else 0.0
         enough = sends >= BOUNCE_MIN_SENDS

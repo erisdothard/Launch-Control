@@ -111,7 +111,8 @@ def test_sync_stores_every_message_and_skips_crm_sends() -> None:
     assert by_id["in-1"]["lead_id"] == "lead-paul" and by_id["in-1"]["body_text"] == "Yes!"
     assert by_id["in-3"]["direction"] == "in" and by_id["in-3"]["lead_id"] == "lead-doug"
     assert by_id["sent-2"]["direction"] == "out" and by_id["sent-2"]["lead_id"] == "lead-doug"
-    assert json.loads(store.cursor or "{}") == {"v": 2, "inbox": "inbox-delta-2", "sentitems": "sent-delta-2"}
+    assert json.loads(store.cursor or "{}") == {"v": 2, "inbox": "inbox-delta-2", "sentitems": "sent-delta-2",
+                                                "bounce:inbox": "inbox-delta-2", "bounce:junkemail": "sent-delta-2"}
     assert store.saved_token == "rotated"
     assert "receivedDateTime+ge+2026-09-19T00:00:00Z" in graph.urls[0]
 
@@ -153,9 +154,62 @@ def test_old_cursors_are_dropped_once_so_the_lookback_is_walked_again() -> None:
 def test_sync_resumes_from_saved_delta_links() -> None:
     store, graph = FakeStore(), FakeGraph()
     account = {"id": "acc", "address": "maxwell@golaunchcontrol.com",
-               "sync_cursor": json.dumps({"v": 2, "inbox": "https://graph/inbox/d1", "sentitems": "https://graph/sent/d1"})}
+               "sync_cursor": json.dumps({"v": 2, "inbox": "https://graph/inbox/d1", "sentitems": "https://graph/sent/d1",
+                                          "bounce:inbox": "https://graph/inbox/b1", "bounce:junkemail": "https://graph/junk/b1"})}
     outlook_sync.sync_account(store, graph, account)  # type: ignore[arg-type]
-    assert [u for u in graph.urls if "/attachments" not in u] == ["https://graph/inbox/d1", "https://graph/sent/d1"]
+    assert [u for u in graph.urls if "/attachments" not in u] == [
+        "https://graph/inbox/d1", "https://graph/sent/d1", "https://graph/inbox/b1", "https://graph/junk/b1"]
+
+
+class BounceGraph(FakeGraph):
+    """Junk holds one delivery report; nothing else is new."""
+
+    def get(self, token: str, url: str) -> FakeResp:
+        self.urls.append(url)
+        if "/junkemail/" in url:
+            return FakeResp({"value": [{
+                "id": "ndr-1", "subject": "Undeliverable: Re: hello", "isDraft": False,
+                "from": {"emailAddress": {"address": "postmaster@golaunchcontrol.com"}}, "receivedDateTime": "2026-10-19T00:00:00Z",
+                "body": {"content": "Your message to gone@track.com couldn't be delivered.\nStatus code: 550 5.1.1"},
+            }], "@odata.deltaLink": "junk-delta-2"})
+        return FakeResp({"value": [], "@odata.deltaLink": "same"})
+
+
+class BounceStore(FakeStore):
+    def __init__(self) -> None:
+        super().__init__()
+        self.suppressed: list[str] = []
+        self.marked: list[str] = []
+
+    def sends_to(self, email: str) -> list[dict[str, Any]]:
+        return [{"id": "msg-7", "status": "sent", "created_at": "2026-10-18T00:00:00+00:00"}] if email == "gone@track.com" else []
+
+    def suppress_bounce(self, email: str) -> None:
+        self.suppressed.append(email)
+
+    def mark_bounced(self, message_id: str, reason: str) -> None:
+        self.marked.append(message_id)
+
+
+def test_a_bounce_notice_in_junk_blocks_the_address_and_is_not_stored() -> None:
+    store, graph = BounceStore(), BounceGraph()
+    account = {"id": "acc", "address": "maxwell@golaunchcontrol.com", "sync_cursor": None}
+    n = outlook_sync.sync_account(store, graph, account, now=datetime(2026, 10, 19, tzinfo=UTC))  # type: ignore[arg-type]
+    assert store.suppressed == ["gone@track.com"] and store.marked == ["msg-7"]
+    assert n == 0 and store.rows == []
+    assert json.loads(store.cursor or "{}")["bounce:junkemail"] == "junk-delta-2"
+
+
+def test_a_failed_bounce_sweep_keeps_its_place_and_the_mail_sync_still_runs() -> None:
+    class Broken(BounceStore):
+        def suppress_bounce(self, email: str) -> None:
+            raise RuntimeError("database away")
+
+    store, graph = Broken(), BounceGraph()
+    account = {"id": "acc", "address": "maxwell@golaunchcontrol.com", "sync_cursor": None}
+    outlook_sync.sync_account(store, graph, account, now=datetime(2026, 10, 19, tzinfo=UTC))  # type: ignore[arg-type]
+    saved = json.loads(store.cursor or "{}")
+    assert "bounce:junkemail" not in saved and saved["inbox"] == "same"
 
 
 def test_app_only_mode_reads_the_mailbox_as_the_app(monkeypatch):

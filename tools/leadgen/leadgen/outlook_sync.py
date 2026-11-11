@@ -20,6 +20,7 @@ from typing import Any
 
 import httpx
 
+from leadgen import bounces
 from leadgen.gmail_sync import strip_quoted_reply
 from leadgen.store import Store
 
@@ -29,6 +30,11 @@ GRAPH = "https://graph.microsoft.com/v1.0"
 SYNC_EVERY_S = 120
 # Graph folder -> the CRM's email_messages.folder. Junk and Deleted Items are deliberately absent.
 FOLDERS = {"inbox": "inbox", "sentitems": "sent"}
+# Read for delivery reports only, never stored: Outlook files many bounce notices in Junk. These
+# keep their own delta links ("bounce:<folder>" in the cursor), so the CRM's own sync taking the
+# Inbox first can't hide a report from this pass.
+BOUNCE_FOLDERS = ("inbox", "junkemail")
+BOUNCE_SELECT = "id,from,subject,body,receivedDateTime,isDraft"
 # On the first run only look back this far, so connecting doesn't import years of old mail.
 FIRST_RUN_LOOKBACK = timedelta(days=30)
 # Bumped when the sync starts storing more than before: cursors from an older version are dropped
@@ -106,9 +112,9 @@ class GraphClient:
         return self.http.get(url, headers={"Authorization": f"Bearer {token}", "Prefer": _PREFER})
 
 
-def _start_url(folder: str, since: datetime) -> str:
+def _start_url(folder: str, since: datetime, select: str = SELECT) -> str:
     stamp = since.strftime("%Y-%m-%dT%H:%M:%SZ")
-    return f"{me()}/mailFolders/{folder}/messages/delta?$select={SELECT}&$filter=receivedDateTime+ge+{stamp}"
+    return f"{me()}/mailFolders/{folder}/messages/delta?$select={select}&$filter=receivedDateTime+ge+{stamp}"
 
 
 def _address(item: dict[str, Any] | None) -> str:
@@ -250,6 +256,7 @@ def sync_account(store: Store, graph: GraphClient, account: dict[str, Any], now:
         found.extend(msgs)
 
     own = store.own_addresses()
+    sweep_bounces(store, graph, token, cursors, since, own)
     threads = sorted({m["conversationId"] for m in found if m.get("conversationId")})
     emails = {_address(m.get("from")) for m in found} | {_address(r) for m in found for r in m.get("toRecipients") or []}
     by_email = store.leads_by_emails(sorted(e for e in emails if e and e not in own))
@@ -271,6 +278,28 @@ def sync_account(store: Store, graph: GraphClient, account: dict[str, Any], now:
         stored += store.insert_message(r)
     store.set_sync_cursor(account["id"], json.dumps(cursors))
     return stored
+
+
+def sweep_bounces(store: Store, graph: GraphClient, token: str, cursors: dict[str, Any], since: datetime,
+                  own: set[str]) -> list[str]:
+    """Block addresses that new delivery reports in the Inbox or Junk say are dead. A failure here
+    is logged and never stops the mail sync; a folder's link only moves once its reports are recorded."""
+    blocked: list[str] = []
+    for folder in BOUNCE_FOLDERS:
+        key = f"bounce:{folder}"
+        start = _start_url(folder, since, BOUNCE_SELECT)
+        try:
+            try:
+                msgs, link = walk_folder(graph, token, cursors.get(key) or start)
+            except LookupError:
+                msgs, link = walk_folder(graph, token, start)
+            blocked += bounces.record(store, msgs, own)
+            cursors[key] = link
+        except Exception:
+            log.exception("bounce sweep failed for %s", folder)
+    if blocked:
+        log.warning("bounced, now blocked: %s", ", ".join(sorted(blocked)))
+    return blocked
 
 
 def sync_all(store: Store, graph: GraphClient) -> None:
