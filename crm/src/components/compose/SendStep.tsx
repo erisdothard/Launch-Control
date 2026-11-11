@@ -2,14 +2,68 @@
 
 import { formatTeamTime, sendDays, teamLocalToUtc } from "@/lib/email/merge";
 import FieldMenu from "./FieldMenu";
-import { DAILY_LIMITS, DEFAULT_DAILY_LIMIT, type SendWhen } from "./types";
+import { DAILY_LIMITS, DEFAULT_DAILY_LIMIT, MAX_EXTRA_FOLLOW_UPS, type FollowUpSettings, type FollowUpStep, type SendWhen } from "./types";
 import { Spinner } from "./ui";
 
-export interface FollowUpDraft {
+export interface FollowUpDraft extends FollowUpSettings {
   enabled: boolean;
-  days: number;
-  subject: string;
-  body: string;
+}
+
+/** Days, subject and message for one follow-up. Days count from the email before it. */
+function StepFields({
+  id,
+  lead,
+  step,
+  subjectPlaceholder,
+  bodyPlaceholder,
+  extraFields,
+  onChange,
+}: {
+  id: string;
+  lead: string;
+  step: FollowUpStep;
+  subjectPlaceholder: string;
+  bodyPlaceholder: string;
+  extraFields: string[];
+  onChange: (s: Partial<FollowUpStep>) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <label htmlFor={`${id}-days`} className="text-[15px] text-[var(--color-text-muted)]">
+          {lead}
+        </label>
+        <select id={`${id}-days`} className="field !w-auto" value={step.days} onChange={(e) => onChange({ days: Number(e.target.value) })}>
+          {FOLLOW_DAYS.map((d) => (
+            <option key={d} value={d}>
+              {d} days
+            </option>
+          ))}
+        </select>
+        <span className="text-[15px] text-[var(--color-text-muted)]">with no reply</span>
+      </div>
+      <label className="block">
+        <span className="mb-1.5 block text-[14px] text-[var(--color-text-dim)]">Subject</span>
+        <input className="field" value={step.subject} maxLength={200} placeholder={subjectPlaceholder} onChange={(e) => onChange({ subject: e.target.value })} />
+        <span className="mt-1 block text-[14px] text-[var(--color-text-dim)]">Leave it empty to reply in the same thread.</span>
+      </label>
+      <div>
+        <div className="mb-1.5 flex items-end justify-between gap-3">
+          <label htmlFor={`${id}-body`} className="text-[14px] text-[var(--color-text-dim)]">
+            Message
+          </label>
+          <FieldMenu extraFields={extraFields} onInsert={(t) => onChange({ body: step.body + t })} />
+        </div>
+        <textarea
+          id={`${id}-body`}
+          className="field min-h-[150px] text-[16px] leading-relaxed"
+          placeholder={bodyPlaceholder}
+          value={step.body}
+          onChange={(e) => onChange({ body: e.target.value })}
+        />
+      </div>
+    </div>
+  );
 }
 
 interface SendStepProps {
@@ -157,51 +211,53 @@ export default function SendStep(p: SendStepProps) {
                 Follow up with anyone who doesn&rsquo;t reply
               </span>
               <span className="block text-[15px] text-[var(--color-text-muted)]">
-                A short nudge in the same thread. Anyone who replies, opts out, or hears from you another way is skipped.
+                Short nudges in the same thread, up to three. Anyone who replies, opts out, or hears from you another way gets no more.
               </span>
             </span>
           </label>
           {fu.enabled && (
-            <div className="mt-4 space-y-4 pl-8">
-              <div className="flex flex-wrap items-center gap-3">
-                <label htmlFor="fu-days" className="text-[15px] text-[var(--color-text-muted)]">
-                  Send it after
-                </label>
-                <select id="fu-days" className="field !w-auto" value={fu.days} onChange={(e) => p.onFollowUp({ ...fu, days: Number(e.target.value) })}>
-                  {FOLLOW_DAYS.map((d) => (
-                    <option key={d} value={d}>
-                      {d} days
-                    </option>
-                  ))}
-                </select>
-                <span className="text-[15px] text-[var(--color-text-muted)]">with no reply</span>
-              </div>
-              <label className="block">
-                <span className="mb-1.5 block text-[14px] text-[var(--color-text-dim)]">Subject</span>
-                <input
-                  className="field"
-                  value={fu.subject}
-                  maxLength={200}
-                  placeholder={`Re: ${p.subject || "your first subject"}`}
-                  onChange={(e) => p.onFollowUp({ ...fu, subject: e.target.value })}
-                />
-                <span className="mt-1 block text-[14px] text-[var(--color-text-dim)]">Leave it empty to reply in the same thread.</span>
-              </label>
-              <div>
-                <div className="mb-1.5 flex items-end justify-between gap-3">
-                  <label htmlFor="fu-body" className="text-[14px] text-[var(--color-text-dim)]">
-                    Message
-                  </label>
-                  <FieldMenu extraFields={p.extraFields} onInsert={(t) => p.onFollowUp({ ...fu, body: fu.body + t })} />
+            <div className="mt-4 space-y-6 pl-8">
+              <StepFields
+                id="fu-1"
+                lead="Send it after"
+                step={fu}
+                subjectPlaceholder={`Re: ${p.subject || "your first subject"}`}
+                bodyPlaceholder={"Hi {{first_name|there}}, just bringing this back to the top of your inbox."}
+                extraFields={p.extraFields}
+                onChange={(s) => p.onFollowUp({ ...fu, ...s })}
+              />
+              {fu.more.map((step, i) => (
+                <div key={i} className="border-t border-[var(--color-border)] pt-5">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h3 className="text-[16px] font-semibold text-[var(--color-text)]">Follow-up {i + 2}</h3>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => p.onFollowUp({ ...fu, more: fu.more.filter((_, j) => j !== i) })}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <StepFields
+                    id={`fu-${i + 2}`}
+                    lead="Then after"
+                    step={step}
+                    subjectPlaceholder={`Re: ${p.subject || "your first subject"}`}
+                    bodyPlaceholder={"Hi {{first_name|there}}, one last note on this. If the timing's wrong, no problem."}
+                    extraFields={p.extraFields}
+                    onChange={(s) => p.onFollowUp({ ...fu, more: fu.more.map((m, j) => (j === i ? { ...m, ...s } : m)) })}
+                  />
                 </div>
-                <textarea
-                  id="fu-body"
-                  className="field min-h-[150px] text-[16px] leading-relaxed"
-                  placeholder={"Hi {{first_name|there}}, just bringing this back to the top of your inbox."}
-                  value={fu.body}
-                  onChange={(e) => p.onFollowUp({ ...fu, body: e.target.value })}
-                />
-              </div>
+              ))}
+              {fu.more.length < MAX_EXTRA_FOLLOW_UPS && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => p.onFollowUp({ ...fu, more: [...fu.more, { days: 5, subject: "", body: "" }] })}
+                >
+                  Add another follow-up
+                </button>
+              )}
             </div>
           )}
         </section>

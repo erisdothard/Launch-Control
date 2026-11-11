@@ -398,6 +398,8 @@ export type Database = {
           per_minute: number
 
           daily_limit: number
+
+          more_follow_ups: Json
           scheduled_at: string | null
           skip_contacted_days: number
           started_at: string | null
@@ -422,6 +424,8 @@ export type Database = {
           per_minute?: number
 
           daily_limit?: number
+
+          more_follow_ups?: Json
           scheduled_at?: string | null
           skip_contacted_days?: number
           started_at?: string | null
@@ -446,6 +450,8 @@ export type Database = {
           per_minute?: number
 
           daily_limit?: number
+
+          more_follow_ups?: Json
           scheduled_at?: string | null
           skip_contacted_days?: number
           started_at?: string | null

@@ -127,7 +127,11 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
               </>
             )}
             {c.followUpAfterDays && (
-              <p className="mt-3 text-[15px] text-[var(--color-text-dim)]">Follows up after {c.followUpAfterDays} days with anyone who hasn&rsquo;t replied.</p>
+              <p className="mt-3 text-[15px] text-[var(--color-text-dim)]">
+                {c.followUpMore.length
+                  ? `Follows up ${c.followUpMore.length + 1} times (${[c.followUpAfterDays, ...c.followUpMore.map((m) => m.days)].join(", then ")} days apart) until they reply.`
+                  : `Follows up after ${c.followUpAfterDays} days with anyone who hasn’t replied.`}
+              </p>
             )}
           </div>
           {c.status !== "draft" && (
@@ -173,6 +177,18 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
             </div>
           </div>
         )}
+        {c.followUpBody &&
+          c.followUpMore.map((step, i) => (
+            <div key={i} className="card p-5 sm:p-6">
+              <h2 className="text-[17px] font-semibold text-[var(--color-text)]">Follow-up {i + 2}</h2>
+              <div className="mt-3 text-[14px] text-[var(--color-text-dim)]">Subject</div>
+              <div className="text-[16px] text-[var(--color-text)]">{step.subject || `Re: ${c.subject}`}</div>
+              <div className="mt-4 text-[14px] text-[var(--color-text-dim)]">Message, {step.days} days after the one before</div>
+              <div className="well mt-1 px-4 py-3">
+                <Template text={step.body} />
+              </div>
+            </div>
+          ))}
       </section>
     </>
   );

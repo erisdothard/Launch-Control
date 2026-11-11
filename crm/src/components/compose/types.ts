@@ -31,11 +31,19 @@ export interface RecipientEdit {
   body?: string;
 }
 
-export interface FollowUpSettings {
+/** One follow-up: sent `days` after the email before it, to anyone who hasn't replied. */
+export interface FollowUpStep {
   days: number;
   subject: string;
   body: string;
 }
+
+/** The first follow-up, and up to MAX_EXTRA_FOLLOW_UPS more after it. */
+export interface FollowUpSettings extends FollowUpStep {
+  more: FollowUpStep[];
+}
+
+export const MAX_EXTRA_FOLLOW_UPS = 2;
 
 export type SendWhen = { mode: "now" } | { mode: "schedule"; date: string; time: string };
 

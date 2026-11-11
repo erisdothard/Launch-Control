@@ -164,6 +164,7 @@ export const DEMO_CAMPAIGNS: CampaignDetail[] = [
     skipContactedDays: 14,
     followUpSubject: null,
     followUpBody: "Hi {{first_name|there}}, just bringing this back to the top of your inbox. Worth a quick call?\n\nMax",
+    followUpMore: [],
     recipients: sendingRecipients,
   },
   {
@@ -174,6 +175,7 @@ export const DEMO_CAMPAIGNS: CampaignDetail[] = [
     skipContactedDays: 0,
     followUpSubject: null,
     followUpBody: null,
+    followUpMore: [],
     recipients: sendingRecipients.map((r) => ({ ...r, status: "pending" as const, sentAt: null })),
   },
   {
@@ -184,6 +186,7 @@ export const DEMO_CAMPAIGNS: CampaignDetail[] = [
     skipContactedDays: 30,
     followUpSubject: null,
     followUpBody: "Hi {{first_name|there}}, following up on my note last week. Happy to send a short example of what we'd build for {{company}}.\n\nMax",
+    followUpMore: [],
     recipients: sentRecipients,
   },
   {
@@ -194,6 +197,7 @@ export const DEMO_CAMPAIGNS: CampaignDetail[] = [
     skipContactedDays: 0,
     followUpSubject: null,
     followUpBody: null,
+    followUpMore: [],
     recipients: [],
   },
 ];

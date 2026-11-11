@@ -1,3 +1,4 @@
+import type { FollowUpStep } from "@/components/compose/types";
 // Mass email campaigns: one message sent to each recipient individually, paced, with an optional
 // automatic follow-up to anyone who hasn't replied. The sending itself happens in
 // src/app/api/automation/send-campaigns (called every minute by the worker).
@@ -64,6 +65,8 @@ export interface CampaignDetail extends CampaignSummary {
   skipContactedDays: number;
   followUpSubject: string | null;
   followUpBody: string | null;
+  /** Follow-ups after the first, in order; days count from the one before. */
+  followUpMore: FollowUpStep[];
   recipients: CampaignRecipient[];
 }
 
@@ -86,6 +89,7 @@ interface CampaignRow {
   follow_up_after_days: number | null;
   follow_up_subject: string | null;
   follow_up_body: string | null;
+  more_follow_ups?: Json;
   include_signature: boolean;
   email_accounts?: { address: string } | null;
 }
@@ -184,7 +188,7 @@ function rowToSummary(row: CampaignRow, counts: CampaignCounts): CampaignSummary
 }
 
 const CAMPAIGN_COLUMNS =
-  "id, name, subject, body_text, status, account_id, attachments, scheduled_at, started_at, finished_at, created_at, created_by, per_minute, daily_limit, skip_contacted_days, follow_up_after_days, follow_up_subject, follow_up_body, include_signature, email_accounts(address)";
+  "id, name, subject, body_text, status, account_id, attachments, scheduled_at, started_at, finished_at, created_at, created_by, per_minute, daily_limit, skip_contacted_days, follow_up_after_days, follow_up_subject, follow_up_body, more_follow_ups, include_signature, email_accounts(address)";
 
 /** Every campaign, newest first, with recipient counts. */
 export async function listCampaigns(client?: StoreClient): Promise<CampaignSummary[]> {
@@ -240,6 +244,7 @@ export async function getCampaign(id: string, client?: StoreClient): Promise<Cam
     skipContactedDays: row.skip_contacted_days,
     followUpSubject: row.follow_up_subject,
     followUpBody: row.follow_up_body,
+    followUpMore: toFollowUpSteps(row.more_follow_ups),
     recipients,
   };
 }
@@ -258,6 +263,7 @@ export interface NewCampaign {
   followUpAfterDays: number | null;
   followUpSubject: string | null;
   followUpBody: string | null;
+  followUpMore: FollowUpStep[];
   includeSignature: boolean;
   createdBy: string;
 }
@@ -270,6 +276,16 @@ export interface NewRecipient {
   bodyOverride: string | null;
   status: "pending" | "skipped";
   skipReason: string | null;
+}
+
+/** email_campaigns.more_follow_ups as typed steps; anything malformed is dropped. */
+export function toFollowUpSteps(value: Json | undefined): FollowUpStep[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((v) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null))
+    .filter((v): v is Record<string, unknown> => Boolean(v && Number.isInteger(v.days) && typeof v.body === "string" && (v.body as string).trim()))
+    .map((v) => ({ days: v.days as number, subject: typeof v.subject === "string" ? v.subject : "", body: v.body as string }))
+    .slice(0, 2);
 }
 
 function campaignInsert(c: NewCampaign) {
@@ -287,6 +303,7 @@ function campaignInsert(c: NewCampaign) {
     follow_up_after_days: c.followUpAfterDays,
     follow_up_subject: c.followUpSubject,
     follow_up_body: c.followUpBody,
+    more_follow_ups: c.followUpMore as unknown as Json,
     include_signature: c.includeSignature,
     created_by: c.createdBy,
   };

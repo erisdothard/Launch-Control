@@ -10,8 +10,8 @@ import { renderMerge } from "@/lib/email/merge";
 import { replySubject } from "@/lib/email/text";
 import { startOfTeamDay } from "@/lib/email/teamDay";
 import { sendWindowProgress } from "@/lib/email/sendWindow";
-import { toAttachments, toMerge } from "@/lib/store/campaigns";
-import type { Database } from "@/lib/supabase/types";
+import { toAttachments, toFollowUpSteps, toMerge } from "@/lib/store/campaigns";
+import type { Database, Json } from "@/lib/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // The mass email engine. The worker (tools/leadgen/leadgen/campaigns.py) calls this once a minute
@@ -63,6 +63,7 @@ interface CampaignRow {
   follow_up_after_days: number | null;
   follow_up_subject: string | null;
   follow_up_body: string | null;
+  more_follow_ups: Json;
   include_signature: boolean;
   created_at: string;
 }
@@ -180,15 +181,32 @@ async function claimFirst(admin: Admin, id: string, at: string): Promise<boolean
   return Boolean(data?.length);
 }
 
-async function claimFollowUp(admin: Admin, id: string, at: string): Promise<boolean> {
-  const { data } = await admin
+interface FollowUpStepRow {
+  days: number;
+  subject: string;
+  body: string;
+}
+
+/** A campaign's follow-ups in order: the first from its own columns, then more_follow_ups. */
+function followUpSteps(c: CampaignRow): FollowUpStepRow[] {
+  if (!c.follow_up_after_days || !c.follow_up_body?.trim()) return [];
+  return [{ days: c.follow_up_after_days, subject: c.follow_up_subject ?? "", body: c.follow_up_body }, ...toFollowUpSteps(c.more_follow_ups)];
+}
+
+/**
+ * Claims follow-up `k` (1-based) for one recipient: moves them from step k to k + 1 and stamps the
+ * time, only if nobody else did first and they haven't replied. `previous` is the stamp it replaces
+ * (null before the first follow-up), so two passes can never both send the same step.
+ */
+async function claimFollowUp(admin: Admin, id: string, k: number, previous: string | null, at: string): Promise<boolean> {
+  let q = admin
     .from("campaign_recipients")
-    .update({ follow_up_sent_at: at, step: 2 })
+    .update({ follow_up_sent_at: at, step: k + 1 })
     .eq("id", id)
-    .eq("step", 1)
-    .is("follow_up_sent_at", null)
-    .is("replied_at", null)
-    .select("id");
+    .eq("step", k)
+    .is("replied_at", null);
+  q = previous ? q.eq("follow_up_sent_at", previous) : q.is("follow_up_sent_at", null);
+  const { data } = await q.select("id");
   return Boolean(data?.length);
 }
 
@@ -229,7 +247,7 @@ export async function POST(request: NextRequest) {
   const { data: campaignRows, error } = await admin
     .from("email_campaigns")
     .select(
-      "id, status, account_id, subject, body_text, attachments, scheduled_at, started_at, per_minute, daily_limit, follow_up_after_days, follow_up_subject, follow_up_body, include_signature, created_at"
+      "id, status, account_id, subject, body_text, attachments, scheduled_at, started_at, per_minute, daily_limit, follow_up_after_days, follow_up_subject, follow_up_body, more_follow_ups, include_signature, created_at"
     )
     .in("status", ["scheduled", "sending", "sent"])
     .order("created_at", { ascending: true });
@@ -390,95 +408,111 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 3. Automatic follow-ups, to people who haven't replied, after the campaign's wait.
+  // 3. Automatic follow-ups, to people who haven't replied, each step after its wait. Step k goes
+  // to recipients at step k (first email plus k - 1 follow-ups sent), counting from their last email.
   for (const c of campaigns) {
     if (outOfTime() || haltedMidPass) break;
-    if (!c.follow_up_after_days || !c.follow_up_body?.trim()) continue;
+    const steps = followUpSteps(c);
+    if (!steps.length) continue;
     if (c.status !== "sending" && c.status !== "sent") continue;
     if (!c.account_id || !activeAccounts.has(c.account_id)) continue;
-    const allowance = allowanceFor(c);
-    if (allowance === 0) continue;
-    const dueBefore = new Date(Date.now() - c.follow_up_after_days * DAY_MS).toISOString();
-    const { data: due } = await admin
-      .from("campaign_recipients")
-      .select("id, email, lead_id, merge, subject_override, sent_at")
-      .eq("campaign_id", c.id)
-      .eq("status", "sent")
-      .eq("step", 1)
-      .is("follow_up_sent_at", null)
-      .is("replied_at", null)
-      .lte("sent_at", dueBefore)
-      .order("sent_at", { ascending: true })
-      .limit(allowance);
-    for (const r of due ?? []) {
-      if (outOfTime()) break;
-      const { data: live } = await admin.from("email_campaigns").select("status, follow_up_after_days").eq("id", c.id).maybeSingle();
-      if (!live || (live.status !== "sending" && live.status !== "sent") || !live.follow_up_after_days) break;
-      const why = await blocked(admin, r.email, r.lead_id);
-      if (why === undefined) continue;
-      // Anything else they wrote, or anything we sent them since (a reply by hand, the CRM's own
-      // follow-up), makes this automatic nudge wrong. Record why and leave them be.
-      const after = r.sent_at ?? nowIso();
-      const [fromThem, toThem] = await Promise.all([
-        admin.from("email_messages").select("id").eq("from_address", r.email).eq("direction", "in").gt("created_at", after).limit(1),
-        admin.from("email_messages").select("id, campaign_id").eq("to_address", r.email).eq("direction", "out").gt("created_at", after).limit(5),
-      ]);
-      const touched = Boolean(fromThem.data?.length) || (toThem.data ?? []).some((m) => m.campaign_id !== c.id);
-      if (why || touched) {
-        await admin
-          .from("campaign_recipients")
-          .update({ step: 2, skip_reason: `Follow-up skipped: ${why ?? "there was other email with them since"}` })
-          .eq("id", r.id)
-          .eq("step", 1);
-        out.skipped += 1;
-        continue;
-      }
-      if (!(await claimFollowUp(admin, r.id, nowIso()))) continue;
-      spend(c);
-      const values = toMerge(r.merge);
-      const firstSubject = renderMerge(r.subject_override ?? c.subject, values);
-      const subject = c.follow_up_subject?.trim() ? renderMerge(c.follow_up_subject, values) : replySubject(firstSubject);
-      const { data: original } = await admin
-        .from("email_messages")
-        .select("id")
+    const done = steps.length + 1;
+    let stop = false;
+    for (const [i, fu] of steps.entries()) {
+      if (stop || outOfTime() || haltedMidPass) break;
+      const k = i + 1;
+      const allowance = allowanceFor(c);
+      if (allowance === 0) break;
+      const dueBefore = new Date(Date.now() - fu.days * DAY_MS).toISOString();
+      let q = admin
+        .from("campaign_recipients")
+        .select("id, email, lead_id, merge, subject_override, sent_at, follow_up_sent_at")
         .eq("campaign_id", c.id)
-        .eq("to_address", r.email)
-        .eq("direction", "out")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      const result = await sendEmail({
-        accountId: c.account_id,
-        to: r.email,
-        subject: subject.replace(/[\r\n]+/g, " ").trim(),
-        body: renderMerge(c.follow_up_body, values).trim(),
-        leadId: r.lead_id,
-        replyToMessageId: original?.id ?? null,
-        campaignId: c.id,
-        includeSignature: c.include_signature !== false,
-        sentBy: SENT_BY,
-        unsubscribeBaseUrl: baseUrl,
-      }).catch((err: unknown): SendResult => ({ ok: false, error: err instanceof Error ? err.message : "Send failed" }));
-      if (result.ok) out.followUps += 1;
-      else if (result.code === "halted") {
-        await admin.from("campaign_recipients").update({ follow_up_sent_at: null, step: 1 }).eq("id", r.id);
-        haltedMidPass = result.error;
-        break;
-      } else if (result.code === "opted_out") {
-        await admin.from("campaign_recipients").update({ skip_reason: `Follow-up skipped: ${result.error}`.slice(0, 500) }).eq("id", r.id);
-        out.skipped += 1;
-      } else if (pausesCampaign(result)) {
-        // Nothing went out: undo the claim so this follow-up is sent once the mailbox can send again.
-        await admin.from("campaign_recipients").update({ follow_up_sent_at: null, step: 1 }).eq("id", r.id);
-        if (c.status === "sending") await pauseCampaign(admin, c.id, result.error);
-        out.paused += 1;
-        break;
-      } else {
-        // Not retried: step stays 2 with the error, so the campaign page shows the failed follow-up.
-        await admin.from("campaign_recipients").update({ follow_up_sent_at: null, error: `Follow-up failed: ${result.error}`.slice(0, 500) }).eq("id", r.id);
-        out.failed += 1;
+        .eq("status", "sent")
+        .eq("step", k)
+        .is("replied_at", null);
+      q = k === 1 ? q.is("follow_up_sent_at", null).lte("sent_at", dueBefore).order("sent_at", { ascending: true }) : q.lte("follow_up_sent_at", dueBefore).order("follow_up_sent_at", { ascending: true });
+      const { data: due } = await q.limit(allowance);
+      for (const r of due ?? []) {
+        if (outOfTime()) break;
+        const { data: live } = await admin.from("email_campaigns").select("status, follow_up_after_days").eq("id", c.id).maybeSingle();
+        if (!live || (live.status !== "sending" && live.status !== "sent") || !live.follow_up_after_days) {
+          stop = true;
+          break;
+        }
+        const previous = k === 1 ? null : r.follow_up_sent_at;
+        const why = await blocked(admin, r.email, r.lead_id);
+        if (why === undefined) continue;
+        // Anything else they wrote, or anything we sent them since (a reply by hand, the CRM's own
+        // follow-up), makes this automatic nudge wrong. Record why and end their sequence.
+        const after = previous ?? r.sent_at ?? nowIso();
+        const [fromThem, toThem] = await Promise.all([
+          admin.from("email_messages").select("id").eq("from_address", r.email).eq("direction", "in").gt("created_at", after).limit(1),
+          admin.from("email_messages").select("id, campaign_id").eq("to_address", r.email).eq("direction", "out").gt("created_at", after).limit(5),
+        ]);
+        const touched = Boolean(fromThem.data?.length) || (toThem.data ?? []).some((m) => m.campaign_id !== c.id);
+        if (why || touched) {
+          await admin
+            .from("campaign_recipients")
+            .update({ step: done, skip_reason: `Follow-up skipped: ${why ?? "there was other email with them since"}` })
+            .eq("id", r.id)
+            .eq("step", k);
+          out.skipped += 1;
+          continue;
+        }
+        if (!(await claimFollowUp(admin, r.id, k, previous, nowIso()))) continue;
+        spend(c);
+        const values = toMerge(r.merge);
+        const firstSubject = renderMerge(r.subject_override ?? c.subject, values);
+        const subject = fu.subject.trim() ? renderMerge(fu.subject, values) : replySubject(firstSubject);
+        const { data: original } = await admin
+          .from("email_messages")
+          .select("id")
+          .eq("campaign_id", c.id)
+          .eq("to_address", r.email)
+          .eq("direction", "out")
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        const result = await sendEmail({
+          accountId: c.account_id,
+          to: r.email,
+          subject: subject.replace(/[\r\n]+/g, " ").trim(),
+          body: renderMerge(fu.body, values).trim(),
+          leadId: r.lead_id,
+          replyToMessageId: original?.id ?? null,
+          campaignId: c.id,
+          includeSignature: c.include_signature !== false,
+          sentBy: SENT_BY,
+          unsubscribeBaseUrl: baseUrl,
+        }).catch((err: unknown): SendResult => ({ ok: false, error: err instanceof Error ? err.message : "Send failed" }));
+        // Undo the claim: back to step k with the stamp it had, so this step is sent later.
+        const unclaim = () => admin.from("campaign_recipients").update({ follow_up_sent_at: previous, step: k }).eq("id", r.id);
+        if (result.ok) out.followUps += 1;
+        else if (result.code === "halted") {
+          await unclaim();
+          haltedMidPass = result.error;
+          break;
+        } else if (result.code === "opted_out") {
+          await admin.from("campaign_recipients").update({ step: done, skip_reason: `Follow-up skipped: ${result.error}`.slice(0, 500) }).eq("id", r.id);
+          out.skipped += 1;
+        } else if (pausesCampaign(result)) {
+          // Nothing went out: undo the claim so this follow-up is sent once the mailbox can send again.
+          await unclaim();
+          if (c.status === "sending") await pauseCampaign(admin, c.id, result.error);
+          out.paused += 1;
+          stop = true;
+          break;
+        } else {
+          // Not retried, and their sequence ends here; the campaign page shows the failed follow-up.
+          await admin
+            .from("campaign_recipients")
+            .update({ follow_up_sent_at: previous, step: done, error: `Follow-up ${k} failed: ${result.error}`.slice(0, 500) })
+            .eq("id", r.id);
+          out.failed += 1;
+        }
+        await sleep(gapFor(c.per_minute));
       }
-      await sleep(gapFor(c.per_minute));
     }
   }
 

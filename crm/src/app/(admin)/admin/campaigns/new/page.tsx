@@ -42,7 +42,7 @@ function fromCampaign(c: CampaignDetail): ComposerPrefill {
     skipContactedDays: c.skipContactedDays,
     perMinute: c.perMinute || DEFAULT_PER_MINUTE,
     dailyLimit: c.dailyLimit || DEFAULT_DAILY_LIMIT,
-    followUp: c.followUpAfterDays && c.followUpBody ? { days: c.followUpAfterDays, subject: c.followUpSubject ?? "", body: c.followUpBody } : null,
+    followUp: c.followUpAfterDays && c.followUpBody ? { days: c.followUpAfterDays, subject: c.followUpSubject ?? "", body: c.followUpBody, more: c.followUpMore } : null,
     note: isDraft
       ? "Your saved draft. The list is checked again against who has opted out since."
       : `Copied from “${c.name || c.subject}”. Check the list: anyone emailed since may be left out.`,

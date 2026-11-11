@@ -13,6 +13,7 @@ import {
   type EmailAttachment,
   DEFAULT_DAILY_LIMIT,
   MAX_DAILY_LIMIT,
+  MAX_EXTRA_FOLLOW_UPS,
 } from "@/components/compose/types";
 import { renderMerge, teamLocalToUtc, type MergeValues } from "@/lib/email/merge";
 import { sendEmail } from "@/lib/email/send";
@@ -104,7 +105,7 @@ interface Validated {
   dailyLimit: number;
   skipDays: number;
   scheduledAt: string | null;
-  followUp: { days: number; subject: string; body: string } | null;
+  followUp: { days: number; subject: string; body: string; more: { days: number; subject: string; body: string }[] } | null;
   recipients: NewRecipient[];
   pendingCount: number;
 }
@@ -147,7 +148,20 @@ async function validate(p: CampaignPayload, forSending: boolean): Promise<Valida
     if (days === null) return "Send the follow-up after 1 to 60 days.";
     if (forSending && !fuBody) return "Write the follow-up message, or turn the follow-up off.";
     if (fuBody.length > MAX_BODY || fuSubject.length > MAX_SUBJECT) return "The follow-up is too long.";
-    followUp = { days, subject: fuSubject, body: fuBody };
+    const more: { days: number; subject: string; body: string }[] = [];
+    const extra = Array.isArray(p.followUp.more) ? p.followUp.more : [];
+    if (extra.length > MAX_EXTRA_FOLLOW_UPS) return `Up to ${MAX_EXTRA_FOLLOW_UPS + 1} follow-ups in all.`;
+    for (const [i, step] of extra.entries()) {
+      const n = i + 2;
+      const stepDays = int(step?.days, 1, 60);
+      const stepBody = str(step?.body, MAX_BODY + 1).trim();
+      const stepSubject = str(step?.subject, MAX_SUBJECT + 1).replace(/[\r\n]+/g, " ").trim();
+      if (stepDays === null) return `Send follow-up ${n} after 1 to 60 days.`;
+      if (forSending && !stepBody) return `Write follow-up ${n}, or remove it.`;
+      if (stepBody.length > MAX_BODY || stepSubject.length > MAX_SUBJECT) return `Follow-up ${n} is too long.`;
+      if (stepBody) more.push({ days: stepDays, subject: stepSubject, body: stepBody });
+    }
+    followUp = { days, subject: fuSubject, body: fuBody, more };
   }
 
   const attachments = cleanAttachments(p.attachments);
@@ -234,6 +248,7 @@ export async function saveCampaignAction(
       followUpAfterDays: v.followUp?.days ?? null,
       followUpSubject: v.followUp ? v.followUp.subject || null : null,
       followUpBody: v.followUp?.body ?? null,
+      followUpMore: v.followUp?.more ?? [],
       includeSignature: v.includeSignature,
       createdBy: user,
     };

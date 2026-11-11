@@ -59,6 +59,12 @@ function safeName(name: string): string {
   return name.replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, " ").trim().slice(0, 120) || "file";
 }
 
+function followUpSummary(f: FollowUpDraft): string {
+  const days = [f.days, ...f.more.map((m) => m.days)];
+  if (days.length === 1) return `After ${f.days} days, to anyone who hasn't replied`;
+  return `${days.length} follow-ups, ${days.map((d, i) => `${i ? "then " : ""}${d} days`).join(", ")} apart, until they reply`;
+}
+
 export default function Composer({ leads, suppressed, accounts, templates: initialTemplates, userEmail, prefill, handoff, demo, initialStep }: ComposerProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(initialStep);
@@ -80,7 +86,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
   const [perMinute] = useState(prefill?.perMinute ?? DEFAULT_PER_MINUTE);
   const [dailyLimit, setDailyLimit] = useState(prefill?.dailyLimit ?? DEFAULT_DAILY_LIMIT);
   const [followUp, setFollowUp] = useState<FollowUpDraft>(
-    prefill?.followUp ? { enabled: true, ...prefill.followUp } : { enabled: false, days: 4, subject: "", body: "" }
+    prefill?.followUp ? { enabled: true, ...prefill.followUp, more: prefill.followUp.more ?? [] } : { enabled: false, days: 4, subject: "", body: "", more: [] }
   );
   const [name, setName] = useState(prefill?.name ?? "");
   const [testState, setTestState] = useState({ busy: false, message: "", error: false });
@@ -138,6 +144,8 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
           ? "That time has passed. Pick a later one."
           : followUp.enabled && !followUp.body.trim()
             ? "Write the follow-up, or turn it off."
+            : followUp.enabled && followUp.more.some((m) => !m.body.trim())
+              ? "Write each follow-up, or remove the empty one."
             : uploading.length
               ? "Wait for the attachments to finish uploading."
               : "",
@@ -159,7 +167,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
       when,
       perMinute,
       dailyLimit,
-      followUp: followUp.enabled ? { days: followUp.days, subject: followUp.subject, body: followUp.body } : null,
+      followUp: followUp.enabled ? { days: followUp.days, subject: followUp.subject, body: followUp.body, more: followUp.more } : null,
     };
   }
 
@@ -482,7 +490,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
                 {dailyLimit} a weekday, {sendDays(included.length, dailyLimit)}
               </dd>
               <dt className="text-[var(--color-text-dim)]">Follow-up</dt>
-              <dd className="text-[var(--color-text)]">{followUp.enabled ? `After ${followUp.days} days, to anyone who hasn't replied` : "None"}</dd>
+              <dd className="text-[var(--color-text)]">{followUp.enabled ? followUpSummary(followUp) : "None"}</dd>
               {attachments.length > 0 && (
                 <>
                   <dt className="text-[var(--color-text-dim)]">Files</dt>
