@@ -222,12 +222,16 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
     lines: account.signature_lines,
   };
   const sign = input.includeSignature !== false && Boolean(account.signature_name.trim());
-  const signed = sign ? { text: emailText(body, signature), html: emailHtml(body, signature) } : { text: body, html: null };
+  // Mass email goes out as plain text with the signature as text. Measured in Gmail on 2026-11-10:
+  // the designed signature (logo and name images) together with the List-Unsubscribe header lands
+  // in Promotions; either one alone lands in Primary. The unsubscribe header stays, so the images go.
+  const designed = sign && !input.unsubscribeBaseUrl;
+  const signed = sign ? { text: emailText(body, signature), html: designed ? emailHtml(body, signature) : null } : { text: body, html: null };
   const toLine = to.join(", ");
   const headers = input.unsubscribeBaseUrl ? listUnsubscribe(to[0], lead?.id ?? null, input.unsubscribeBaseUrl, account.address) : undefined;
 
   // The name in Michroma for the inline send; if drawing fails the name goes as text, not unsent.
-  const nameImage = sign && !isDemoMode() && account.provider === "outlook" ? await renderNameImage(signature.name).catch(() => null) : null;
+  const nameImage = designed && !isDemoMode() && account.provider === "outlook" ? await renderNameImage(signature.name).catch(() => null) : null;
 
   let providerMessageId: string | null = null;
   let providerThreadId: string | null = null;
@@ -264,8 +268,8 @@ export async function sendEmail(input: OutboundEmail): Promise<SendResult> {
         ...signed,
         // Outlook mail embeds the signature logo and the drawn name so they show even where remote
         // images are blocked (and Outlook for Windows, which loads no web fonts).
-        ...(sign && signed.html ? { html: emailHtml(body, signature, "cid", nameImage ?? undefined) } : {}),
-        attachments: sign ? [...outbound, signatureLogoFile(), ...(nameImage ? [signatureNameFile(nameImage)] : [])] : outbound,
+        ...(designed ? { html: emailHtml(body, signature, "cid", nameImage ?? undefined) } : {}),
+        attachments: designed ? [...outbound, signatureLogoFile(), ...(nameImage ? [signatureNameFile(nameImage)] : [])] : outbound,
         inReplyTo,
         headers,
       });
