@@ -409,7 +409,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
       )}
 
       {/* Footer: back, save, and the one primary action */}
-      <div className="fixed inset-x-0 bottom-[68px] z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-sidebar)]/95 lg:bottom-0 lg:left-60">
+      <div className="fixed inset-x-0 bottom-[68px] z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-sidebar)]/95 shell:bottom-0 shell:left-60">
         <div className="mx-auto flex max-w-[1204px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
           {step > 1 ? (
             <button type="button" className="btn btn-secondary" onClick={() => setStep((step - 1) as Step)}>

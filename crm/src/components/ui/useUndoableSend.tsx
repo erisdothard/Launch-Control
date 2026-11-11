@@ -60,7 +60,7 @@ export function useUndoableSend(): UndoableSend {
     <div
       role="status"
       aria-live="polite"
-      className={`fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-5 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] py-3 pr-4 pl-5 text-[15px] text-[var(--color-text)] shadow-[inset_0_0_0_1px_var(--color-border-bright),0_12px_40px_rgba(0,0,0,0.5)] transition-[opacity,transform] duration-200 lg:bottom-7 ${
+      className={`fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-5 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] py-3 pr-4 pl-5 text-[15px] text-[var(--color-text)] shadow-[inset_0_0_0_1px_var(--color-border-bright),0_12px_40px_rgba(0,0,0,0.5)] transition-[opacity,transform] duration-200 shell:bottom-7 ${
         pending ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
       }`}
     >

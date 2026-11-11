@@ -1,4 +1,13 @@
 @import "tailwindcss";
+
+/* The desktop shell (sidebar, no bottom tab bar): wide screens, and also any screen of tablet width
+   or more held sideways (foldables, phones in landscape), where a top bar plus a bottom tab bar
+   would leave little room for the page. Only the shell chrome uses it; page layouts keep lg. */
+@custom-variant shell {
+  @media (width >= 64rem), (width >= 48rem) and (orientation: landscape) {
+    @slot;
+  }
+}
 @import "../styles/tokens.css";
 
 html {

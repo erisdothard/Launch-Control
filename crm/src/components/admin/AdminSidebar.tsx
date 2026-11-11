@@ -191,7 +191,7 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
     }`;
 
   return (
-    <aside className="fixed top-0 left-0 z-40 hidden h-screen w-60 flex-col border-r border-[var(--color-border)] bg-[var(--color-bg-sidebar)] px-3 pt-5 pb-3 lg:flex">
+    <aside className="fixed top-0 left-0 z-40 hidden h-screen w-60 flex-col border-r border-[var(--color-border)] bg-[var(--color-bg-sidebar)] px-3 pt-5 pb-3 shell:flex">
       {/* Logo: an uploaded company logo wins; otherwise the Launch Control lockup */}
       <Link href="/admin/dashboard" className="mb-5 flex items-center gap-2.5 px-2.5">
         {logoUrl ? (

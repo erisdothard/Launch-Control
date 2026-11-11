@@ -272,7 +272,7 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
         <div
           role="region"
           aria-label="Selected leads"
-          className="fixed inset-x-4 bottom-[84px] z-40 mx-auto flex max-w-2xl items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-bg-secondary)] px-4 py-3 shadow-[inset_0_0_0_1px_var(--color-border-bright),0_16px_48px_rgba(0,0,0,0.55)] sm:px-5 lg:bottom-6 lg:left-[calc(15rem+2rem)]"
+          className="fixed inset-x-4 bottom-[84px] z-40 mx-auto flex max-w-2xl items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-bg-secondary)] px-4 py-3 shadow-[inset_0_0_0_1px_var(--color-border-bright),0_16px_48px_rgba(0,0,0,0.55)] sm:px-5 shell:bottom-6 shell:left-[calc(15rem+2rem)]"
         >
           <div className="min-w-0 flex-1">
             <div className="text-[16px] font-semibold text-[var(--color-text)]">{selected.size} selected</div>

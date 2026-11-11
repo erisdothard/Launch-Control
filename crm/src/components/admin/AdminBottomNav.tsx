@@ -187,7 +187,7 @@ export default function AdminBottomNav({ userEmail, userId, navOrder }: AdminBot
   }, []);
 
   return (
-    <div className="fixed right-0 bottom-0 left-0 z-50 lg:hidden" ref={panelRef}>
+    <div className="fixed right-0 bottom-0 left-0 z-50 shell:hidden" ref={panelRef}>
       {/* Slide-up panel */}
       <div
         className={`border-t border-[var(--color-border)] bg-[var(--color-bg-card)] transition-all duration-300 ease-out ${

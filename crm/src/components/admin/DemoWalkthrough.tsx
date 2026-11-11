@@ -52,7 +52,7 @@ export function DemoStrip({ companyName, step }: Props) {
     });
 
   return (
-    <div className="relative z-20 border-b border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-2 text-[14px] sm:px-6 lg:px-8">
+    <div className="relative z-20 border-b border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-2 text-[14px] sm:px-6 shell:px-8">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="flex items-center gap-2 text-[var(--color-text-muted)]">
           <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--color-accent)]" />
@@ -113,7 +113,7 @@ export function DemoCard({ step }: { step: number }) {
   return (
     <aside
       aria-label="Demo walkthrough"
-      className="card fixed right-4 bottom-20 left-4 z-40 p-5 shadow-[0_18px_48px_rgba(0,0,0,0.55)] sm:left-auto sm:w-[420px] lg:right-8 lg:bottom-8"
+      className="card fixed right-4 bottom-20 left-4 z-40 p-5 shadow-[0_18px_48px_rgba(0,0,0,0.55)] sm:left-auto sm:w-[420px] shell:right-8 shell:bottom-8"
     >
       <div className="flex items-start justify-between gap-3">
         <p className="font-mono text-[13px] text-[var(--color-text-dim)]">{atStart ? "Demo" : `Step ${step} of ${LAST_STEP}`}</p>
