@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { emailHtml, plainHtml, signatureHtml, signaturePreviewHtml } from "@/lib/email/signature";
+import { emailHtml, plainHtml } from "@/lib/email/signature";
 import { signatureOf } from "@/components/inbox/sender";
 import { fieldLabel, missingFields, renderMerge } from "@/lib/email/merge";
 import { recipientName, type Recipient } from "./audience";
@@ -65,8 +65,9 @@ export default function PreviewPanel({ recipients, index, onIndex, account, incl
     const mergedSubject = renderMerge(subjectTemplate, r.values).replace(/[\r\n]+/g, " ").trim();
     const mergedBody = renderMerge(bodyTemplate, r.values).trim();
     const sig = includeSignature ? signatureOf(account) : null;
-    // The CRM's own copy of the logo, so the preview shows it before the site deploy publishes it.
-    const html = sig ? emailHtml(mergedBody || " ", sig).replace(signatureHtml(sig), signaturePreviewHtml(sig)) : plainHtml(mergedBody || " ");
+    // Campaign mail goes out with the signature as styled text and no images (send.ts), so the
+    // preview shows exactly that.
+    const html = sig ? emailHtml(mergedBody || " ", sig, "none") : plainHtml(mergedBody || " ");
     return { subject: mergedSubject, body: mergedBody, doc: emailDocument(html), missing: missingFields([subjectTemplate, bodyTemplate], r.values) };
   }, [r, subjectTemplate, bodyTemplate, account, includeSignature]);
 

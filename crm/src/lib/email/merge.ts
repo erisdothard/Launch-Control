@@ -356,6 +356,13 @@ export function formatTeamTime(iso: string, timeZone = TEAM_TZ): string {
 }
 
 /** How long sending takes at a pace, in words: "about 12 minutes". */
+/** How a campaign's list spreads over weekdays at its daily limit, in words. */
+export function sendDays(count: number, perDay: number): string {
+  if (count <= 0) return "nobody to send to yet";
+  const days = Math.ceil(count / Math.max(1, perDay));
+  return days <= 1 ? "all in one weekday" : `over about ${days} weekdays`;
+}
+
 export function sendDuration(count: number, perMinute: number): string {
   if (count <= 0) return "no time";
   const minutes = Math.ceil(count / Math.max(1, perMinute));

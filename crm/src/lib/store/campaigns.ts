@@ -35,6 +35,7 @@ export interface CampaignSummary {
   createdAt: string;
   createdBy: string | null;
   perMinute: number;
+  dailyLimit: number;
   followUpAfterDays: number | null;
   counts: CampaignCounts;
 }
@@ -80,6 +81,7 @@ interface CampaignRow {
   created_at: string;
   created_by: string | null;
   per_minute: number;
+  daily_limit: number | null;
   skip_contacted_days: number;
   follow_up_after_days: number | null;
   follow_up_subject: string | null;
@@ -175,13 +177,14 @@ function rowToSummary(row: CampaignRow, counts: CampaignCounts): CampaignSummary
     createdAt: row.created_at,
     createdBy: row.created_by,
     perMinute: row.per_minute,
+    dailyLimit: row.daily_limit ?? 20,
     followUpAfterDays: row.follow_up_after_days,
     counts,
   };
 }
 
 const CAMPAIGN_COLUMNS =
-  "id, name, subject, body_text, status, account_id, attachments, scheduled_at, started_at, finished_at, created_at, created_by, per_minute, skip_contacted_days, follow_up_after_days, follow_up_subject, follow_up_body, include_signature, email_accounts(address)";
+  "id, name, subject, body_text, status, account_id, attachments, scheduled_at, started_at, finished_at, created_at, created_by, per_minute, daily_limit, skip_contacted_days, follow_up_after_days, follow_up_subject, follow_up_body, include_signature, email_accounts(address)";
 
 /** Every campaign, newest first, with recipient counts. */
 export async function listCampaigns(client?: StoreClient): Promise<CampaignSummary[]> {
@@ -250,6 +253,7 @@ export interface NewCampaign {
   status: "draft" | "scheduled";
   scheduledAt: string | null;
   perMinute: number;
+  dailyLimit: number;
   skipContactedDays: number;
   followUpAfterDays: number | null;
   followUpSubject: string | null;
@@ -278,6 +282,7 @@ function campaignInsert(c: NewCampaign) {
     status: c.status,
     scheduled_at: c.scheduledAt,
     per_minute: c.perMinute,
+    daily_limit: c.dailyLimit,
     skip_contacted_days: c.skipContactedDays,
     follow_up_after_days: c.followUpAfterDays,
     follow_up_subject: c.followUpSubject,

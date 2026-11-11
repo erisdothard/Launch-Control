@@ -4,7 +4,7 @@ import { AutoRefresh } from "@/components/compose/CampaignControls";
 import { DEMO_CAMPAIGNS } from "@/components/compose/demo";
 import { CAMPAIGN_STATUS_LABEL } from "@/components/compose/types";
 import { campaignTone, StatusPill } from "@/components/compose/ui";
-import { formatTeamTime, sendDuration } from "@/lib/email/merge";
+import { formatTeamTime, sendDays } from "@/lib/email/merge";
 import { listCampaigns, type CampaignSummary } from "@/lib/store/campaigns";
 
 interface CampaignsPageProps {
@@ -124,7 +124,7 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
             </div>
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[14.5px] text-[var(--color-text-muted)]">
               <span>{hero.counts.pending} waiting</span>
-              {hero.counts.pending > 0 && <span>{sendDuration(hero.counts.pending, hero.perMinute)} left at {hero.perMinute} a minute</span>}
+              {hero.counts.pending > 0 && <span>{hero.dailyLimit} a weekday, {sendDays(hero.counts.pending, hero.dailyLimit)}</span>}
               {hero.counts.failed > 0 && <span className="text-[var(--color-hot)]">{hero.counts.failed} failed</span>}
               {hero.counts.replied > 0 && <span className="text-[var(--color-success)]">{hero.counts.replied} replied</span>}
             </div>

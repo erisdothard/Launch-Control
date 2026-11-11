@@ -1,8 +1,8 @@
 "use client";
 
-import { formatTeamTime, sendDuration, teamLocalToUtc } from "@/lib/email/merge";
+import { formatTeamTime, sendDays, teamLocalToUtc } from "@/lib/email/merge";
 import FieldMenu from "./FieldMenu";
-import { MAX_PER_MINUTE, type SendWhen } from "./types";
+import { DAILY_LIMITS, DEFAULT_DAILY_LIMIT, type SendWhen } from "./types";
 import { Spinner } from "./ui";
 
 export interface FollowUpDraft {
@@ -16,8 +16,8 @@ interface SendStepProps {
   count: number;
   when: SendWhen;
   onWhen: (w: SendWhen) => void;
-  perMinute: number;
-  onPerMinute: (n: number) => void;
+  dailyLimit: number;
+  onDailyLimit: (n: number) => void;
   followUp: FollowUpDraft;
   onFollowUp: (f: FollowUpDraft) => void;
   subject: string;
@@ -31,7 +31,6 @@ interface SendStepProps {
   demo: boolean;
 }
 
-const PACES = [5, 10, 15, 20, MAX_PER_MINUTE];
 const FOLLOW_DAYS = [2, 3, 4, 5, 7, 10, 14];
 
 function RadioCard({ checked, onSelect, title, sub, children }: { checked: boolean; onSelect: () => void; title: string; sub: string; children?: React.ReactNode }) {
@@ -102,23 +101,23 @@ export default function SendStep(p: SendStepProps) {
 
         <section aria-labelledby="pace" className="card p-4 sm:p-6">
           <h2 id="pace" className="text-[17px] font-semibold text-[var(--color-text)]">
-            How fast
+            How many a day
           </h2>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <label htmlFor="pace-select" className="text-[15px] text-[var(--color-text-muted)]">
-              One email at a time,
+              Send up to
             </label>
-            <select id="pace-select" className="field !w-auto" value={p.perMinute} onChange={(e) => p.onPerMinute(Number(e.target.value))}>
-              {PACES.map((n) => (
+            <select id="pace-select" className="field !w-auto" value={p.dailyLimit} onChange={(e) => p.onDailyLimit(Number(e.target.value))}>
+              {DAILY_LIMITS.map((n) => (
                 <option key={n} value={n}>
-                  {n} a minute{n === 10 ? " (recommended)" : ""}
+                  {n} a weekday{n === DEFAULT_DAILY_LIMIT ? " (recommended)" : ""}
                 </option>
               ))}
             </select>
           </div>
           <p className="mt-3 text-[15px] text-[var(--color-text-muted)]">
-            {p.count > 0 ? `${p.count} ${p.count === 1 ? "email takes" : "emails take"} ${sendDuration(p.count, p.perMinute)}. ` : ""}
-            Microsoft flags mailboxes that send a lot at once, which can land your mail in spam. Slower is safer.
+            {p.count > 0 ? `${p.count} ${p.count === 1 ? "email goes out" : "emails go out"} ${sendDays(p.count, p.dailyLimit)}, spread across business hours (8 to 5 Central). ` : ""}
+            Follow-ups count toward the limit. A new domain that sends a whole list at once lands in spam; small daily batches build its reputation.
           </p>
         </section>
 

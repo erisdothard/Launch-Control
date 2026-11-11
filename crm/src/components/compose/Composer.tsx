@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { formatTeamTime, sendDuration, teamLocalToUtc } from "@/lib/email/merge";
+import { formatTeamTime, sendDays, teamLocalToUtc } from "@/lib/email/merge";
 import { deleteTemplateAction, saveCampaignAction, saveTemplateAction, sendTestAction } from "@/app/(admin)/admin/campaigns/actions";
 import { buildContext, evaluateAudience, leadCandidate, recipientName, type AudienceLead, type Candidate } from "./audience";
 import RecipientsStep from "./RecipientsStep";
@@ -13,7 +13,7 @@ import MessageStep from "./MessageStep";
 import SendStep, { type FollowUpDraft } from "./SendStep";
 import {
   ATTACHMENT_BUCKET,
-  DEFAULT_PER_MINUTE,
+  DEFAULT_PER_MINUTE, DEFAULT_DAILY_LIMIT,
   HANDOFF_KEY,
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
@@ -77,7 +77,8 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
   const [edits, setEdits] = useState<Record<string, RecipientEdit>>(prefill?.edits ?? {});
   const [previewIndex, setPreviewIndex] = useState(0);
   const [when, setWhen] = useState<SendWhen>({ mode: "now" });
-  const [perMinute, setPerMinute] = useState(prefill?.perMinute ?? DEFAULT_PER_MINUTE);
+  const [perMinute] = useState(prefill?.perMinute ?? DEFAULT_PER_MINUTE);
+  const [dailyLimit, setDailyLimit] = useState(prefill?.dailyLimit ?? DEFAULT_DAILY_LIMIT);
   const [followUp, setFollowUp] = useState<FollowUpDraft>(
     prefill?.followUp ? { enabled: true, ...prefill.followUp } : { enabled: false, days: 4, subject: "", body: "" }
   );
@@ -157,6 +158,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
       skipContactedDays: skipDays,
       when,
       perMinute,
+      dailyLimit,
       followUp: followUp.enabled ? { days: followUp.days, subject: followUp.subject, body: followUp.body } : null,
     };
   }
@@ -392,8 +394,8 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
           count={included.length}
           when={when}
           onWhen={touch(setWhen)}
-          perMinute={perMinute}
-          onPerMinute={touch(setPerMinute)}
+          dailyLimit={dailyLimit}
+          onDailyLimit={touch(setDailyLimit)}
           followUp={followUp}
           onFollowUp={touch(setFollowUp)}
           subject={subject}
@@ -477,7 +479,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
               <dd className="text-[var(--color-text)]">{scheduledIso ? `${whenText} Central` : "Starting now"}</dd>
               <dt className="text-[var(--color-text-dim)]">Pace</dt>
               <dd className="text-[var(--color-text)]">
-                {perMinute} a minute, {sendDuration(included.length, perMinute)} in all
+                {dailyLimit} a weekday, {sendDays(included.length, dailyLimit)}
               </dd>
               <dt className="text-[var(--color-text-dim)]">Follow-up</dt>
               <dd className="text-[var(--color-text)]">{followUp.enabled ? `After ${followUp.days} days, to anyone who hasn't replied` : "None"}</dd>

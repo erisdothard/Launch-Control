@@ -58,6 +58,7 @@ export interface CampaignPayload {
   skipContactedDays: number;
   when: SendWhen;
   perMinute: number;
+  dailyLimit: number;
   followUp: FollowUpSettings | null;
 }
 
@@ -74,6 +75,7 @@ export interface ComposerPrefill {
   edits: Record<string, RecipientEdit>;
   skipContactedDays: number;
   perMinute: number;
+  dailyLimit: number;
   followUp: FollowUpSettings | null;
   /** Where the prefill came from, in words, shown above step 1. */
   note: string;
@@ -81,6 +83,10 @@ export interface ComposerPrefill {
 
 export const DEFAULT_PER_MINUTE = 10;
 export const MAX_PER_MINUTE = 30;
+/** First emails plus follow-ups a campaign sends per weekday, spread across business hours. */
+export const DEFAULT_DAILY_LIMIT = 20;
+export const DAILY_LIMITS = [10, 20, 30, 50, 100];
+export const MAX_DAILY_LIMIT = 500;
 export const MAX_RECIPIENTS = 2000;
 // One set of limits for every composer: src/lib/email/attachments.ts.
 export { ATTACHMENT_BUCKET, MAX_FILE_BYTES as MAX_ATTACHMENT_BYTES, MAX_FILE_MB, MAX_TOTAL_ATTACHMENT_BYTES, MAX_TOTAL_MB } from "@/lib/email/attachments";

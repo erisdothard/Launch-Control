@@ -396,6 +396,8 @@ export type Database = {
           name: string
           pause_reason: string | null
           per_minute: number
+
+          daily_limit: number
           scheduled_at: string | null
           skip_contacted_days: number
           started_at: string | null
@@ -418,6 +420,8 @@ export type Database = {
           name?: string
           pause_reason?: string | null
           per_minute?: number
+
+          daily_limit?: number
           scheduled_at?: string | null
           skip_contacted_days?: number
           started_at?: string | null
@@ -440,6 +444,8 @@ export type Database = {
           name?: string
           pause_reason?: string | null
           per_minute?: number
+
+          daily_limit?: number
           scheduled_at?: string | null
           skip_contacted_days?: number
           started_at?: string | null

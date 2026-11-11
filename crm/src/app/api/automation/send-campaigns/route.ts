@@ -5,9 +5,11 @@ import { sendEmail, type SendResult } from "@/lib/email/send";
 import { isAutoReply, isHardBounce, isSenderProblem } from "@/lib/email/deliverability";
 import { findOptOut } from "@/lib/email/optOut";
 import { outboundHalt } from "@/lib/agents/halt";
-import { outlookAppOnly } from "@/lib/email/config";
+import { emailConfig, outlookAppOnly } from "@/lib/email/config";
 import { renderMerge } from "@/lib/email/merge";
 import { replySubject } from "@/lib/email/text";
+import { startOfTeamDay } from "@/lib/email/teamDay";
+import { sendWindowProgress } from "@/lib/email/sendWindow";
 import { toAttachments, toMerge } from "@/lib/store/campaigns";
 import type { Database } from "@/lib/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -27,6 +29,16 @@ const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;
 /** Microsoft 365 throttles mailboxes that burst; never more than this per mailbox per minute. */
 const ACCOUNT_PER_MINUTE = 30;
+/** A campaign with no daily_limit stored (rows from before the column) sends this many a weekday. */
+const DEFAULT_DAILY_LIMIT = 20;
+/**
+ * Campaign mail (first emails plus follow-ups) one mailbox may send per team day, across all its
+ * campaigns. Kept low while the domain builds a sending reputation; CAMPAIGN_MAILBOX_DAILY_CAP raises it.
+ */
+const MAILBOX_DAILY_CAP = (() => {
+  const n = Number(process.env.CAMPAIGN_MAILBOX_DAILY_CAP);
+  return Number.isInteger(n) && n > 0 ? n : 40;
+})();
 /** Stop starting new sends after this long so the call ends inside its time limit. */
 const TIME_BUDGET_MS = 45_000;
 /** A claimed send with no result after this long was interrupted; don't risk sending it twice. */
@@ -47,6 +59,7 @@ interface CampaignRow {
   scheduled_at: string | null;
   started_at: string | null;
   per_minute: number;
+  daily_limit: number | null;
   follow_up_after_days: number | null;
   follow_up_subject: string | null;
   follow_up_body: string | null;
@@ -216,7 +229,7 @@ export async function POST(request: NextRequest) {
   const { data: campaignRows, error } = await admin
     .from("email_campaigns")
     .select(
-      "id, status, account_id, subject, body_text, attachments, scheduled_at, started_at, per_minute, follow_up_after_days, follow_up_subject, follow_up_body, include_signature, created_at"
+      "id, status, account_id, subject, body_text, attachments, scheduled_at, started_at, per_minute, daily_limit, follow_up_after_days, follow_up_subject, follow_up_body, include_signature, created_at"
     )
     .in("status", ["scheduled", "sending", "sent"])
     .order("created_at", { ascending: true });
@@ -244,12 +257,47 @@ export async function POST(request: NextRequest) {
     accountBudget.set(c.account_id, (accountBudget.get(c.account_id) ?? ACCOUNT_PER_MINUTE) - used);
   }
 
+  // Daily batches: nothing goes out on weekends or outside business hours (team time), and each
+  // day's batch is spread across the window rather than sent in one burst. A new domain that sends a
+  // whole list at once lands in spam.
+  const windowAt = sendWindowProgress(new Date(started), emailConfig.teamTimeZone);
+  if (windowAt === null) return NextResponse.json({ ...out, outsideHours: true });
+  const dayStart = startOfTeamDay(new Date(started));
+  const { data: todayRows, error: todayError } = await admin
+    .from("campaign_recipients")
+    .select("campaign_id, sent_at, follow_up_sent_at, email_campaigns!inner(account_id)")
+    .or(`sent_at.gte.${dayStart},follow_up_sent_at.gte.${dayStart}`)
+    .limit(5000);
+  // Can't count today's sends, don't send: a missed batch is better than a burst.
+  if (todayError) return NextResponse.json({ ...out, error: "could not count today's sends" }, { status: 500 });
+  const todayByCampaign = new Map<string, number>();
+  const todayByAccount = new Map<string, number>();
+  for (const r of todayRows ?? []) {
+    const n = (r.sent_at && r.sent_at >= dayStart ? 1 : 0) + (r.follow_up_sent_at && r.follow_up_sent_at >= dayStart ? 1 : 0);
+    todayByCampaign.set(r.campaign_id, (todayByCampaign.get(r.campaign_id) ?? 0) + n);
+    const account = (r.email_campaigns as unknown as { account_id: string | null } | null)?.account_id;
+    if (account) todayByAccount.set(account, (todayByAccount.get(account) ?? 0) + n);
+  }
+
   const outOfTime = () => Date.now() - started > TIME_BUDGET_MS;
-  const allowanceFor = (c: CampaignRow) =>
-    c.account_id ? Math.max(0, Math.min(c.per_minute - (recentByCampaign.get(c.id) ?? 0), accountBudget.get(c.account_id) ?? 0)) : 0;
+  const allowanceFor = (c: CampaignRow) => {
+    if (!c.account_id) return 0;
+    const daily = c.daily_limit ?? DEFAULT_DAILY_LIMIT;
+    const sentToday = todayByCampaign.get(c.id) ?? 0;
+    // By this point in the window, at most this share of the day's batch should be out.
+    const dueByNow = Math.ceil(daily * windowAt);
+    const dayLeft = Math.min(daily, dueByNow) - sentToday;
+    const mailboxLeft = MAILBOX_DAILY_CAP - (todayByAccount.get(c.account_id) ?? 0);
+    const minuteLeft = Math.min(c.per_minute - (recentByCampaign.get(c.id) ?? 0), accountBudget.get(c.account_id) ?? 0);
+    return Math.max(0, Math.min(minuteLeft, dayLeft, mailboxLeft));
+  };
   const spend = (c: CampaignRow) => {
     recentByCampaign.set(c.id, (recentByCampaign.get(c.id) ?? 0) + 1);
-    if (c.account_id) accountBudget.set(c.account_id, (accountBudget.get(c.account_id) ?? 0) - 1);
+    todayByCampaign.set(c.id, (todayByCampaign.get(c.id) ?? 0) + 1);
+    if (c.account_id) {
+      accountBudget.set(c.account_id, (accountBudget.get(c.account_id) ?? 0) - 1);
+      todayByAccount.set(c.account_id, (todayByAccount.get(c.account_id) ?? 0) + 1);
+    }
   };
 
   // 2. First emails.

@@ -6,7 +6,7 @@ import RecipientTable from "@/components/compose/RecipientTable";
 import { DEMO_CAMPAIGNS } from "@/components/compose/demo";
 import { CAMPAIGN_STATUS_LABEL } from "@/components/compose/types";
 import { campaignTone, StatusPill } from "@/components/compose/ui";
-import { formatTeamTime, sendDuration } from "@/lib/email/merge";
+import { formatTeamTime, sendDays } from "@/lib/email/merge";
 import { getCampaign, type CampaignDetail } from "@/lib/store/campaigns";
 
 interface CampaignPageProps {
@@ -27,7 +27,7 @@ function lede(c: CampaignDetail): string {
     case "scheduled":
       return `Goes to ${audience} ${audience === 1 ? "person" : "people"} ${c.scheduledAt ? formatTeamTime(c.scheduledAt) : "within a minute"}. Pause or cancel any time before then.`;
     case "sending":
-      return `${n.sent} of ${audience} sent so far, ${c.perMinute} a minute. ${n.pending ? `About ${sendDuration(n.pending, c.perMinute).replace(/^about /, "")} to go.` : "Finishing up."}`;
+      return `${n.sent} of ${audience} sent so far, ${c.dailyLimit} a weekday during business hours. ${n.pending ? `${n.pending} still to go, ${sendDays(n.pending, c.dailyLimit)}.` : "Finishing up."}`;
     case "paused":
       return `Paused with ${n.pending} still waiting. Nothing more goes out until you resume.`;
     case "cancelled":
@@ -89,7 +89,7 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
             <div className="flex flex-wrap items-center gap-3 text-[14.5px] text-[var(--color-text-muted)]">
               <StatusPill label={CAMPAIGN_STATUS_LABEL[c.status]} tone={campaignTone(c.status)} />
               {c.fromAddress && <span>From {c.fromAddress}</span>}
-              <span className="text-[var(--color-text-dim)]">{c.perMinute} a minute</span>
+              <span className="text-[var(--color-text-dim)]">{c.dailyLimit} a weekday</span>
             </div>
             {c.status !== "draft" && (
               <>

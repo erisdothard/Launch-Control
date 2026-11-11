@@ -11,6 +11,8 @@ import {
   type CampaignPayload,
   type ComposerTemplate,
   type EmailAttachment,
+  DEFAULT_DAILY_LIMIT,
+  MAX_DAILY_LIMIT,
 } from "@/components/compose/types";
 import { renderMerge, teamLocalToUtc, type MergeValues } from "@/lib/email/merge";
 import { sendEmail } from "@/lib/email/send";
@@ -99,6 +101,7 @@ interface Validated {
   body: string;
   attachments: EmailAttachment[];
   perMinute: number;
+  dailyLimit: number;
   skipDays: number;
   scheduledAt: string | null;
   followUp: { days: number; subject: string; body: string } | null;
@@ -122,6 +125,8 @@ async function validate(p: CampaignPayload, forSending: boolean): Promise<Valida
 
   const perMinute = int(p.perMinute, 1, MAX_PER_MINUTE);
   if (perMinute === null) return `Pace must be between 1 and ${MAX_PER_MINUTE} emails a minute.`;
+  const dailyLimit = int(p.dailyLimit ?? DEFAULT_DAILY_LIMIT, 1, MAX_DAILY_LIMIT);
+  if (dailyLimit === null) return `The daily limit must be between 1 and ${MAX_DAILY_LIMIT} emails.`;
   const skipDays = int(p.skipContactedDays, 0, 365);
   if (skipDays === null) return "The recent-contact rule must be 0 to 365 days.";
 
@@ -193,6 +198,7 @@ async function validate(p: CampaignPayload, forSending: boolean): Promise<Valida
     body,
     attachments,
     perMinute,
+    dailyLimit,
     skipDays,
     scheduledAt,
     followUp,
@@ -223,6 +229,7 @@ export async function saveCampaignAction(
       status: intent === "send" ? ("scheduled" as const) : ("draft" as const),
       scheduledAt: v.scheduledAt,
       perMinute: v.perMinute,
+      dailyLimit: v.dailyLimit,
       skipContactedDays: v.skipDays,
       followUpAfterDays: v.followUp?.days ?? null,
       followUpSubject: v.followUp ? v.followUp.subject || null : null,

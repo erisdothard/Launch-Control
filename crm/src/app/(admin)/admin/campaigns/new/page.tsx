@@ -2,7 +2,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import Composer from "@/components/compose/Composer";
 import { leadCandidate, type AudienceLead, type Candidate } from "@/components/compose/audience";
 import { DEMO_ACCOUNTS, DEMO_CAMPAIGNS, DEMO_LEADS, DEMO_SUPPRESSED, DEMO_TEMPLATES } from "@/components/compose/demo";
-import { DEFAULT_PER_MINUTE, type ComposerPrefill } from "@/components/compose/types";
+import { DEFAULT_PER_MINUTE, DEFAULT_DAILY_LIMIT, type ComposerPrefill } from "@/components/compose/types";
 import { getAudienceLeads, getCampaign, getSendingAccounts, getSuppressedEmails, type CampaignDetail } from "@/lib/store/campaigns";
 import { listTemplates } from "@/lib/store/templates";
 import { teamTodayISO } from "@/lib/leads/followUp";
@@ -41,6 +41,7 @@ function fromCampaign(c: CampaignDetail): ComposerPrefill {
     ),
     skipContactedDays: c.skipContactedDays,
     perMinute: c.perMinute || DEFAULT_PER_MINUTE,
+    dailyLimit: c.dailyLimit || DEFAULT_DAILY_LIMIT,
     followUp: c.followUpAfterDays && c.followUpBody ? { days: c.followUpAfterDays, subject: c.followUpSubject ?? "", body: c.followUpBody } : null,
     note: isDraft
       ? "Your saved draft. The list is checked again against who has opted out since."
@@ -61,6 +62,7 @@ function blankPrefill(candidates: Candidate[], note: string): ComposerPrefill {
     edits: {},
     skipContactedDays: 0,
     perMinute: DEFAULT_PER_MINUTE,
+    dailyLimit: DEFAULT_DAILY_LIMIT,
     followUp: null,
     note,
   };

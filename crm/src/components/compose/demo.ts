@@ -146,6 +146,7 @@ function summary(id: string, patch: Partial<CampaignSummary>, rows: CampaignReci
     createdAt: ago(4),
     createdBy: "maxwell@golaunchcontrol.com",
     perMinute: 10,
+    dailyLimit: 20,
     followUpAfterDays: null,
     counts: countRecipients(rows),
     ...patch,
