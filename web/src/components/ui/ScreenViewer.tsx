@@ -50,10 +50,17 @@ function fitPhone(screen: Screen): string {
   return `min(${PHONE_MAX_PX}px, calc((100vh - ${PHONE_RESERVED}) * ${ratio.toFixed(3)}))`;
 }
 
-function fitDesk(screen: Screen): string {
+function fitDesk(screen: Screen, reserved: string = DESK_RESERVED): string {
   const desk = screen.desk ?? screen.phone;
-  return `calc((100vh - ${DESK_RESERVED}) * ${(desk.width / desk.height).toFixed(3)})`;
+  return `calc((100vh - ${reserved}) * ${(desk.width / desk.height).toFixed(3)})`;
 }
+
+/*
+  Short windows (a foldable or a phone held sideways, under 640px tall): the list and the frame can
+  never share one screen there, and reserving room for the list shrinks the frame to a third of the
+  column. Size the frame to fit on its own under the nav instead.
+*/
+const DESK_RESERVED_SHORT = "6rem";
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -140,9 +147,15 @@ export function ScreenViewer({
       className={`relative mx-auto ${
         phonesOnly
           ? "w-[78%] max-w-[var(--fit-phone)] sm:w-[60%] lg:w-full"
-          : "w-[78%] max-w-[var(--fit-phone)] sm:w-full sm:max-w-[var(--fit-desk)]"
+          : "w-[78%] max-w-[var(--fit-phone)] sm:w-full sm:max-w-[var(--fit-desk)] sm:[@media(max-height:640px)]:max-w-[var(--fit-desk-short)]"
       }`}
-      style={{ "--fit-phone": fitPhone(screens[0]), "--fit-desk": fitDesk(screens[0]) } as CSSProperties}
+      style={
+        {
+          "--fit-phone": fitPhone(screens[0]),
+          "--fit-desk": fitDesk(screens[0]),
+          "--fit-desk-short": fitDesk(screens[0], DESK_RESERVED_SHORT),
+        } as CSSProperties
+      }
     >
       {screens.map((screen, i) => {
         const active = i === index;
