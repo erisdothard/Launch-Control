@@ -365,6 +365,10 @@ const content: SiteContent = {
           "Loads, bids, dispatch and live tracking on one platform, with a home screen for each role: carrier, broker, shipper and driver. Built as FreightX for a trucking company, now a product of its own.",
         href: "https://dispatchrelay.co",
         year: "2026",
+        shots: {
+          hero: { src: "/work/dispatchrelay-cover-desk-v1.webp", alt: "DispatchRelay: every load, every role, one platform. Broker, carrier and driver home screens on phones", width: 1440, height: 900 },
+          phone: { src: "/work/dispatchrelay-login-phone-v4.webp", alt: "DispatchRelay sign-in: pick a role, carrier, broker, shipper or driver", width: 1290, height: 2796 },
+        },
         screens: [
           { label: "Sign in",
             note: "One app, four roles. Carrier, broker, shipper or driver, each with its own home screen.", phone: { src: "/work/dispatchrelay-login-phone-v4.webp", alt: "DispatchRelay sign-in: pick a role, carrier, broker, shipper or driver", width: 1290, height: 2796 } },
