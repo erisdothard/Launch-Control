@@ -42,7 +42,7 @@ function statusOf(r: CampaignRecipient): { label: string; tone: "neutral" | "liv
 }
 
 // Everyone on a campaign with what happened to their email: sent, replied, failed (and why), left out.
-export default function RecipientTable({ recipients }: { recipients: CampaignRecipient[] }) {
+export default function RecipientTable({ recipients, draft = false }: { recipients: CampaignRecipient[]; draft?: boolean }) {
   const [filter, setFilter] = useState<Filter>("all");
   // Emails written for one person (the Outreach Writer's batches) open in place, so they can be read
   // before the draft is approved. Max (2026-11-16): clicking a name showed only the lead page.
@@ -55,7 +55,7 @@ export default function RecipientTable({ recipients }: { recipients: CampaignRec
     <section aria-labelledby="who" className="mt-[34px]">
       <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <h2 id="who" className="text-[17px] font-semibold text-[var(--color-text)]">
-          Who got it
+          {draft ? "Who it goes to" : "Who got it"}
         </h2>
         <div className="-mx-1.5 flex flex-wrap gap-x-2" role="group" aria-label="Filter recipients">
           {FILTERS.filter((f) => f.key === "all" || counts[f.key] > 0).map((f) => (
@@ -75,7 +75,8 @@ export default function RecipientTable({ recipients }: { recipients: CampaignRec
       </div>
       <ul>
         {shown.slice(0, limit).map((r) => {
-          const s = statusOf(r);
+          // A draft's rows are pending but nothing is queued until it is approved.
+          const s = draft && r.status === "pending" ? { label: "Not sent", tone: "dim" as const, detail: "Waiting for your approval" } : statusOf(r);
           const name = r.merge.full_name || r.merge.company || r.email;
           return (
             <li key={r.id} className="grid grid-cols-[36px_minmax(0,1fr)] items-start gap-x-4 gap-y-2 border-b border-[var(--color-border)] py-4 md:grid-cols-[36px_minmax(0,1fr)_150px_minmax(0,320px)]">

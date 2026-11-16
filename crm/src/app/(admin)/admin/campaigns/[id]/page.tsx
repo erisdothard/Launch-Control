@@ -146,7 +146,7 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
         </div>
       </div>
 
-      <RecipientTable recipients={c.recipients} />
+      <RecipientTable recipients={c.recipients} draft={c.status === "draft"} />
 
       {/* The message as written, with its fields */}
       <section aria-labelledby="message" className="mt-[34px] grid gap-6 lg:grid-cols-2">
