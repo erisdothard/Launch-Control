@@ -1,0 +1,469 @@
+/* Plan Z demo views: seat maps, the season calendar, the pipeline board and the inquiry form.
+   Tokens (--panel, --orange, --s-*) come from .root in shell.module.css. */
+
+/* --- seats ---------------------------------------------------------------------------------- */
+
+.cars {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.car {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+.carHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.carDot {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14);
+}
+
+.carName {
+  font-weight: 700;
+}
+
+.carMeta {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.seat {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.seat:last-child {
+  border-bottom: 0;
+}
+
+.seatNo {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.seatWho {
+  min-width: 0;
+}
+
+.seatEmpty {
+  color: var(--subtle);
+  font-style: italic;
+}
+
+.seatSub {
+  margin-top: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.seatActions {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.seatActions:empty {
+  display: none;
+}
+
+.mini {
+  display: flex;
+  gap: 3px;
+}
+
+.miniSeat {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.miniGap {
+  width: 6px;
+}
+
+.eventHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.eventTitle {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.eventMeta {
+  color: var(--muted);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.facts strong {
+  color: var(--text);
+}
+
+/* --- calendar ------------------------------------------------------------------------------- */
+
+.season {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.raceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  text-align: left;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.raceCard:hover {
+  border-color: var(--orange);
+  transform: translateY(-1px);
+}
+
+.racePast {
+  opacity: 0.62;
+}
+
+.raceTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.raceDate {
+  color: var(--orange-2);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.raceTrack {
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.raceFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.bar {
+  display: flex;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--s-open);
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+}
+
+/* --- pipeline ------------------------------------------------------------------------------- */
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(172px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.col {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.colHead {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.colHead span:last-child {
+  color: var(--muted);
+}
+
+.card {
+  margin-bottom: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+
+.cardNew {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(240, 85, 28, 0.22);
+}
+
+.cardMeta {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.owner {
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(91, 141, 239, 0.16);
+  color: #b9cdf7;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ownerMax {
+  background: rgba(240, 85, 28, 0.16);
+  color: #ffc2a8;
+}
+
+.newFlag {
+  margin-left: 6px;
+  color: var(--orange-2);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.arrows {
+  display: flex;
+  gap: 4px;
+}
+
+.arrow {
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  background: var(--panel);
+  font-size: 12px;
+}
+
+.arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* --- inquiry form --------------------------------------------------------------------------- */
+
+.formFrame {
+  max-width: 780px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #000;
+  overflow: hidden;
+}
+
+.formBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--subtle);
+  font-size: 12px;
+}
+
+.formBar i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line-2);
+}
+
+.formBody {
+  padding: 28px;
+}
+
+.formLogo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.formLogo img {
+  width: 60px;
+  height: 60px;
+  flex: none;
+}
+
+.formTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  font-weight: 650;
+}
+
+.req {
+  color: var(--orange-2);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #666;
+  border-radius: 4px;
+  background: #0c0c0c;
+  color: var(--text);
+  font: inherit;
+}
+
+.input:focus {
+  border-color: var(--orange);
+  outline: none;
+}
+
+.submit {
+  margin-top: 18px;
+  padding: 11px 20px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--orange);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.submit:hover {
+  background: var(--orange-2);
+}
+
+.thanks {
+  padding: 24px;
+  border: 1px solid var(--s-paid);
+  border-radius: 10px;
+  background: rgba(47, 179, 107, 0.08);
+}
+
+.thanks h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* --- small screens -------------------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .cars {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .formBody {
+    padding: 20px;
+  }
+
+}
