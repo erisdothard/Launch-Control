@@ -14,7 +14,7 @@ from typing import Any
 from leadgen import overrides
 from leadgen.config import Config, supabase_env
 from leadgen.dedupe import dedupe, drop_known
-from leadgen.discover import directories, gmaps
+from leadgen.discover import champcar, directories, gmaps
 from leadgen.discover.queries import build_queries
 from leadgen.discover.seeds import load_seeds
 from leadgen.enrich.crawl import Crawler, CrawlResult
@@ -156,10 +156,16 @@ async def _run(cfg: Config, opts: RunOptions, today: date, out_root: Path, summa
         queries = build_queries(cfg, opts.states, opts.segments, opts.max_queries)
         c["queries"] = len(queries)
         places = await asyncio.to_thread(gmaps.discover, queries, cfg.gmaps, out_root)
-    if any(d.enabled for d in cfg.directories):
+    use_champcar = cfg.champcar.enabled and not opts.seed and (
+        opts.segments is None or champcar.SEGMENT in opts.segments)
+    if any(d.enabled for d in cfg.directories) or use_champcar:
         crawler = Crawler(cfg.user_agent, 1, cfg.enrich.per_host_delay_s, cfg.enrich.timeout_s, cfg.enrich.max_bytes)
         try:
             places += await directories.discover(cfg, crawler.client, crawler.robots)
+            if use_champcar:
+                found = await champcar.discover(cfg.champcar, crawler.client, crawler.robots, out_root)
+                c["champcar_teams"] = len(found)
+                places += found
         finally:
             await crawler.aclose()
     c["raw_rows"] = len(places)

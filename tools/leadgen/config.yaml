@@ -152,6 +152,16 @@ gmaps:
 # Public static listings (team/vendor pages). Disabled by default; see discover/directories.py.
 directories: []
 
+# ChampCar entry lists (discover/champcar.py): endurance teams that run 2+ cars at one event or race
+# often, i.e. teams selling seats. Each one's website is found with Claude web search, cached.
+champcar:
+  enabled: true
+  first_event: 540
+  last_event: 620
+  min_cars: 2
+  min_events: 4
+  max_teams: 80
+
 enrich:
   max_pages: 6
   per_host_delay_s: 1.0

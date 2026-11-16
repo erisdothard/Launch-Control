@@ -74,6 +74,17 @@ class DirectorySource(BaseModel):
     enabled: bool = False
 
 
+class ChampCarCfg(BaseModel):
+    enabled: bool = False
+    first_event: int = 540
+    last_event: int = 620
+    min_cars: int = 2  # cars at a single event
+    min_events: int = 4  # or this many events entered
+    max_teams: int = 80  # web lookups per run
+    lookup_model: str = "claude-sonnet-5-5"
+    concurrency: int = 4
+
+
 class EnrichCfg(BaseModel):
     max_pages: int = 6
     per_host_delay_s: float = 1.0
@@ -136,6 +147,7 @@ class Config(BaseModel):
     tracks: list[Track] = Field(default_factory=list)
     gmaps: GmapsCfg = Field(default_factory=GmapsCfg)
     directories: list[DirectorySource] = Field(default_factory=list)
+    champcar: ChampCarCfg = Field(default_factory=ChampCarCfg)
     enrich: EnrichCfg = Field(default_factory=EnrichCfg)
     filters: FilterCfg = Field(default_factory=FilterCfg)
     score: ScoreCfg
