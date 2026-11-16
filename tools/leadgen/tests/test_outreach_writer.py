@@ -421,7 +421,7 @@ def test_respects_the_per_pass_cap(store: Store) -> None:
     db = DB([_lead(i) for i in ids], [_detail(i) for i in ids])
     asker = FakeAsker([{"subject": "Booking at Apex", "body": GOOD_BODY, "fact_index": 1}])
     _run(db, store, asker, limit=2)
-    assert len(db.recipients) == 2 and db.campaigns[0]["name"].endswith(" · 2 leads")
+    assert len(db.recipients) == 2 and db.campaigns[0]["name"].startswith("2 new first emails · ")
 
 
 def test_recipient_failure_removes_the_campaign(store: Store) -> None:
