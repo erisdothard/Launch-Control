@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Plan Z driver system walkthrough</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="136" data-width="1920" data-height="1080">
+      <section id="stage" class="clip layer" data-start="0" data-duration="136" data-track-index="1">
+        <div id="bg-fill" class="layer"></div>
+        <div id="bg-grid" class="layer"></div>
+        <div id="bg-glow" class="layer"></div>
+        <div id="bg-ghost" class="layer">PLAN Z · ARRIVE AND DRIVE · ENDURANCE · PLAN Z</div>
+        <div id="bg-stripe" class="layer"><span style="width: 640px; background: #023569"></span><span style="width: 640px; background: #f0551c"></span><span style="width: 640px; background: #f2f4f7"></span></div>
+
+        <!-- Camera: everything that zooms -->
+        <div id="cam" class="layer">
+          <div id="app">
+            <aside id="side">
+              <div class="brand"><img src="assets/planz-logo.png" alt="Plan Z Motorsports" /><div><b>Plan Z<br />Motorsports</b><span>Jim Mitchell</span></div></div>
+              <div id="nav-marker"></div>
+              <div class="nav" style="top: 120px"><i></i>Dashboard</div>
+              <div class="nav" style="top: 176px"><i></i>Race calendar</div>
+              <div class="nav" style="top: 232px"><i></i>Race weekend</div>
+              <div class="nav" style="top: 288px"><i></i>Drivers</div>
+              <div class="nav" style="top: 344px"><i></i>Pipeline</div>
+              <div class="nav" style="top: 400px"><i></i>Payments</div>
+              <div class="nav" style="top: 456px"><i></i>Follow-ups</div>
+              <div class="nav" style="top: 512px"><i></i>Inquiry form</div>
+              <div class="powered">Runs on<img src="assets/launch-control-logo-v3.svg" alt="Launch Control" /></div>
+            </aside>
+
+            <main id="main">
+              <!-- PIPELINE -->
+              <div id="scr-pipe" class="screen">
+                <h1 class="hello abs" style="left: 0; top: 0">Pipeline</h1>
+                <div class="summary abs" style="left: 0; top: 74px; width: 1200px">Max brings drivers in and qualifies them. Jim approves who drives.</div>
+                <div class="col" style="left: 0"><div class="ch">New inquiry<span>3</span></div></div>
+                <div class="col" style="left: 217px"><div class="ch">Contacted<span>2</span></div></div>
+                <div class="col" style="left: 434px"><div class="ch">Qualified<span>2</span></div></div>
+                <div class="col" style="left: 651px"><div class="ch">Approved<span>4</span></div></div>
+                <div class="col" style="left: 868px"><div class="ch">Booking pending<span>6</span></div></div>
+                <div class="col" style="left: 1085px"><div class="ch">Confirmed<span>12</span></div></div>
+                <div class="pc" style="left: 10px; top: 308px"><div class="nm">Noah Kessler</div><div class="ln">HPDE 2 · Website form</div><div class="ft"><span class="own">Max</span></div></div>
+                <div class="pc" style="left: 10px; top: 424px"><div class="nm">Isabel Vega</div><div class="ln">HPDE 3 · Max outreach</div><div class="ft"><span class="own">Max</span></div></div>
+                <div class="pc" style="left: 227px; top: 308px"><div class="nm">Will Danforth</div><div class="ln">Autocross · Website</div><div class="ft"><span class="own">Max</span></div></div>
+                <div class="pc" style="left: 444px; top: 308px"><div class="nm">Jade Morgan</div><div class="ln">HPDE 3 · Website</div><div class="ft"><span class="own">Max</span></div></div>
+                <div class="pc" style="left: 661px; top: 192px"><div class="nm">Dana Reyes</div><div class="ln">HPDE 4 · Referral</div><div class="ft"><span class="own jim">Jim</span></div></div>
+                <div class="pc" style="left: 661px; top: 308px"><div class="nm">Sofia Lind</div><div class="ln">HPDE 4 · Website</div><div class="ft"><span class="own">Max</span></div></div>
+                <div class="pc" style="left: 878px; top: 192px"><div class="nm">Marcus Bell</div><div class="ln">SCCA · ChampCar</div><div class="ft"><span class="own">Max</span></div></div>
+                <div class="pc" style="left: 878px; top: 308px"><div class="nm">Hannah Cole</div><div class="ln">HPDE 3 · Max outreach</div><div class="ft"><span class="own">Max</span></div></div>
+                <div class="pc" style="left: 1095px; top: 192px"><div class="nm">Chris Albright</div><div class="ln">HPDE 3 · Website</div><div class="ft"><span class="own">Max</span></div></div>
+                <div class="pc" style="left: 1095px; top: 308px"><div class="nm">Sam Whitaker</div><div class="ln">Lucky Dog · Referral</div><div class="ft"><span class="own jim">Jim</span></div></div>
+                <div class="pc" style="left: 1095px; top: 424px"><div class="nm">Jordan Price</div><div class="ln">SCCA · Max outreach</div><div class="ft"><span class="own">Max</span></div></div>
+                <div class="pc me" id="pc-cole" style="left: 10px; top: 192px">
+                  <div class="nm">Cole Harper</div><div class="ln">HPDE 4 · Website form</div>
+                  <div class="stv" id="pc-s0" style="opacity: 1"><span class="own">Max</span> <span style="color: var(--orange-2)">New · call him</span></div>
+                  <div class="stv" id="pc-s1"><span class="own">Max</span> <span style="color: var(--ink-2)">Called · interested</span></div>
+                  <div class="stv" id="pc-s2"><span class="own">Max</span> <span style="color: #6fdc9f">HPDE 4 checked</span></div>
+                </div>
+              </div>
+
+              <!-- DRIVER RECORD -->
+              <div id="scr-driver" class="screen">
+                <div class="d-head abs">
+                  <div class="av o">CH</div>
+                  <div><div class="nm">Cole Harper</div><div class="sub">Driver · Marietta, GA · came in through planzracing.com</div></div>
+                </div>
+                <div class="d-chip abs" id="chip-qual"><span class="tag mute">Qualified · waiting on Jim</span></div>
+                <div class="d-chip abs" id="chip-appr" style="opacity: 0"><span class="tag ok">Approved to drive</span></div>
+                <div class="fields abs">
+                  <div class="card fld"><div class="k">HPDE experience</div><div class="v">HPDE 4</div><div class="s">Three seasons at Road Atlanta</div></div>
+                  <div class="card fld"><div class="k">Licence</div><div class="v">Lucky Dog</div><div class="s">Racing licence on file</div></div>
+                  <div class="card fld"><div class="k">Reference laps</div><div class="v">Video on file</div><div class="s">In-car laps, reviewed by Max</div></div>
+                  <div class="card fld"><div class="k">Target series</div><div class="v">Lucky Dog</div><div class="s">Racing League</div></div>
+                  <div class="card fld"><div class="k">Preferred car</div><div class="v">Red 370Z</div><div class="s">7-speed automatic</div></div>
+                  <div class="card fld"><div class="k">Cooling shirt</div><div class="v">Loaner</div><div class="s">Chillout shirt requested</div></div>
+                </div>
+                <div class="card rp abs">
+                  <div class="rp-l" id="rp-elig" style="opacity: 1">
+                    <div class="k">Eligibility</div>
+                    <div class="step"><div class="dot"><div class="ck" id="ck1">✓</div></div><div>HPDE 3 or higher<div class="w">HPDE 4 · checked by Max</div></div></div>
+                    <div class="step"><div class="dot"><div class="ck" id="ck2">✓</div></div><div>Reference laps reviewed<div class="w">Clean, consistent, safe</div></div></div>
+                    <div class="step"><div class="dot"><div class="ck" id="ck3">✓</div></div><div>Series licence and waiver<div class="w">Lucky Dog licence on file</div></div></div>
+                    <div class="step"><div class="dot"><div class="ck" id="ck4">✓</div></div><div>Approved by Jim<div class="w" id="ck4-w">Waiting on Jim</div></div></div>
+                    <div class="btn o abs" id="approve" style="left: 26px; top: 500px">Approve driver</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- RACE WEEKEND -->
+              <div id="scr-event" class="screen">
+                <h1 class="hello abs" style="left: 0; top: 0">Carolina Motorsports Park</h1>
+                <div class="summary abs" style="left: 0; top: 74px; width: 960px">2027 · Round 1 · Feb 27–28 · Kershaw, SC · Lucky Dog</div>
+                <div class="ev-count abs"><div class="n"><span id="ev-n2">2</span><span id="ev-n1" class="abs" style="right: 0; top: 0; opacity: 0">1</span></div><div class="l">seats open of 8</div></div>
+                <div class="card carp abs" style="left: 0">
+                  <div class="hd"><span class="dt" style="background: #e5372b"></span>2011 Nissan 370Z<span class="tr">7-speed automatic</span></div>
+                  <div class="st"><div class="no">1</div><div><div class="nm">Chris Albright</div><div class="ln">HPDE 3</div></div><span class="tg tag dep">Deposit paid</span></div>
+                  <div class="st"><div class="no">2</div><div><div class="nm">Sam Whitaker</div><div class="ln">Lucky Dog 4 seasons</div></div><span class="tg tag dep">Deposit paid</span></div>
+                  <div class="st"><div class="no">3</div><div><div class="nm">Ben Ross</div><div class="ln">HPDE 4</div></div><span class="tg tag com">Committed</span></div>
+                  <div class="st open"><div class="no">4</div><div><div class="nm">Open seat</div><div class="ln">Red 370Z</div></div><span class="tg tag mute">Open</span>
+                    <div class="fill" id="seat-fill"><div class="no">4</div><div><div class="nm" style="font-style: normal; color: var(--ink); font-weight: 700">Cole Harper</div><div class="ln">HPDE 4 · approved</div></div><span class="tg tag int" style="margin-left: auto">Interested</span></div>
+                  </div>
+                </div>
+                <div class="card carp abs" style="left: 664px">
+                  <div class="hd"><span class="dt" style="background: #e9ecef"></span>2003 Nissan 350Z<span class="tr">6-speed manual</span></div>
+                  <div class="st"><div class="no">1</div><div><div class="nm">Alexis Moreau</div><div class="ln">HPDE 3</div></div><span class="tg tag dep">Deposit paid</span></div>
+                  <div class="st"><div class="no">2</div><div><div class="nm">Kevin Tran</div><div class="ln">ChampCar 1 season</div></div><span class="tg tag com">Committed</span></div>
+                  <div class="st"><div class="no">3</div><div><div class="nm">Rachel Kim</div><div class="ln">HPDE 4</div></div><span class="tg tag int">Interested</span></div>
+                  <div class="st open"><div class="no">4</div><div><div class="nm">Open seat</div><div class="ln">White 350Z</div></div><span class="tg tag mute">Open</span></div>
+                </div>
+                <div id="pill" class="pill abs"><div class="av o">CH</div><div><div class="nm">Cole Harper · approved</div><div class="ln">Wants the Red 370Z · Lucky Dog · CMP</div></div></div>
+                <div class="backup abs"><span class="dt" style="width: 14px; height: 14px; border-radius: 50%; background: #2f5fa8"></span>Backup car: <b>Blue 350Z</b> comes to every race</div>
+              </div>
+
+              <!-- FOLLOW-UPS -->
+              <div id="scr-fu" class="screen">
+                <h1 class="hello abs" style="left: 0; top: 0">Follow-ups</h1>
+                <div class="summary abs" style="left: 0; top: 74px; width: 1200px">Every next step has an owner and a date. Reminders run until the driver commits.</div>
+                <div class="card abs" style="left: 0; top: 140px; width: 820px; height: 590px">
+                  <div class="card-h">Going out next<span style="font-size: 16px; color: var(--ink-3)">5 due</span></div>
+                  <div class="fu-r" style="position: absolute; left: 0; top: 64px; width: 820px">
+                    <div class="r2" id="fu-cole"><div><div class="nm">Cole Harper</div><div class="ln">Seat held, not committed · contract and waiver</div></div><span class="own" style="background: rgba(170,195,235,.12); color: var(--ink-2)">System</span><div class="swap" style="width: 150px; text-align: right"><span class="a" id="fu-due">Today</span><span class="b" id="fu-sent" style="color: #6fdc9f; font-weight: 700">✓ Sent</span></div></div>
+                    <div class="r2"><div><div class="nm">Ben Ross</div><div class="ln">Deposit due · reminder with payment link</div></div><span class="own" style="background: rgba(170,195,235,.12); color: var(--ink-2)">System</span><div style="width: 150px; text-align: right; color: var(--ink-3)">Jan 24</div></div>
+                    <div class="r2"><div><div class="nm">Noah Kessler</div><div class="ln">New inquiry · call and qualify</div></div><span class="own">Max</span><div style="width: 150px; text-align: right; color: var(--ink-3)">Jan 26</div></div>
+                    <div class="r2"><div><div class="nm">Priya Nair</div><div class="ln">Balance overdue · call about payment</div></div><span class="own jim">Jim</span><div style="width: 150px; text-align: right" class="late">Overdue</div></div>
+                    <div class="r2" style="border-bottom: 0"><div><div class="nm">Isabel Vega</div><div class="ln">Seat held · last call before the waitlist</div></div><span class="own">Max</span><div style="width: 150px; text-align: right; color: var(--ink-3)">Jan 30</div></div>
+                  </div>
+                </div>
+                <div class="card abs" style="left: 850px; top: 140px; width: 444px; height: 590px; padding: 22px 26px">
+                  <div style="font-size: 15px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3)">Sequences</div>
+                  <div class="seq"><b>New inquiry</b><span>Reply, Max calls, Jim approves</span></div>
+                  <div class="seq" id="seq-hold"><b>Interested, not committed</b><span>Seats filling · contract · last call</span></div>
+                  <div class="seq"><b>Deposit due</b><span>Reminders before the deposit date</span></div>
+                  <div class="seq"><b>Balance due</b><span>Thank you, photos, balance link</span></div>
+                  <div class="seq" style="border-bottom: 0"><b>Next race invite</b><span>Open seats at the next weekend</span></div>
+                </div>
+              </div>
+
+              <!-- PAYMENTS -->
+              <div id="scr-pay" class="screen">
+                <h1 class="hello abs" style="left: 0; top: 0">Payments</h1>
+                <div class="summary abs" style="left: 0; top: 74px; width: 1200px">Deposit before the race, balance after. Every driver, every step.</div>
+                <div class="card abs" id="stepper" style="left: 0; top: 140px; width: 1294px; height: 170px">
+                  <div class="abs" style="left: 160px; top: 62px; width: 960px; height: 4px; background: var(--line-2)"></div>
+                  <div class="abs" id="step-bar" style="left: 160px; top: 62px; width: 0; height: 4px; background: var(--orange)"></div>
+                  <div class="sn" style="left: 160px"><i></i><b>Interested</b><span>Seat held</span></div>
+                  <div class="sn" style="left: 480px"><i></i><b>Committed</b><span>Contract signed</span></div>
+                  <div class="sn" style="left: 800px"><i></i><b>Deposit paid</b><span>$600 · by Jan 28</span></div>
+                  <div class="sn" style="left: 1120px"><i></i><b>Paid in full</b><span>$1,800 · by Mar 7</span></div>
+                  <div class="av o abs" id="step-me" style="left: 131px; top: 35px; width: 58px; height: 58px">CH</div>
+                </div>
+                <div class="card tbl abs">
+                  <div class="tr2 h"><span>Driver</span><span>Race weekend</span><span>Status</span><span>Amount</span><span>Due</span></div>
+                  <div class="tr2" id="pay-cole"><span class="nm">Cole Harper</span><span>Carolina Motorsports Park<span class="sm">Feb 27–28</span></span>
+                    <span class="swap"><span class="a" id="pc-st0"><span class="tag int">Interested</span></span><span class="b" id="pc-st1" style="left: 0; right: auto"><span class="tag com">Committed</span></span><span class="b" id="pc-st2" style="left: 0; right: auto"><span class="tag dep">Deposit paid</span></span></span>
+                    <span class="swap"><span class="a" id="pc-am0">$600</span><span class="b" id="pc-am1" style="left: 0; right: auto">$1,800</span></span>
+                    <span class="swap"><span class="a" id="pc-du0">Jan 28</span><span class="b" id="pc-du1" style="left: 0; right: auto">Mar 7</span></span>
+                    <span class="btn o act" id="pay-btn">Mark deposit paid</span>
+                  </div>
+                  <div class="tr2"><span class="nm">Ben Ross</span><span>Carolina Motorsports Park<span class="sm">Feb 27–28</span></span><span><span class="tag com">Committed</span></span><span>$600</span><span>Jan 28</span></div>
+                  <div class="tr2" id="pay-priya"><span class="nm">Priya Nair</span><span>Atlanta Motorsports Park<span class="sm">Nov 2026</span></span><span><span class="tag bal">Balance due</span></span><span>$1,800</span><span class="late">Overdue</span></div>
+                  <div class="tr2"><span class="nm">Dana Reyes</span><span>Atlanta Motorsports Park<span class="sm">Nov 2026</span></span><span><span class="tag ok">Paid in full</span></span><span>—</span><span>—</span></div>
+                  <div class="tr2"><span class="nm">Alexis Moreau</span><span>Carolina Motorsports Park<span class="sm">Feb 27–28</span></span><span><span class="tag dep">Deposit paid</span></span><span>$1,800</span><span>Mar 7</span></div>
+                </div>
+                <div id="toast-c" class="toast" style="left: 880px; top: 6px">✓ Contract and waiver signed</div>
+                <div id="toast-d" class="toast" style="left: 880px; top: 6px">✓ Deposit received · $600</div>
+              </div>
+
+              <!-- RACE CALENDAR: the season -->
+              <div id="scr-cal" class="screen">
+                <h1 class="hello abs" style="left: 0; top: 0">2027 season</h1>
+                <div class="summary abs" style="left: 0; top: 74px; width: 1200px">Two cars, eight seats a weekend. Where demand is, and where seats are still open.</div>
+                <div class="evg abs">
+                  <div class="ec"><div class="tp"><b>Feb 27–28</b><span>Lucky Dog</span></div><div class="tk">Carolina Motorsports Park</div><div class="bar"><i class="c" style="width: 87.5%"></i></div><div class="ft">7/8 committed · <em>2 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>Mar 27–28</b><span>ChampCar</span></div><div class="tk">Atlanta Motorsports Park</div><div class="bar"><i class="c" style="width: 62.5%"></i><i class="i" style="width: 25%"></i></div><div class="ft">5/8 committed · <em>2 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>Apr 24–25</b><span>ChampCar</span></div><div class="tk">Barber Motorsports Park</div><div class="bar"><i class="c" style="width: 50%"></i><i class="i" style="width: 37.5%"></i></div><div class="ft">4/8 committed · <em>3 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>May 22–23</b><span>ChampCar</span></div><div class="tk">Virginia International Raceway</div><div class="bar"><i class="c" style="width: 37.5%"></i><i class="i" style="width: 25%"></i></div><div class="ft">3/8 committed · <em>2 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>Jun 12–13</b><span>Lucky Dog</span></div><div class="tk">Sebring International Raceway</div><div class="bar"><i class="c" style="width: 25%"></i><i class="i" style="width: 37.5%"></i></div><div class="ft">2/8 committed · <em>3 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>Jul 17–18</b><span>ChampCar</span></div><div class="tk">Road Atlanta</div><div class="bar"><i class="c" style="width: 25%"></i><i class="i" style="width: 12.5%"></i></div><div class="ft">2/8 committed · <em>1 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>Aug 14–15</b><span>Lucky Dog</span></div><div class="tk">NOLA Motorsports Park</div><div class="bar"><i class="c" style="width: 12.5%"></i><i class="i" style="width: 25%"></i></div><div class="ft">1/8 committed · <em>2 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>Sep 11–12</b><span>ChampCar</span></div><div class="tk">Carolina Motorsports Park</div><div class="bar"><i class="c" style="width: 12.5%"></i><i class="i" style="width: 12.5%"></i></div><div class="ft">1/8 committed · <em>1 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>Oct 2–3</b><span>Lucky Dog</span></div><div class="tk">Barber Motorsports Park</div><div class="bar"><i class="i" style="width: 25%"></i></div><div class="ft">0/8 committed · <em>2 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>Oct 23–24</b><span>ChampCar</span></div><div class="tk">Atlanta Motorsports Park</div><div class="bar"><i class="i" style="width: 12.5%"></i></div><div class="ft">0/8 committed · <em>1 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>Nov 13–14</b><span>Lucky Dog</span></div><div class="tk">Roebling Road Raceway</div><div class="bar"><i class="i" style="width: 12.5%"></i></div><div class="ft">0/8 committed · <em>1 interested</em></div></div>
+                  <div class="ec"><div class="tp"><b>Dec 11–12</b><span>ChampCar</span></div><div class="tk">Circuit of the Americas</div><div class="bar"><i class="i" style="width: 25%"></i></div><div class="ft">0/8 committed · <em>2 interested</em></div></div>
+                </div>
+                <div class="card season abs">
+                  <div><b>25 / 96</b><span>seats committed</span></div>
+                  <div><b style="color: #a9c3f7">22</b><span>interested</span></div>
+                  <div><b style="color: var(--orange-2)">49</b><span>open seats</span></div>
+                  <div><b>$4,800</b><span>deposits due</span></div>
+                </div>
+              </div>
+            </main>
+          </div>
+
+          <!-- Plan Z inquiry form (scene 1), inside the camera so the cursor lines up -->
+          <div id="form" class="layer">
+            <div class="top"><div class="b"><img src="assets/planz-logo.png" alt="" />Plan Z Motorsports</div><span>planzracing.com/contact</span></div>
+            <h3>Request a seat</h3>
+            <div class="hint">Tell us about your driving and pick a race weekend.</div>
+            <div class="f" style="top: 206px"><label>Name <em>*</em></label><div class="in"><span class="v" id="fv-name">Cole Harper</span></div></div>
+            <div class="f" style="top: 298px"><label>HPDE experience <em>*</em></label><div class="in ta"><span class="v" id="fv-exp">HPDE 4. Three seasons at Road Atlanta, reference laps linked below.</span></div></div>
+            <div class="f" style="top: 412px"><label>Preferred car</label>
+              <div class="chips"><div class="chip" style="width: 170px">No preference</div><div class="chip" style="width: 150px">White 350Z</div><div class="chip" style="width: 140px">Blue 350Z</div><div class="chip" id="chip-red" style="width: 140px">Red 370Z</div></div></div>
+            <div class="f" style="top: 494px"><label>Target series</label>
+              <div class="chips"><div class="chip" style="width: 160px">Not sure yet</div><div class="chip" id="chip-ld" style="width: 150px">Lucky Dog</div><div class="chip" style="width: 150px">ChampCar</div></div></div>
+            <div class="f" style="top: 576px"><label>Race weekend</label><div class="in"><span id="fv-ev-ph" style="color: #8a8f99">Choose a 2027 race weekend</span><span class="v abs" id="fv-ev" style="left: 16px">Feb 27–28 · Carolina Motorsports Park</span><span class="abs" style="right: 18px; color: #8a8f99">▾</span></div></div>
+            <div class="btn" id="submit">Send inquiry</div>
+            <div id="ev-menu" class="abs">
+              <div class="opt" id="opt-cmp">Feb 27–28 · Carolina Motorsports Park (2 seats open)</div><div class="opt">Mar 27–28 · Atlanta Motorsports Park</div><div class="opt">Apr 24–25 · Barber Motorsports Park</div>
+            </div>
+          </div>
+
+          <!-- Spotlights (camera space) -->
+          <div id="sp-new" class="spot" style="left: 440px; top: 288px; width: 203px; height: 120px"><div class="lbl">In the pipeline, assigned to Max</div></div>
+          <div id="sp-qual" class="spot" style="left: 874px; top: 288px; width: 203px; height: 120px"><div class="lbl">Qualified by Max</div></div>
+          <div id="sp-fields" class="spot" style="left: 428px; top: 234px; width: 780px; height: 510px"><div class="lbl">Experience and eligibility, in fields</div></div>
+          <div id="sp-elig" class="spot" style="left: 1230px; top: 236px; width: 510px; height: 616px"><div class="lbl">Jim approves who drives</div></div>
+          <div id="sp-seat" class="spot" style="left: 430px; top: 612px; width: 646px; height: 120px"><div class="lbl">Held for Cole · Feb 27–28</div></div>
+          <div id="sp-count" class="spot" style="left: 1446px; top: 96px; width: 300px; height: 140px"><div class="lbl below">Seats left, live</div></div>
+          <div id="sp-fu" class="spot" style="left: 430px; top: 300px; width: 836px; height: 120px"><div class="lbl">His next step, already scheduled</div></div>
+          <div id="sp-seq" class="spot" style="left: 1280px; top: 236px; width: 460px; height: 606px"><div class="lbl">Reminders run on their own</div></div>
+          <div id="sp-step" class="spot" style="left: 430px; top: 236px; width: 1310px; height: 186px"><div class="lbl">Interested to paid, step by step</div></div>
+          <div id="sp-late" class="spot" style="left: 430px; top: 616px; width: 1310px; height: 88px"><div class="lbl">Late payments flagged for Jim</div></div>
+          <div id="sp-row1" class="spot" style="left: 430px; top: 226px; width: 1310px; height: 166px"><div class="lbl">Seat demand, race by race</div></div>
+          <div id="sp-season" class="spot" style="left: 430px; top: 748px; width: 1310px; height: 98px"><div class="lbl">Every open opportunity, counted</div></div>
+
+          <div id="ripple"></div>
+          <svg id="cursor" viewBox="0 0 44 52" aria-hidden="true"><path d="M3 3 L3 41 L13 32 L20 48 L27 45 L20 29 L34 29 Z" fill="#ffffff" stroke="#0b0b0b" stroke-width="3" stroke-linejoin="round" /></svg>
+        </div>
+
+        <!-- Captions (never zoom) -->
+        <div id="cap-strip" class="layer"></div>
+        <div class="cap" id="cap1"><div class="no">1</div><div><div class="t">A new driver inquiry enters the pipeline</div><div class="s">He fills out the form on planzracing.com and lands in New inquiry, assigned to Max.</div></div></div>
+        <div class="cap" id="cap2"><div class="no">2</div><div><div class="t">Experience and eligibility, qualified</div><div class="s">Max checks his HPDE level and reference laps. Jim approves who drives.</div></div></div>
+        <div class="cap" id="cap3"><div class="no">3</div><div><div class="t">Tied to a 2027 race weekend</div><div class="s">He's held for a specific seat in a specific car at a specific race.</div></div></div>
+        <div class="cap" id="cap4"><div class="no">4</div><div><div class="t">Follow-ups and reminders, organized</div><div class="s">Every next step has an owner and a date. Reminders run until he commits.</div></div></div>
+        <div class="cap" id="cap5"><div class="no">5</div><div><div class="t">From interested to confirmed and paid</div><div class="s">Contract, deposit and balance, tracked for every driver.</div></div></div>
+        <div class="cap" id="cap6"><div class="no">6</div><div><div class="t">Seat demand and open seats, by event</div><div class="s">Jim sees every 2027 weekend: who's committed, who's interested, what's still open.</div></div></div>
+        <div id="sample" class="layer">Proposed workflow · sample drivers, dates and prices</div>
+
+        <!-- Title card -->
+        <div id="title" class="layer card-full">
+          <div class="photo"></div><div class="shade"></div>
+          <div class="in">
+            <div class="logos"><img class="pz" src="assets/planz-logo.png" alt="Plan Z Motorsports" /><div class="pzn">Plan Z<br />Motorsports</div></div>
+            <h2 id="title-h">From first inquiry to a <em>paid seat.</em></h2>
+            <p id="title-p">A proposed Plan Z system: one driver, one 2027 race weekend, step by step.</p>
+            <span class="rule" id="title-rule"></span>
+          </div>
+        </div>
+
+        <!-- End card -->
+        <div id="end" class="layer card-full" style="opacity: 0">
+          <div class="photo"></div><div class="shade"></div>
+          <div class="in">
+            <div class="logos"><img class="pz" src="assets/planz-logo.png" alt="Plan Z Motorsports" /><span class="x">×</span><img class="lc" src="assets/launch-control-logo-v3.svg" alt="Launch Control" /></div>
+            <h2 id="end-h">Every driver, every seat, <em>every race weekend.</em></h2>
+            <p id="end-p">Built by Launch Control for Plan Z Motorsports · golaunchcontrol.com</p>
+            <span class="rule" id="end-rule"></span>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script>
+// Plan Z walkthrough. Same frame, pace and caption system as the Arrive Drive film.
+// One paused timeline, all coordinates in 1920x1080 camera space, written on a 68 s clock
+// that PACE stretches to 136 s.
+window.__timelines = window.__timelines || {};
+const tl = gsap.timeline({ paused: true });
+
+const PACE = 2;
+const MOTION = 1.2;
+const paceAt = (p) => (typeof p === "number" ? p * PACE : p);
+const paceVars = (v) => {
+  if (!v || typeof v !== "object") return v;
+  const out = { ...v };
+  if (typeof out.duration === "number") out.duration *= out.duration >= 2 ? PACE : MOTION;
+  if (typeof out.stagger === "number") out.stagger *= MOTION;
+  return out;
+};
+for (const m of ["to", "from", "set"]) {
+  const raw = tl[m].bind(tl);
+  tl[m] = (target, vars, at) => raw(target, paceVars(vars), paceAt(at));
+}
+{
+  const raw = tl.fromTo.bind(tl);
+  tl.fromTo = (target, fromVars, toVars, at) => raw(target, fromVars, paceVars(toVars), paceAt(at));
+}
+
+const VIEW_CX = 960;
+const VIEW_CY = 470;
+const NAV_STEP = 56;
+// Sidebar order: Dashboard 0, Race calendar 1, Race weekend 2, Drivers 3, Pipeline 4, Payments 5, Follow-ups 6, Inquiry form 7.
+
+function cam(scale, px, py, at, dur = 0.9) {
+  const x = scale === 1 ? 0 : VIEW_CX - scale * px;
+  const y = scale === 1 ? 0 : VIEW_CY - scale * py;
+  tl.to("#cam", { scale, x, y, duration: dur, ease: "power3.inOut" }, at);
+}
+function cursorTo(x, y, at, dur = 0.55) { tl.to("#cursor", { x, y, duration: dur, ease: "power2.inOut" }, at); }
+function cursorShow(x, y, at) { tl.set("#cursor", { x, y }, at); tl.to("#cursor", { opacity: 1, duration: 0.2 }, at); }
+function cursorHide(at) { tl.to("#cursor", { opacity: 0, duration: 0.25 }, at); }
+function click(x, y, at) {
+  tl.to("#cursor", { scale: 0.82, duration: 0.09, yoyo: true, repeat: 1, transformOrigin: "0 0" }, at);
+  tl.set("#ripple", { x, y, scale: 0.4, opacity: 1 }, at);
+  tl.to("#ripple", { scale: 1.7, opacity: 0, duration: 0.5, ease: "power2.out" }, at);
+}
+function screenIn(sel, at) { tl.fromTo(sel, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, at); }
+function screenOut(sel, at) { tl.to(sel, { opacity: 0, duration: 0.3, ease: "power1.in" }, at); }
+function spot(sel, from, to) {
+  tl.fromTo(sel, { opacity: 0, scale: 1.04 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power2.out" }, from);
+  tl.to(sel, { opacity: 0, duration: 0.35, ease: "power1.in" }, to);
+}
+function caption(sel, from, to) {
+  tl.fromTo(sel, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, from);
+  tl.to(sel, { opacity: 0, duration: 0.3 }, to);
+}
+function nav(i, at) { tl.to("#nav-marker", { y: i * NAV_STEP, duration: 0.35, ease: "power2.inOut" }, at); }
+function swap(outSel, inSel, at) {
+  tl.to(outSel, { opacity: 0, duration: 0.25 }, at);
+  tl.fromTo(inSel, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, at + 0.15);
+}
+
+// ---------- initial state ----------
+tl.set("#form", { opacity: 0 }, 0);
+tl.set("#cursor", { opacity: 0, x: 1500, y: 900 }, 0);
+tl.set("#pc-cole", { opacity: 0 }, 0);
+tl.set("#nav-marker", { y: 7 * NAV_STEP }, 0);
+tl.set("#approve", { opacity: 1 }, 0);
+
+// ---------- ambient background (finite) ----------
+tl.to("#bg-glow", { scale: 1.12, duration: 5, ease: "sine.inOut", yoyo: true, repeat: 12 }, 0);
+tl.to("#bg-ghost", { x: -520, duration: 68, ease: "none" }, 0);
+
+// ---------- 0: title ----------
+tl.from("#title .logos", { opacity: 0, y: 30, duration: 0.6, ease: "power3.out" }, 0.2);
+tl.from("#title-h", { opacity: 0, y: 50, duration: 0.8, ease: "power4.out" }, 0.45);
+tl.from("#title-p", { opacity: 0, y: 24, duration: 0.6, ease: "power2.out" }, 0.9);
+tl.from("#title-rule", { scaleX: 0, duration: 0.8, ease: "expo.out" }, 1.1);
+tl.from("#title .photo", { scale: 1.08, duration: 4.2, ease: "none" }, 0);
+screenIn("#scr-pipe", 3.4);
+tl.to("#title", { opacity: 0, duration: 0.6, ease: "power2.in" }, 3.6);
+
+// ---------- 1: the inquiry enters the pipeline ----------
+caption("#cap1", 4.3, 14.6);
+tl.fromTo("#form", { opacity: 0, y: 40, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out" }, 4.2);
+cursorShow(1500, 900, 4.6);
+cursorTo(860, 321, 4.8, 0.7);
+click(860, 321, 5.5);
+tl.fromTo("#fv-name", { opacity: 0, x: -8 }, { opacity: 1, x: 0, duration: 0.3 }, 5.6);
+cursorTo(860, 422, 5.9, 0.4);
+click(860, 422, 6.3);
+tl.fromTo("#fv-exp", { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.5 }, 6.4);
+cursorTo(1120, 517, 6.9, 0.4);
+click(1120, 517, 7.3);
+tl.to("#chip-red", { backgroundColor: "#f0551c", color: "#ffffff", boxShadow: "inset 0 0 0 2px #f0551c", duration: 0.2 }, 7.35);
+cursorTo(805, 599, 7.6, 0.4);
+click(805, 599, 8.0);
+tl.to("#chip-ld", { backgroundColor: "#f0551c", color: "#ffffff", boxShadow: "inset 0 0 0 2px #f0551c", duration: 0.2 }, 8.05);
+cursorTo(860, 685, 8.3, 0.4);
+click(860, 685, 8.7);
+tl.fromTo("#ev-menu", { opacity: 0, scaleY: 0.9 }, { opacity: 1, scaleY: 1, duration: 0.2, ease: "power2.out" }, 8.75);
+cursorTo(860, 768, 8.95, 0.35);
+tl.to("#opt-cmp", { backgroundColor: "rgba(240,85,28,0.3)", duration: 0.12 }, 9.25);
+click(860, 768, 9.4);
+tl.to("#ev-menu", { opacity: 0, scaleY: 0.92, duration: 0.15 }, 9.5);
+tl.to("#fv-ev-ph", { opacity: 0, duration: 0.1 }, 9.52);
+tl.fromTo("#fv-ev", { opacity: 0, x: -8 }, { opacity: 1, x: 0, duration: 0.3 }, 9.55);
+cursorTo(675, 777, 9.8, 0.4);
+click(675, 777, 10.2);
+tl.to("#submit", { scale: 0.95, duration: 0.09, yoyo: true, repeat: 1 }, 10.2);
+tl.to("#form", { x: -419, y: -109, scale: 0.12, opacity: 0, duration: 0.75, ease: "power3.in" }, 10.45);
+cursorHide(10.5);
+nav(4, 10.6);
+tl.fromTo("#pc-cole", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.5, ease: "back.out(1.6)" }, 11.05);
+spot("#sp-new", 11.6, 14.0);
+
+// Max calls and qualifies: the card moves across.
+cursorShow(700, 600, 14.1);
+cursorTo(541, 352, 14.2, 0.45);
+const moves = [
+  { at: 14.8, dx: 217, out: "#pc-s0", in: "#pc-s1" },
+  { at: 16.2, dx: 434, out: "#pc-s1", in: "#pc-s2" },
+];
+moves.forEach((m) => {
+  tl.to("#cursor", { scale: 0.85, duration: 0.1, transformOrigin: "0 0" }, m.at - 0.15);
+  tl.to("#pc-cole", { x: m.dx, rotation: 1.5, duration: 0.8, ease: "power2.inOut" }, m.at);
+  tl.to("#pc-cole", { rotation: 0, duration: 0.2 }, m.at + 0.8);
+  cursorTo(541 + m.dx, 352, m.at, 0.8);
+  tl.to("#cursor", { scale: 1, duration: 0.1 }, m.at + 0.8);
+  swap(m.out, m.in, m.at + 0.75);
+});
+cursorHide(17.3);
+
+// ---------- 2: experience and eligibility ----------
+caption("#cap2", 14.7, 25.3);
+spot("#sp-qual", 17.4, 19.0);
+screenOut("#scr-pipe", 19.1);
+nav(3, 19.2);
+screenIn("#scr-driver", 19.3);
+tl.from("#scr-driver .fld", { opacity: 0, y: 26, duration: 0.45, stagger: 0.09, ease: "power3.out" }, 19.6);
+cam(1.2, 818, 489, 20.0, 1.0);
+spot("#sp-fields", 21.0, 22.4);
+cam(1.25, 1300, 520, 22.4, 0.9);
+tl.to("#ck1", { opacity: 1, duration: 0.2 }, 23.0);
+tl.to("#ck2", { opacity: 1, duration: 0.2 }, 23.25);
+tl.to("#ck3", { opacity: 1, duration: 0.2 }, 23.5);
+cursorShow(1600, 880, 23.4);
+cursorTo(1365, 727, 23.6, 0.5);
+click(1365, 727, 24.2);
+tl.to("#approve", { scale: 0.95, duration: 0.09, yoyo: true, repeat: 1 }, 24.2);
+tl.to("#ck4", { opacity: 1, duration: 0.2 }, 24.35);
+tl.to("#ck4-w", { opacity: 0, duration: 0.1 }, 24.35);
+tl.set("#ck4-w", { textContent: "Approved by Jim" }, 24.46);
+tl.to("#ck4-w", { opacity: 1, duration: 0.2 }, 24.47);
+tl.to("#approve", { opacity: 0, duration: 0.25 }, 24.4);
+swap("#chip-qual", "#chip-appr", 24.4);
+cursorHide(24.6);
+spot("#sp-elig", 24.5, 25.2);
+
+// ---------- 3: tied to a 2027 race weekend ----------
+cam(1, 0, 0, 25.3, 0.7);
+screenOut("#scr-driver", 25.5);
+nav(2, 25.6);
+screenIn("#scr-event", 25.75);
+caption("#cap3", 25.7, 34.4);
+cam(1.12, 1000, 520, 26.3, 0.8);
+cursorShow(980, 900, 26.9);
+cursorTo(738, 790, 27.1, 0.5);
+tl.to("#cursor", { scale: 0.85, duration: 0.12, transformOrigin: "0 0" }, 27.7);
+tl.to("#pill", { y: -130, scale: 0.98, duration: 1.1, ease: "power2.inOut" }, 27.9);
+cursorTo(738, 660, 27.9, 1.1);
+tl.to("#cursor", { scale: 1, duration: 0.12 }, 29.05);
+tl.to("#pill", { opacity: 0, duration: 0.2 }, 29.05);
+tl.fromTo("#seat-fill", { opacity: 0, scale: 1.05 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, 29.1);
+tl.to("#ev-n2", { opacity: 0, y: -20, duration: 0.25 }, 29.3);
+tl.fromTo("#ev-n1", { opacity: 0, y: 24, scale: 1.3 }, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: "back.out(2)" }, 29.4);
+cursorHide(29.6);
+cam(1, 0, 0, 29.8, 0.8);
+spot("#sp-seat", 30.7, 32.6);
+spot("#sp-count", 32.7, 34.2);
+
+// ---------- 4: follow-ups and reminders ----------
+screenOut("#scr-event", 34.4);
+nav(6, 34.5);
+screenIn("#scr-fu", 34.65);
+caption("#cap4", 34.6, 42.6);
+tl.from("#scr-fu .r2", { opacity: 0, x: -20, duration: 0.4, stagger: 0.08, ease: "power2.out" }, 34.9);
+tl.from("#scr-fu .seq", { opacity: 0, y: 14, duration: 0.4, stagger: 0.08, ease: "power2.out" }, 35.1);
+spot("#sp-fu", 35.9, 38.4);
+tl.to("#fu-due", { opacity: 0, duration: 0.2 }, 37.6);
+tl.fromTo("#fu-sent", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3 }, 37.7);
+spot("#sp-seq", 38.7, 42.3);
+
+// ---------- 5: toward confirmation and payment ----------
+screenOut("#scr-fu", 42.6);
+nav(5, 42.7);
+screenIn("#scr-pay", 42.85);
+caption("#cap5", 42.8, 52.6);
+spot("#sp-step", 43.4, 49.6);
+// Contract signed: Interested to Committed.
+tl.to("#step-bar", { width: 320, duration: 0.8, ease: "power2.inOut" }, 44.2);
+tl.to("#step-me", { x: 320, duration: 0.8, ease: "power2.inOut" }, 44.2);
+tl.fromTo("#toast-c", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: "back.out(1.8)" }, 44.4);
+swap("#pc-st0", "#pc-st1", 44.5);
+tl.to("#toast-c", { opacity: 0, duration: 0.3 }, 46.0);
+// Deposit paid.
+cursorShow(1500, 880, 46.3);
+cursorTo(1610, 536, 46.5, 0.6);
+click(1610, 536, 47.3);
+tl.to("#pay-btn", { scale: 0.95, duration: 0.09, yoyo: true, repeat: 1 }, 47.3);
+tl.to("#pay-btn", { opacity: 0, duration: 0.25 }, 47.5);
+tl.to("#step-bar", { width: 640, duration: 0.8, ease: "power2.inOut" }, 47.5);
+tl.to("#step-me", { x: 640, duration: 0.8, ease: "power2.inOut" }, 47.5);
+swap("#pc-st1", "#pc-st2", 47.6);
+swap("#pc-am0", "#pc-am1", 47.7);
+swap("#pc-du0", "#pc-du1", 47.8);
+tl.fromTo("#toast-d", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: "back.out(1.8)" }, 47.8);
+cursorHide(48.0);
+tl.to("#toast-d", { opacity: 0, duration: 0.3 }, 49.4);
+spot("#sp-late", 49.9, 52.4);
+
+// ---------- 6: seat demand by event ----------
+screenOut("#scr-pay", 52.6);
+nav(1, 52.7);
+screenIn("#scr-cal", 52.85);
+caption("#cap6", 52.8, 62.4);
+tl.from("#scr-cal .ec", { opacity: 0, y: 24, duration: 0.45, stagger: 0.05, ease: "power3.out" }, 53.1);
+tl.from("#scr-cal .bar i", { scaleX: 0, transformOrigin: "0 50%", duration: 0.7, stagger: 0.03, ease: "power2.out" }, 53.6);
+tl.from("#scr-cal .season > div", { opacity: 0, y: 16, duration: 0.4, stagger: 0.1, ease: "power2.out" }, 54.4);
+spot("#sp-row1", 55.2, 58.4);
+spot("#sp-season", 58.7, 62.0);
+
+// ---------- end card ----------
+tl.to("#end", { opacity: 1, duration: 0.6, ease: "power2.out" }, 62.6);
+tl.to("#sample", { opacity: 0, duration: 0.4 }, 62.6);
+tl.from("#end .logos", { opacity: 0, y: 30, duration: 0.6, ease: "power3.out" }, 62.9);
+tl.from("#end-h", { opacity: 0, y: 50, duration: 0.8, ease: "power4.out" }, 63.15);
+tl.from("#end-p", { opacity: 0, y: 24, duration: 0.6, ease: "power2.out" }, 63.6);
+tl.from("#end-rule", { scaleX: 0, duration: 0.8, ease: "expo.out" }, 63.8);
+tl.set({}, {}, 68);
+
+window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
