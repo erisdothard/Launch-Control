@@ -91,6 +91,8 @@ def test_brief_is_mailed_once_without_a_sent_copy(rest: NoticeRest) -> None:
     msg = mail["message"]
     assert msg["subject"] == "Mission Control brief, 2026-10-27"
     assert msg["toRecipients"] == [{"emailAddress": {"address": "ops@example.test"}}]
+    # Never from Max: the app sends through his mailbox, so From must be set to eris@.
+    assert msg["from"] == {"emailAddress": {"address": "eris@golaunchcontrol.com", "name": "Launch Control Agents"}}
     assert msg["body"]["contentType"] == "Text"
     assert "Decision: Nothing needs a decision." in msg["body"]["content"]
     assert "https://crm.golaunchcontrol.com/admin/ops" in msg["body"]["content"]

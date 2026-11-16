@@ -48,6 +48,9 @@ log = logging.getLogger(__name__)
 
 TABLE = "sent_notices"
 DEFAULT_TO = "eris@golaunchcontrol.com"
+# Sent from Max's mailbox (the only one the app may use) but From eris@, a send-as address on it,
+# so agent notices never look like Max wrote them (2026-11-16).
+DEFAULT_FROM = "eris@golaunchcontrol.com"
 DEFAULT_CRM_URL = "https://crm.golaunchcontrol.com"
 MAX_ATTEMPTS = 3
 # Only the newest brief is a candidate, and only while it is fresh: a redeploy never mails an old one.
@@ -87,6 +90,10 @@ def recipients() -> list[str]:
     return [a.strip() for a in raw.split(",") if "@" in a.strip()]
 
 
+def sender() -> str:
+    return os.environ.get("NOTIFY_FROM", "").strip() or DEFAULT_FROM
+
+
 def crm_url() -> str:
     return (os.environ.get("CRM_URL", "").strip() or DEFAULT_CRM_URL).rstrip("/")
 
@@ -119,6 +126,7 @@ class Mailer:
                 "message": {
                     "subject": subject,
                     "body": {"contentType": "Text", "content": body},
+                    "from": {"emailAddress": {"address": sender(), "name": "Launch Control Agents"}},
                     "toRecipients": [{"emailAddress": {"address": a}} for a in self.to],
                 },
                 # No Sent copy: the Outlook sync would mirror it into the CRM's messages table.
