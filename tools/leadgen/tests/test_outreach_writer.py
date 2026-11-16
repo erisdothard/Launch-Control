@@ -14,9 +14,12 @@ from leadgen.store import Store, StoreError
 
 BASE = "https://x.supabase.co/rest/v1"
 GOOD_BODY = (
-    "Hi Mike,\n\nYour site asks people to call to book a seat, which caught our eye. We build the "
-    "booking and follow-up behind a business like Apex, then run it with you.\n\n"
-    f"Worth a conversation? {ow.BOOKING_URL}"
+    "Hi Mike,\n\nI saw that Apex runs arrive-and-drive seats in Spec Miata and coaching at Road Atlanta, "
+    "and that mix of seat time and coaching stood out to me. It is the kind of program I like seeing "
+    "in club racing.\n\nI work with motorsport businesses on a CRM built around their own events, "
+    "cars and drivers: every inquiry, booking and deposit in one place. It is the same system Hyper "
+    "Racer runs on, set up for each business.\n\nI'd love to hop on a call, hear how you run your "
+    f"bookings, and see whether something like this would be useful for Apex: {ow.BOOKING_URL}"
 )
 
 
@@ -216,7 +219,7 @@ def test_short_business_name_does_not_strip_letters_from_banned_words() -> None:
 def test_name_is_only_stripped_as_a_whole_word() -> None:
     problems = ow.copy_problems("Hi", f"Quick Stop runs bookings by phone, so quicker replies. {ow.BOOKING_URL}", "Quick Stop")
     assert any("quicker" in p for p in problems) and not any("quick," in p for p in problems)
-    assert ow.copy_problems("Hi", f"Quick Stop runs bookings by phone. {ow.BOOKING_URL}", "Quick Stop") == []
+    assert not [p for p in ow.copy_problems("Hi", f"Quick Stop runs bookings by phone. {ow.BOOKING_URL}", "Quick Stop") if "time or speed" in p]
 
 
 @pytest.mark.parametrize("extra, rule", [
@@ -252,7 +255,7 @@ def test_prompt_fences_scraped_data_as_untrusted() -> None:
 
 def test_business_name_with_a_speed_word_can_be_named() -> None:
     body = f"FastLane Karting runs bookings by phone. {ow.BOOKING_URL}"
-    assert ow.copy_problems("FastLane bookings", body, "FastLane Karting") == []
+    assert not [p for p in ow.copy_problems("FastLane bookings", body, "FastLane Karting") if "time or speed" in p]
 
 
 def test_sign_off_is_stripped() -> None:
@@ -542,3 +545,21 @@ def test_track_day_is_a_product_not_a_duration() -> None:
 def test_batch_name_reads_as_waiting_on_max() -> None:
     assert ow.batch_name(20, "2026-11-16") == "20 new first emails · ready for your approval · Nov 16"
     assert ow.batch_name(1, "2026-11-16").startswith("1 new first email · ")
+
+
+def test_a_snippet_is_too_short() -> None:
+    assert any("at least" in p for p in ow.copy_problems("Booking at Apex", f"Hi Mike,\n\nNice cars. {ow.BOOKING_URL}", "Apex"))
+
+
+def test_presuming_a_problem_is_rejected() -> None:
+    body = GOOD_BODY.replace("every inquiry, booking and deposit in one place", "so no interested driver goes cold")
+    assert any("presumes a problem" in p for p in ow.copy_problems("Booking at Apex", body, "Apex"))
+
+
+def test_research_comes_first_and_is_screened() -> None:
+    class R:
+        def research(self, lead: dict[str, Any]) -> list[str]:
+            return ["Apex runs Spec Miata arrive-and-drive seats", "Apex books seats overnight"]
+    facts = ow.lead_facts(_lead("l1"), R())
+    assert facts[0] == "Apex runs Spec Miata arrive-and-drive seats"
+    assert not any("overnight" in f for f in facts)

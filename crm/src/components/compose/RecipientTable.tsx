@@ -44,6 +44,9 @@ function statusOf(r: CampaignRecipient): { label: string; tone: "neutral" | "liv
 // Everyone on a campaign with what happened to their email: sent, replied, failed (and why), left out.
 export default function RecipientTable({ recipients }: { recipients: CampaignRecipient[] }) {
   const [filter, setFilter] = useState<Filter>("all");
+  // Emails written for one person (the Outreach Writer's batches) open in place, so they can be read
+  // before the draft is approved. Max (2026-11-16): clicking a name showed only the lead page.
+  const [open, setOpen] = useState<Record<string, boolean>>({});
   const [limit, setLimit] = useState(100);
   const counts = Object.fromEntries(FILTERS.map((f) => [f.key, recipients.filter((r) => matches(r, f.key)).length])) as Record<Filter, number>;
   const shown = recipients.filter((r) => matches(r, filter));
@@ -92,6 +95,22 @@ export default function RecipientTable({ recipients }: { recipients: CampaignRec
                   {r.email}
                   {(r.subjectOverride || r.bodyOverride) && <span className="text-[var(--color-warm)]"> · written just for them</span>}
                 </div>
+                {(r.subjectOverride || r.bodyOverride) && (
+                  <button
+                    type="button"
+                    aria-expanded={Boolean(open[r.id])}
+                    onClick={() => setOpen((o) => ({ ...o, [r.id]: !o[r.id] }))}
+                    className="btn-quiet mt-1.5 -ml-1.5 px-1.5 text-[14.5px]"
+                  >
+                    {open[r.id] ? "Hide the email" : "Read the email"}
+                  </button>
+                )}
+                {open[r.id] && (
+                  <div className="mt-2 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/[0.02] p-4 text-[15px] leading-[1.55]">
+                    {r.subjectOverride && <div className="mb-2 font-semibold text-[var(--color-text)]">{r.subjectOverride}</div>}
+                    <div className="whitespace-pre-wrap break-words text-[var(--color-text-muted)]">{r.bodyOverride}</div>
+                  </div>
+                )}
               </div>
               <div className="col-start-2 md:col-start-auto md:pt-0.5">
                 <StatusPill label={s.label} tone={s.tone} />

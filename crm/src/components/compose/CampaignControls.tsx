@@ -41,7 +41,7 @@ export default function CampaignControls({ id, status, hasFollowUp, demo }: Camp
         {status === "draft" && (
           <>
             <Link href={`/admin/campaigns/new?from=${id}${q}`} className="btn btn-primary">
-              Finish and send
+              Review, edit and send
             </Link>
             <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run("delete_draft", "Delete this draft? This can't be undone.")}>
               Delete draft
