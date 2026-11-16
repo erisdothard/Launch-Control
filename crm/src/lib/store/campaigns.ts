@@ -191,6 +191,23 @@ const CAMPAIGN_COLUMNS =
   "id, name, subject, body_text, status, account_id, attachments, scheduled_at, started_at, finished_at, created_at, created_by, per_minute, daily_limit, skip_contacted_days, follow_up_after_days, follow_up_subject, follow_up_body, more_follow_ups, include_signature, email_accounts(address)";
 
 /** Every campaign, newest first, with recipient counts. */
+/** Campaigns waiting for someone to approve them. Nothing in a draft campaign sends until it is approved. */
+export interface ApprovalCounts {
+  /** First-email batches the Outreach Writer drafted (created_by "agent:..."). */
+  batches: number;
+  /** Campaigns a person drafted and never sent. */
+  campaigns: number;
+}
+
+export async function getApprovalCounts(client?: StoreClient): Promise<ApprovalCounts> {
+  const supabase = await getStoreClient(client);
+  const { data, error } = await supabase.from("email_campaigns").select("created_by").eq("status", "draft");
+  if (error) throw error;
+  const rows = (data ?? []) as { created_by: string | null }[];
+  const batches = rows.filter((r) => (r.created_by ?? "").startsWith("agent:")).length;
+  return { batches, campaigns: rows.length - batches };
+}
+
 export async function listCampaigns(client?: StoreClient): Promise<CampaignSummary[]> {
   const supabase = await getStoreClient(client);
   const { data, error } = await supabase.from("email_campaigns").select(CAMPAIGN_COLUMNS).order("created_at", { ascending: false });

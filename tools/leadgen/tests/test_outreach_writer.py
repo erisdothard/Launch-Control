@@ -200,7 +200,7 @@ def test_copy_rules_reject(bad: str, rule: str) -> None:
 
 
 def test_copy_length_link_and_fact_index() -> None:
-    long = " ".join(["word"] * 95) + f" {ow.BOOKING_URL}"
+    long = " ".join(["word"] * (ow.MAX_WORDS + 5)) + f" {ow.BOOKING_URL}"
     assert any("words" in p for p in ow.copy_problems("Hi", long))
     assert any("booking link" in p for p in ow.copy_problems("Hi", "No link here."))
     assert any("fact_index" in p for p in ow.copy_problems("Hi", GOOD_BODY, "", 5, 2))
@@ -531,3 +531,9 @@ def test_best_fit_segments_come_before_higher_scores() -> None:
     school = {"segment": "Racing school", "score": 60}
     unknown = {"segment": None, "score": 99}
     assert sorted([prep, unknown, school], key=ow.fit_order) == [school, unknown, prep]
+
+
+def test_track_day_is_a_product_not_a_duration() -> None:
+    from leadgen.copy_rules import has_time_words
+    assert not has_time_words("Your track days and race day rentals sell out.")
+    assert has_time_words("We reply the same day.") and has_time_words("Track days sell out every weekend in two days.")

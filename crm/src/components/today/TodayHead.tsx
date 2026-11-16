@@ -1,5 +1,7 @@
 import type { TodayItem } from "@/lib/store/today";
 import { canSend } from "./groups";
+import Link from "next/link";
+import type { ApprovalCounts } from "@/lib/store/campaigns";
 import styles from "./board.module.css";
 
 /** One figure in the header strip. The page leaves out anything zero or empty. */
@@ -38,7 +40,18 @@ function Lede({ queue, nextUp }: { queue: TodayItem[]; nextUp: string | null }) 
   );
 }
 
-export default function TodayHead({ title, queue, nextUp, stats }: { title: string; queue: TodayItem[]; nextUp: string | null; stats: GlanceStat[] }) {
+// Draft campaigns send nothing until someone approves them, so they are said first, every visit.
+function approvalLine({ batches, campaigns }: ApprovalCounts): string | null {
+  const parts: string[] = [];
+  if (batches) parts.push(`${batches} ${batches === 1 ? "batch" : "batches"} of first emails`);
+  if (campaigns) parts.push(`${campaigns} ${campaigns === 1 ? "campaign" : "campaigns"}`);
+  if (!parts.length) return null;
+  const many = batches + campaigns > 1;
+  return `${parts.join(" and ")} ${many ? "are" : "is"} waiting for your approval. Nothing sends until you approve ${many ? "them" : "it"}.`;
+}
+
+export default function TodayHead({ title, queue, nextUp, stats, approvals }: { title: string; queue: TodayItem[]; nextUp: string | null; stats: GlanceStat[]; approvals?: ApprovalCounts }) {
+  const approve = approvals ? approvalLine(approvals) : null;
   return (
     <header className={styles.head}>
       <div>
@@ -51,6 +64,12 @@ export default function TodayHead({ title, queue, nextUp, stats }: { title: stri
         <p className={styles.lede}>
           <Lede queue={queue} nextUp={nextUp} />
         </p>
+        {approve && (
+          <p className={styles.approve}>
+            <span>{approve}</span>
+            <Link href="/admin/campaigns">Review campaigns</Link>
+          </p>
+        )}
       </div>
       {stats.length > 0 && (
         <ul className={styles.stats} aria-label="At a glance">

@@ -31,7 +31,7 @@ def lead(i: str, name: str, score: int, reason: str, **kw: Any) -> dict[str, Any
 def full_tables() -> dict[str, list[dict[str, Any]]]:
     return {
         "leads": [
-            lead("a", "Gridline Track Days", 95, "Runs track days every weekend."),  # reason has a time word
+            lead("a", "Gridline Track Days", 95, "Replies to every inquiry within hours."),  # reason has a time word
             lead("b", "Torque Theory Racing", 88, "Race prep shop. Contact page is a form only, no booking step."),
             lead("c", "Low Score Motors", 40, "Not a fit."),
             lead("d", "No Email Garage", 99, "Great fit.", email=""),

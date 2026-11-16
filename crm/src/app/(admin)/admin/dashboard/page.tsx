@@ -6,6 +6,7 @@ import { money } from "@/components/today/shared";
 import { demoToday } from "@/components/today/demo";
 import { DEMO_ACCOUNTS } from "@/components/inbox/demo";
 import { getEmailAccounts, type EmailAccount } from "@/lib/store/messages";
+import { getApprovalCounts, type ApprovalCounts } from "@/lib/store/campaigns";
 
 // Today: everything waiting on Max, grouped, with a slim strip of the day's figures.
 // `?demo=1` swaps in invented data to look at the populated screen; development only.
@@ -46,6 +47,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const { demo } = await searchParams;
   let data: TodayData;
   let accounts: EmailAccount[];
+  let approvals: ApprovalCounts = { batches: 0, campaigns: 0 };
   if (demo === "1" && process.env.NODE_ENV !== "production") {
     data = demoToday();
     accounts = DEMO_ACCOUNTS;
@@ -54,10 +56,14 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    [data, accounts] = await Promise.all([getToday(user?.email), getEmailAccounts()]);
+    [data, accounts, approvals] = await Promise.all([
+      getToday(user?.email),
+      getEmailAccounts(),
+      getApprovalCounts().catch(() => approvals),
+    ]);
   }
 
   const title = `${data.greeting}${data.firstName ? `, ${data.firstName}` : ""}.`;
 
-  return <TodayBoard title={title} items={data.items} nextUp={nextUpLine(data)} stats={glance(data)} demo={data.demo} accounts={accounts} />;
+  return <TodayBoard title={title} items={data.items} nextUp={nextUpLine(data)} stats={glance(data)} demo={data.demo} accounts={accounts} approvals={approvals} />;
 }

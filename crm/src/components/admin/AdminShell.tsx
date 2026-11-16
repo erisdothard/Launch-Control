@@ -16,6 +16,8 @@ interface AdminShellProps {
   logoUrl: string | null;
   unread: number;
   drafts: number;
+  /** Draft campaigns waiting for approval; badges Campaigns. */
+  approvals?: number;
   /** Per-user nav order: the user id keys the browser copy; navOrder is the server copy (or null). */
   userId: string;
   navOrder: NavKey[] | null;
@@ -23,7 +25,7 @@ interface AdminShellProps {
   demo?: { step: number } | null;
 }
 
-export default function AdminShell({ children, role, userEmail, companyName, logoUrl, unread, drafts, userId, navOrder, demo = null }: AdminShellProps) {
+export default function AdminShell({ children, role, userEmail, companyName, logoUrl, unread, drafts, approvals = 0, userId, navOrder, demo = null }: AdminShellProps) {
   const pathname = usePathname();
   // Password screen renders centered, with no sidebar or bottom nav.
   const isAuthPage = pathname === "/admin/update-password";
@@ -38,7 +40,7 @@ export default function AdminShell({ children, role, userEmail, companyName, log
 
   return (
     <>
-      <AdminSidebar role={role} userEmail={userEmail} companyName={companyName} logoUrl={logoUrl} unread={unread} drafts={drafts} userId={userId} navOrder={navOrder} />
+      <AdminSidebar role={role} userEmail={userEmail} companyName={companyName} logoUrl={logoUrl} unread={unread} drafts={drafts} approvals={approvals} userId={userId} navOrder={navOrder} />
       <div className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-[var(--color-bg-primary)] shell:ml-60">
         {/* Phones have no sidebar, so the brand rides at the top of the page */}
         <div className="relative z-10 border-b border-[var(--color-border)] bg-[var(--color-bg-card)] px-4 py-3.5 shell:hidden">

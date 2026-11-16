@@ -49,7 +49,7 @@ AGENT = "outreach-writer"
 CREATED_BY = "agent:outreach-writer"
 MODEL = "claude-sonnet-5-5"
 MAX_PER_PASS = 20  # one campaign's daily_limit, so an approved batch goes out in one sending day
-MAX_WORDS = 90
+MAX_WORDS = 110  # Max's own first emails run three short paragraphs
 MAX_FACTS = 8
 TEAM_TZ = ZoneInfo("America/Chicago")
 BOOKING_URL = "https://www.golaunchcontrol.com/#book"  # web/src/content/site.ts: section id "book"
@@ -214,10 +214,15 @@ def first_name(lead: dict[str, Any]) -> str:
 # --- the prompt ----------------------------------------------------------------------------------
 
 SYSTEM = (
-    f"You write first emails for a small business-development team. {COMPANY} "
-    "You are writing to one small business we have never contacted. Write like a sharp, friendly "
-    "person, not a marketer: short sentences, plain words, no buzzwords, no exclamation marks, no "
-    "emoji, plain text only (no markdown, no bullets).\n"
+    f"You write first emails as Max (Maxwell Hartmann), co-founder of Launch Control. {COMPANY} "
+    "Max is a motorsport person writing to another motorsport business he has never contacted. "
+    "Write the way Max writes: first person singular (I, not we), warm and direct, like one racer "
+    "talking to another, plain words, no buzzwords, no exclamation marks, no emoji, plain text only "
+    "(no markdown, no bullets). Three short paragraphs. Max's habits: he opens on something specific "
+    "he saw (\"I saw that...\", \"I noticed...\") and says what stood out to him; he explains plainly "
+    "what he does (\"I work with motorsport businesses on...\"); he closes with \"I'd love to hop on a "
+    "call and hear...\" followed by what he wants to learn about their business. He may say the CRM is "
+    "the same system Hyper Racer runs on, never naming any other client.\n"
     "Rules:\n"
     "1. If a first name is given, the body starts with \"Hi <first name>,\" on its own line. Otherwise no greeting.\n"
     "2. The first sentence states ONE fact from the numbered list of observed facts, in your own words, "

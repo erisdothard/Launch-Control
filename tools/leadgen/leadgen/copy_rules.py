@@ -36,13 +36,22 @@ def strip_names(text: str, names: Iterable[str]) -> str:
     return text
 
 
+# What a motorsport business sells, not a duration: "track day", "race days", "test day". Writing to
+# an HPDE organizer without the words "track day" is impossible, and they claim nothing about time.
+PRODUCT_TERMS = re.compile(r"\b(track|race|test|practice|karting|driving|drive|rental|open|lapping)[- ]days?\b", re.I)
+
+
+def _checkable(text: str, names: Iterable[str]) -> str:
+    return PRODUCT_TERMS.sub(" ", strip_names(text, names))
+
+
 def time_word_hits(text: str, names: Iterable[str] = ()) -> list[str]:
-    """Every banned word in text (lowercased, sorted, unique), with the given names blanked first."""
-    return sorted({m.group(0).lower() for m in TIME_WORDS.finditer(strip_names(text, names))})
+    """Every banned word in text (lowercased, sorted, unique), with names and product terms blanked first."""
+    return sorted({m.group(0).lower() for m in TIME_WORDS.finditer(_checkable(text, names))})
 
 
 def has_time_words(text: str, names: Iterable[str] = ()) -> bool:
-    return bool(TIME_WORDS.search(strip_names(text, names)))
+    return bool(TIME_WORDS.search(_checkable(text, names)))
 
 
 def scrub_time_words(text: str) -> tuple[str, list[str]]:

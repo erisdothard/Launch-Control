@@ -155,6 +155,8 @@ interface AdminSidebarProps {
   logoUrl: string | null;
   unread: number;
   drafts: number;
+  /** Draft campaigns waiting for approval. */
+  approvals?: number;
   /** For the per-user nav order (localStorage key). */
   userId: string;
   /** The order saved on the server, once that's switched on. */
@@ -164,7 +166,7 @@ interface AdminSidebarProps {
 // The real CRM links to the demo deployment so Max can open it in front of a client. The demo itself has no such link.
 const demoUrl = process.env.NEXT_PUBLIC_DEMO_MODE === "1" ? null : (process.env.NEXT_PUBLIC_DEMO_URL ?? null);
 
-export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, drafts, userId, navOrder }: AdminSidebarProps) {
+export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, drafts, approvals = 0, userId, navOrder }: AdminSidebarProps) {
   const { order, save } = useNavOrder(userId, navOrder);
   // Reorder mode holds a working copy; Done saves it.
   const [draft, setDraft] = useState<NavKey[] | null>(null);
@@ -220,13 +222,14 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
         <ul className="space-y-0.5">
           {ordered.map((item) => {
             const active = isActive(item.href);
-            const count = item.href === "/admin/inbox" ? unread : 0;
+            const count = item.href === "/admin/inbox" ? unread : item.href === "/admin/campaigns" ? approvals : 0;
+            const countLabel = item.href === "/admin/campaigns" ? "to approve" : "unread";
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  aria-label={count > 0 ? `${item.label}, ${count} unread` : undefined}
+                  aria-label={count > 0 ? `${item.label}, ${count} ${countLabel}` : undefined}
                   className={itemClass(active)}
                 >
                   <span className="shrink-0">{item.icon}</span>

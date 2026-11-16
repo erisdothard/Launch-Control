@@ -5,6 +5,7 @@ import { roleFromUser } from "@/lib/auth/roles";
 import { getCompanyInfo } from "@/lib/store/company";
 import { getUnreadCount } from "@/lib/store/messages";
 import { getPendingDraftCount } from "@/lib/store/drafts";
+import { getApprovalCounts } from "@/lib/store/campaigns";
 import { isDemoMode } from "@/lib/demo/mode";
 import { readDemoState } from "@/lib/demo/seed";
 import { createServiceRoleClient } from "@/lib/supabase/server";
@@ -29,17 +30,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const role = roleFromUser(user);
   // New mail is pulled in after the page is sent (at most every 90s), so it never slows a load.
   if (user && !isDemoMode()) after(() => syncOutlookIfDue());
-  const [company, unread, drafts, demo, navOrder] = await Promise.all([
+  const [company, unread, drafts, approvals, demo, navOrder] = await Promise.all([
     getCompanyInfo(),
     user ? getUnreadCount() : Promise.resolve(0),
     user ? getPendingDraftCount() : Promise.resolve(0),
+    user ? getApprovalCounts().then((a) => a.batches + a.campaigns).catch(() => 0) : Promise.resolve(0),
     demoState(),
     getNavOrder(user?.email),
   ]);
 
   return (
     <div className="fixed inset-0 z-[100] flex bg-[var(--color-bg-primary)] text-[var(--color-text)]">
-      <AdminShell role={role} userEmail={user?.email ?? ""} companyName={company.name} logoUrl={company.logoUrl} unread={unread} drafts={drafts} userId={user?.id ?? ""} navOrder={navOrder} demo={demo}>
+      <AdminShell role={role} userEmail={user?.email ?? ""} companyName={company.name} logoUrl={company.logoUrl} unread={unread} drafts={drafts} approvals={approvals} userId={user?.id ?? ""} navOrder={navOrder} demo={demo}>
         {children}
       </AdminShell>
     </div>

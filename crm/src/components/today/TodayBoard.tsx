@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ApprovalCounts } from "@/lib/store/campaigns";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useUndoableSend } from "@/components/ui/useUndoableSend";
@@ -23,6 +24,8 @@ interface TodayBoardProps {
   /** Demo mode (development only): sends never reach the server. */
   demo: boolean;
   accounts: SenderAccount[];
+  /** Draft campaigns waiting for approval, said at the top every visit. */
+  approvals?: ApprovalCounts;
 }
 
 interface PanelState {
@@ -42,7 +45,7 @@ function reducedMotion(): boolean {
 // Today: everyone who needs Max, grouped, one line each. A row (or "Review & send") opens the draft
 // in a slide-over; Send holds for a few seconds with Undo, then runs the existing send action. The
 // list is the server's items minus what was sent or skipped here, so refreshes flow straight through.
-export default function TodayBoard({ title, items, nextUp, stats, demo, accounts }: TodayBoardProps) {
+export default function TodayBoard({ title, items, nextUp, stats, demo, accounts, approvals }: TodayBoardProps) {
   const router = useRouter();
   const senders = useMemo(() => senderOptions(accounts), [accounts]);
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
@@ -217,7 +220,7 @@ export default function TodayBoard({ title, items, nextUp, stats, demo, accounts
 
   return (
     <div className={`${styles.board} ${panel ? styles.open : ""}`}>
-      <TodayHead title={title} queue={queue} nextUp={nextUp} stats={stats} />
+      <TodayHead title={title} queue={queue} nextUp={nextUp} stats={stats} approvals={approvals} />
 
       <div className={styles.toolbar}>
         <Dropdown
