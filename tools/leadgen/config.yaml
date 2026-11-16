@@ -15,7 +15,7 @@ max_queries: 200
 segments:
   arrive_and_drive:
     label: Arrive & drive
-    keywords: [arrive and drive racing, race car rental program]
+    keywords: [arrive and drive racing, race car rental program, arrive and drive endurance racing, race seat rental]
   endurance_team:
     label: Endurance team
     keywords: [endurance racing team, champcar team, lucky dog racing team]
@@ -24,10 +24,10 @@ segments:
     keywords: [race prep shop, race car fabrication, motorsport engineering shop]
   racing_school:
     label: Racing school
-    keywords: [racing school, performance driving school]
+    keywords: [racing school, performance driving school, car control clinic, karting school]
   hpde:
     label: HPDE / track day
-    keywords: [track day organizer, HPDE track day]
+    keywords: [track day organizer, HPDE track day, high performance driving event, motorsport driving club]
   driver_development:
     label: Driver development
     keywords: [driver development program racing, race driver coaching]
@@ -51,7 +51,7 @@ segments:
     keywords: [karting club racing, outdoor kart track]
   experience:
     label: Driving experience
-    keywords: [exotic car driving experience, supercar track experience]
+    keywords: [exotic car driving experience, supercar track experience, racing experience, race car ride along]
   rental:
     label: Rental fleet
     keywords: [race car rental, track car rental]
@@ -201,7 +201,9 @@ filters:
   # out-of-state venues from a Florida-only run.
   out_of_state: keep
   # Keywords the Prospector paused for low yield (see leadgen/prospector.py). Remove to resume.
-  paused_keywords: []
+  # 2026-11-15: Max marked every parts seller and street-tuning shop "not a fit" (13 of 13 lost), and
+  # 36 of 80 race prep results had no readable site. The CRM sells to businesses that book drivers.
+  paused_keywords: [motorsport parts manufacturer, racing parts manufacturer, race prep shop, motorsport engineering shop]
   # Google Maps categories that are never prospects.
   excluded_categories:
     - Gas station

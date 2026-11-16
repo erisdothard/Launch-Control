@@ -51,7 +51,7 @@ class DB:
 
     def __init__(self, prospects: list[dict[str, Any]], details: list[dict[str, Any]], *,
                  emailed: list[str] = (), live: list[dict[str, Any]] = (), suppressed: list[str] = (),
-                 waiting: list[str] = (), empty_drafts: list[str] = (),
+                 waiting: list[str] = (), empty_drafts: list[str] = (), stale: list[str] = (),
                  accounts: list[dict[str, Any]] | None = None,
                  recipients_fail: bool = False, delete_fails: bool = False) -> None:
         self.prospects, self.details = prospects, details
@@ -62,6 +62,8 @@ class DB:
         ]
         self.recipients_fail, self.delete_fails = recipients_fail, delete_fails
         self.empty_drafts = list(empty_drafts)
+        # Waiting drafts past STALE_DRAFT_AFTER: the writer's PATCH cancels them.
+        self.stale, self.cancelled = list(stale), []
         self.runs: list[dict[str, Any]] = []
         self.campaigns: list[dict[str, Any]] = []
         self.recipients: list[dict[str, Any]] = []
@@ -99,6 +101,12 @@ class DB:
                 assert p["created_by"] == f"eq.{ow.CREATED_BY}" and "campaign_recipients(id)" in p["select"]
                 return httpx.Response(200, json=[{"id": w, "campaign_recipients": [{"id": "r"}]} for w in self.waiting]
                                       + [{"id": e, "campaign_recipients": []} for e in self.empty_drafts])
+            if request.method == "PATCH":
+                assert body == {"status": "cancelled"} and p["status"] == "eq.draft" and p["created_at"].startswith("lt.")
+                self.cancelled += self.stale
+                self.waiting = [w for w in self.waiting if w not in self.stale]
+                gone, self.stale = self.stale, []
+                return httpx.Response(200, json=[{"id": c} for c in gone])
             if request.method == "DELETE":
                 if self.delete_fails:
                     return httpx.Response(500, json={"message": "down"})
@@ -508,3 +516,18 @@ def test_waiting_pass_still_syncs_feedback(store: Store) -> None:
     assert db.runs[0]["decision"].startswith("Waiting")
     assert db.runs[0]["evidence"]["waiting_campaign_ids"] == ["camp-old"]
     assert db.runs[0]["evidence"]["feedback"]["pending"] == 0
+
+
+def test_a_stale_agent_draft_is_cancelled_and_a_new_batch_is_written(store: Store) -> None:
+    db = DB([_lead("a")], [_detail("a")], waiting=["old-camp"], stale=["old-camp"])
+    asker = FakeAsker([{"subject": "Booking at Apex", "body": GOOD_BODY, "fact_index": 1}])
+    _run(db, store, asker)
+    assert db.cancelled == ["old-camp"]
+    assert len(db.recipients) == 1
+
+
+def test_best_fit_segments_come_before_higher_scores() -> None:
+    prep = {"segment": "Race prep shop", "score": 90}
+    school = {"segment": "Racing school", "score": 60}
+    unknown = {"segment": None, "score": 99}
+    assert sorted([prep, unknown, school], key=ow.fit_order) == [school, unknown, prep]

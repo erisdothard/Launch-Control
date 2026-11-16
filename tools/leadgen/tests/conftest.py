@@ -16,8 +16,10 @@ TODAY = date(2026, 10, 15)
 
 @pytest.fixture
 def cfg(tmp_path: Path) -> Config:
+    # The real config, minus the human-paused keywords, so keyword tests start from every keyword live.
     c = load_config(ROOT / "config.yaml")
-    return c.model_copy(update={"out_dir": str(tmp_path / "out")})
+    filters = c.filters.model_copy(update={"paused_keywords": []})
+    return c.model_copy(update={"out_dir": str(tmp_path / "out"), "filters": filters})
 
 
 def fixture_html(name: str) -> str:

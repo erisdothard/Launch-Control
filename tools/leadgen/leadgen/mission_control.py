@@ -31,6 +31,8 @@ log = logging.getLogger(__name__)
 
 AGENT = "mission-control"
 BRIEF_AFTER_HOUR = 7
+CAMPAIGNS_URL = "https://crm.golaunchcontrol.com/admin/campaigns"
+DRAFTS_URL = "https://crm.golaunchcontrol.com/admin/drafts"
 # A heartbeat older than this many of its own intervals (or STALE_DEFAULT_S without one) is stale.
 STALE_INTERVALS = 3
 STALE_DEFAULT_S = 1800
@@ -91,12 +93,22 @@ def heartbeats(store: Store, now: datetime) -> list[dict[str, Any]]:
 
 
 def pending_approvals(store: Store) -> dict[str, Any]:
-    drafts = metrics._all(store, "email_drafts", {"select": "id,kind", "status": "eq.pending"})
-    campaigns = metrics._all(store, "email_campaigns", {"select": "id,name", "status": "eq.draft"})
+    drafts = metrics._all(store, "email_drafts", {"select": "id,kind,created_at", "status": "eq.pending"})
+    campaigns = metrics._all(store, "email_campaigns", {"select": "id,name,created_at", "status": "eq.draft"})
     by_kind: dict[str, int] = {}
     for d in drafts:
         by_kind[d["kind"]] = by_kind.get(d["kind"], 0) + 1
-    return {"drafts_pending": len(drafts), "drafts_by_kind": by_kind, "campaign_drafts": len(campaigns)}
+    stamps = [str(r.get("created_at") or "") for r in [*drafts, *campaigns] if r.get("created_at")]
+    return {"drafts_pending": len(drafts), "drafts_by_kind": by_kind, "campaign_drafts": len(campaigns),
+            "oldest_waiting": min(stamps) if stamps else None}
+
+
+def _since(ts: str | None) -> str:
+    """'Nov 5' for a timestamp, in team time. No duration words: the brief's scrub drops those."""
+    if not ts:
+        return ""
+    local = _parse(ts).astimezone(TEAM_TZ)
+    return f"{local:%b} {local.day}"
 
 
 def agent_activity(store: Store) -> dict[str, dict[str, Any]]:
@@ -129,8 +141,10 @@ def the_decision(facts: dict[str, Any]) -> str:
         return f"Outbound is halted. Review the reason and clear the halt in the CRM if it is safe: {why}"
     a = facts["approvals"]
     if a["campaign_drafts"] or a["drafts_pending"]:
+        since = _since(a.get("oldest_waiting"))
         return (f"Review what is waiting for approval: {a['campaign_drafts']} campaign draft(s) and "
-                f"{a['drafts_pending']} email draft(s).")
+                f"{a['drafts_pending']} email draft(s)" + (f", the oldest waiting since {since}" if since else "")
+                + f". Nothing new goes out until each is approved or deleted. Campaigns: {CAMPAIGNS_URL} Drafts: {DRAFTS_URL}")
     stale = [h["name"] for h in facts["heartbeats"] if h["stale"]]
     if stale:
         return f"These workers stopped checking in: {', '.join(stale)}. Check the worker deploy."

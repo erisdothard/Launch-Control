@@ -89,7 +89,7 @@ def test_dead_keyword_is_paused_and_logged(monkeypatch: pytest.MonkeyPatch, cfg:
 
 def test_never_pauses_a_segments_last_keyword(monkeypatch: pytest.MonkeyPatch, cfg: Config) -> None:
     leads = _run(("racing school", 0, 20), ("race prep shop", 10, 10))
-    current = overrides.Overrides(paused_keywords=["performance driving school"])
+    current = overrides.Overrides(paused_keywords=["performance driving school", "car control clinic", "karting school"])
     h = Harness(monkeypatch, leads, current=current)
     decision, _ = h.review(cfg)
     assert "no keyword to pause" in decision and not h.saved and h.dispatched

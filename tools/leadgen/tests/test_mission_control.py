@@ -74,12 +74,13 @@ def test_deterministic_brief_without_a_key(rest: FakeRest, monkeypatch: pytest.M
     [run] = rest.runs("mission-control")
     assert run["status"] == "done" and run["decision"] == brief
     assert "Latest window: 1 emails sent to 1 prospects, 0 prospect replies" in brief
-    assert "Decision: Review what is waiting for approval: 1 campaign draft(s) and 1 email draft(s)." in brief
+    assert "Decision: Review what is waiting for approval: 1 campaign draft(s) and 1 email draft(s)" in brief
     assert mission_control.TIME_WORDS.search(brief) is None
     ev = run["evidence"]
     assert ev["brief"]["writer"] == "deterministic"
     assert ev["totals"]["kept"] == 1 and ev["latest_window"]["sent"] == 1
-    assert ev["approvals"] == {"drafts_pending": 1, "drafts_by_kind": {"follow_up": 1}, "campaign_drafts": 1}
+    assert ev["approvals"] == {"drafts_pending": 1, "drafts_by_kind": {"follow_up": 1}, "campaign_drafts": 1,
+                               "oldest_waiting": ev["approvals"]["oldest_waiting"]}
     assert {h["name"]: h["stale"] for h in ev["heartbeats"]} == {"automation": False, "gmail": True}
     assert ev["outbound_halted"] is False
 

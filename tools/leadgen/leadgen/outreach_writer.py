@@ -48,7 +48,7 @@ log = logging.getLogger(__name__)
 AGENT = "outreach-writer"
 CREATED_BY = "agent:outreach-writer"
 MODEL = "claude-sonnet-5-5"
-MAX_PER_PASS = 10
+MAX_PER_PASS = 20  # one campaign's daily_limit, so an approved batch goes out in one sending day
 MAX_WORDS = 90
 MAX_FACTS = 8
 TEAM_TZ = ZoneInfo("America/Chicago")
@@ -58,21 +58,43 @@ LLM_TIMEOUT_S = 60.0
 RUN_EVERY = timedelta(minutes=30)
 BACKOFF = timedelta(minutes=15)
 LEAD_RETRY_AFTER = timedelta(hours=24)
+# An agent draft nobody approved by then is cancelled, so one forgotten batch can't stop all outreach
+# (Oct 27 - Nov 15 2026: one 5-lead draft held back 135 usable prospects). Its leads go back in the pool.
+STALE_DRAFT_AFTER = timedelta(days=3)
 UNTRUSTED_OPEN = "<untrusted_data>"
 UNTRUSTED_CLOSE = "</untrusted_data>"
 
 COMPANY = (
-    "Launch Control builds the commercial system behind a business (brand, website, CRM, lead "
-    "generation, outreach and automation) and then helps run it."
+    "Launch Control builds a CRM made for motorsport businesses that sell seats, HPDE events, coaching, "
+    "experiences and builds: every inquiry, driver, booking, deposit and payment in one place, with "
+    "follow-ups that send themselves so no interested driver goes cold. It is set up for each business, "
+    "with their own events, cars and pipeline."
 )
+
+# Best buyers first: businesses that sell bookings to drivers. Max marked parts sellers and street
+# tuning shops "not a fit" (13 of 13 lost on the 2026-10-17 and 11-08 runs); race prep shops were half
+# the first sends and the scorer rates them partial motorsport. Labels as in config.yaml segments.
+SEGMENT_TIER = {
+    "Arrive & drive": 0, "Endurance team": 0, "Racing school": 0, "Driver development": 0,
+    "HPDE / track day": 0, "Driving experience": 0, "Rental fleet": 0,
+    "Motorsport club": 1, "Karting": 1, "Sim racing": 1, "Race car manufacturer": 1,
+    "Other": 2, "Trackside services": 2, "Transport & logistics": 2,
+    "Race prep shop": 3, "Parts manufacturer": 3,
+}
+
+
+def fit_order(lead: dict[str, Any]) -> tuple[int, float]:
+    """Sort key: segment tier, then score, best first."""
+    return (SEGMENT_TIER.get(str(lead.get("segment") or "Other"), 2), -(lead.get("score") or 0))
+
 
 # The campaign's shared message. Every recipient row carries its own override, so this only
 # goes out if someone adds a recipient by hand in the composer without writing them one.
 FALLBACK_SUBJECT = "An idea for {{company|your team}}"
 FALLBACK_BODY = (
     "Hi {{first_name|there}},\n\n"
-    "We build the commercial system behind businesses like yours (website, CRM, lead generation "
-    "and outreach) and then help run it.\n\n"
+    "We build a CRM for motorsport businesses: every inquiry, driver, booking and deposit in one "
+    "place, with follow-ups that send themselves.\n\n"
     f"If that's worth a conversation, you can pick a slot here: {BOOKING_URL}"
 )
 
@@ -201,7 +223,9 @@ SYSTEM = (
     "2. The first sentence states ONE fact from the numbered list of observed facts, in your own words, "
     "and why it caught our eye. Return that fact's number as fact_index. Use only the facts and business "
     "details given; never invent facts, numbers, prices, names, clients or results.\n"
-    "3. Then one or two sentences on what we would build or run for them, tied to that fact.\n"
+    "3. Then one or two sentences on how the CRM would help them, tied to that fact: their inquiries, "
+    "drivers or customers, bookings, deposits and follow-up. Pitch the CRM only, not a website, branding "
+    "or outreach service.\n"
     f"4. End with one low-pressure ask and this booking link, written exactly: {BOOKING_URL}\n"
     f"5. The body is {MAX_WORDS} words or fewer.\n"
     "6. Never use generic openers: \"I hope this finds you well\", \"reaching out\", \"I wanted to\", "
@@ -338,6 +362,20 @@ def waiting_agent_drafts(store: Store) -> list[str]:
     return agent_drafts(store)[0]
 
 
+def cancel_stale_drafts(store: Store, now: datetime) -> list[str]:
+    """Cancel this agent's drafts older than STALE_DRAFT_AFTER. Returns the ids cancelled. Best effort:
+    a failure leaves them waiting, which only delays the next batch."""
+    cutoff = (now - STALE_DRAFT_AFTER).isoformat()
+    try:
+        rows = store._req("PATCH", "email_campaigns", params={
+            "status": "eq.draft", "created_by": f"eq.{CREATED_BY}", "created_at": f"lt.{cutoff}",
+        }, prefer="return=representation", json={"status": "cancelled"}).json()
+    except Exception:
+        log.exception("could not cancel stale agent draft campaigns")
+        return []
+    return [r["id"] for r in rows]
+
+
 def remove_empty_drafts(store: Store) -> None:
     """Delete this agent's zero-recipient drafts, so the one-agent-draft unique index
     (migration 20261028000003) doesn't refuse the next batch. Best effort."""
@@ -420,7 +458,7 @@ class Candidates:
 
 
 def find_candidates(store: Store) -> Candidates:
-    """Usable, new, never emailed, contactable prospects, best score first."""
+    """Usable, new, never emailed, contactable prospects, best-fit segment then best score first."""
     out = Candidates()
     pool = [p for p in metrics.prospects(store) if p.get("status") == "new"]
     usable = [p for p in pool if metrics.is_usable(p)]
@@ -441,7 +479,7 @@ def find_candidates(store: Store) -> Candidates:
             keep.append(p["id"])
     details = lead_details(store, keep)
     out.skipped["do not contact"] = len(keep) - len(details)
-    out.leads = sorted(details.values(), key=lambda x: -(x.get("score") or 0))
+    out.leads = sorted(details.values(), key=fit_order)
     out.skipped = Counter({k: v for k, v in out.skipped.items() if v})
     return out
 
@@ -514,6 +552,10 @@ def run_once(store: Store, asker: Asker | None = None, now: datetime | None = No
     state.last_pass = now
     state.retry_after = {k: v for k, v in state.retry_after.items() if v > now}
     has_key = asker is not None or bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
+    stale = cancel_stale_drafts(store, now) if has_key else []
+    if stale:
+        log.info("outreach writer: cancelled %d unapproved agent draft(s) past STALE_DRAFT_AFTER", len(stale))
+        state.last_waiting = None
     waiting = waiting_agent_drafts(store) if has_key else []
     if waiting and tuple(waiting) == state.last_waiting:
         log.info("outreach writer: still waiting on %d agent draft campaign(s); no row", len(waiting))
