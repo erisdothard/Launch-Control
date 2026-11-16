@@ -33,7 +33,7 @@ import os
 import re
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, Protocol
 from zoneinfo import ZoneInfo
 
@@ -499,11 +499,22 @@ def _merge(lead: dict[str, Any]) -> dict[str, str]:
     return {k: str(v) for k, v in values.items() if v}
 
 
+def batch_name(n: int, today: str) -> str:
+    """What Max sees on the Campaigns page, e.g. "20 new first emails · ready for your approval · Nov 16".
+    (The old "Agent drafts · 2026-11-15 · 20 leads" didn't read as something waiting on him.)"""
+    try:
+        d = date.fromisoformat(today[:10])
+        when = f"{d:%b} {d.day}"
+    except ValueError:
+        when = today
+    return f"{n} new first email{'' if n == 1 else 's'} · ready for your approval · {when}"
+
+
 def create_campaign(store: Store, account_id: str | None, drafts: list[Draft], today: str) -> str:
     """Draft campaign + recipients, like createCampaign in crm/src/lib/store/campaigns.ts:
     if the recipients fail to save, the campaign is removed."""
     resp = store._req("POST", "email_campaigns", prefer="return=representation", json={
-        "name": f"Agent drafts · {today} · {len(drafts)} leads", "account_id": account_id,
+        "name": batch_name(len(drafts), today), "account_id": account_id,
         "subject": FALLBACK_SUBJECT, "body_text": FALLBACK_BODY, "status": "draft",
         "include_signature": True, "created_by": CREATED_BY,
     })

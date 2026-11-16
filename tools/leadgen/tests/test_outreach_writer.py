@@ -381,7 +381,7 @@ def test_full_pass_filters_and_writes_one_draft_campaign(store: Store) -> None:
     assert len(db.campaigns) == 1
     camp = db.campaigns[0]
     assert camp["status"] == "draft" and camp["account_id"] == "acc-max" and camp["created_by"] == ow.CREATED_BY
-    assert camp["name"].startswith("Agent drafts · ") and camp["name"].endswith(" · 3 leads")
+    assert camp["name"].startswith("3 new first emails · ready for your approval · ")
     assert "scheduled_at" not in camp
     assert [r["lead_id"] for r in db.recipients] == ["good", "good2", "cancelledcamp"]
     r0 = db.recipients[0]
@@ -537,3 +537,8 @@ def test_track_day_is_a_product_not_a_duration() -> None:
     from leadgen.copy_rules import has_time_words
     assert not has_time_words("Your track days and race day rentals sell out.")
     assert has_time_words("We reply the same day.") and has_time_words("Track days sell out every weekend in two days.")
+
+
+def test_batch_name_reads_as_waiting_on_max() -> None:
+    assert ow.batch_name(20, "2026-11-16") == "20 new first emails · ready for your approval · Nov 16"
+    assert ow.batch_name(1, "2026-11-16").startswith("1 new first email · ")
