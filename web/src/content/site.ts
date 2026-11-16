@@ -464,6 +464,21 @@ const content: SiteContent = {
       cta: { label: "Talk it through with Maxwell", fallback: "mailto:maxwell@golaunchcontrol.com?subject=Arrive%20Drive%20demo" },
       home: "golaunchcontrol.com",
     },
+    {
+      slug: "plan-z-video",
+      client: "Plan Z Motorsports",
+      title: "A proposed system for Plan Z Motorsports.",
+      intro:
+        "From a driver's first inquiry to a paid seat: the inquiry lands in the pipeline, Max qualifies the driver and you approve, the driver is held for a seat at a 2027 race weekend, follow-ups run until they commit, deposits and balances are tracked, and every weekend shows its seat demand.",
+      note: "Proposed workflow. Sample drivers, dates and prices.",
+      poster: "/video/plan-z-v1-poster.webp",
+      sources: { desk: "/video/plan-z-v1-1080.mp4", phone: "/video/plan-z-v1-720.mp4" },
+      label: "A proposed Plan Z system: a driver's inquiry goes from the website form to a paid seat at a 2027 race weekend",
+      metaTitle: "Plan Z Motorsports × Launch Control",
+      metaDescription: "A proposed system for Plan Z: driver inquiries, eligibility, seats by race weekend, follow-ups, deposits and balances.",
+      cta: { label: "Talk it through with Maxwell", fallback: "mailto:maxwell@golaunchcontrol.com?subject=Plan%20Z%20demo" },
+      home: "golaunchcontrol.com",
+    },
   ],
   demoContact: {
     fields: { name: "Name", email: "Email", message: "Message" },
