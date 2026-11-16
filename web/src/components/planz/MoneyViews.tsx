@@ -20,7 +20,7 @@ export function Payments() {
       <Head title={cpay.title} sub={cpay.sub}>
         <span className={s.badge}>{planz.pricing.note}</span>
       </Head>
-      <div className={s.kpis} style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+      <div className={`${s.kpis} ${s.kpis3}`}>
         <Kpi value={fmtMoney(t.depositsOut)} label={cpay.totals.deposits} hot={t.depositsOut > 0} />
         <Kpi value={fmtMoney(t.balancesOut)} label={cpay.totals.balances} hot={t.balancesOut > 0} />
         <Kpi value={fmtMoney(t.collected)} label={cpay.totals.collected} />

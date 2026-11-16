@@ -124,7 +124,7 @@ export function Dashboard() {
 
         <section className={s.panel}>
           <h2 className={s.h2}>{c.fromMax}</h2>
-          <div className={s.kpis} style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", marginBottom: 12 }}>
+          <div className={`${s.kpis} ${s.kpis3}`} style={{ marginBottom: 12 }}>
             <Kpi value={String(maxNew)} label={planz.stages[0].label} />
             <Kpi value={String(maxQualified)} label={planz.stages[2].label} />
             <Kpi value={String(maxSeated)} label={planz.stages[5].label} />

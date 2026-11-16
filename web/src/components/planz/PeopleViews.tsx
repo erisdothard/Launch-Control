@@ -31,9 +31,9 @@ function DriverRow({ d }: { d: Driver }) {
       </td>
       <td>{d.experience}</td>
       <td>{stageLabel(d.stage)}</td>
-      <td className={s.rowSub}>{next}</td>
+      <td><span className={s.rowSub}>{next}</span></td>
       <td><Owner name={d.owner} /></td>
-      <td className={s.rowSub}>{d.source}</td>
+      <td><span className={s.rowSub}>{d.source}</span></td>
     </tr>
   );
 }

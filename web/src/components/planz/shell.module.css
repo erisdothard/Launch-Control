@@ -598,6 +598,10 @@ button.rowTitle:hover {
   font-size: 12px;
 }
 
+.kpis3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 /* --- small screens -------------------------------------------------------------------------- */
 
 @media (max-width: 1100px) {
@@ -663,5 +667,58 @@ button.rowTitle:hover {
 
   .heroBody {
     padding: 20px;
+  }
+
+  .kpis3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kpiValue {
+    font-size: 24px;
+  }
+
+  /* Lists: the text takes the full width, the date and buttons wrap under it. */
+  .row {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .rowMain {
+    flex-basis: 100%;
+  }
+
+  /* Tables become one card per row. */
+  .tableWrap {
+    overflow: visible;
+  }
+
+  .table {
+    min-width: 0;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .table td {
+    padding: 0;
+    border: 0;
+  }
+
+  .table td:first-child {
+    flex-basis: 100%;
   }
 }
