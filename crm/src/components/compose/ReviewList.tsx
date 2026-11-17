@@ -27,6 +27,8 @@ interface ReviewListProps {
   extras: string[];
   /** Add the sending address's signature under each email. Off when the emails already end with one. */
   includeSignature: boolean;
+  /** The signature as it goes out (plain text), empty when the address has none set. */
+  signature: string;
   recipients: CampaignRecipient[];
   demo: boolean;
 }
@@ -60,8 +62,9 @@ function paceOptions(cap: number, current: number): number[] {
 
 const plural = (n: number) => `${n} ${n === 1 ? "email" : "emails"}`;
 
-export default function ReviewList({ campaignId, fromAddress, subject, body, dailyLimit, mailboxCap, extras, includeSignature, recipients, demo }: ReviewListProps) {
+export default function ReviewList({ campaignId, fromAddress, subject, body, dailyLimit, mailboxCap, extras, includeSignature, signature: signatureText, recipients, demo }: ReviewListProps) {
   const [signature, setSignature] = useState(includeSignature);
+  const shownSignature = signature ? signatureText : "";
   const router = useRouter();
   const [emails, setEmails] = useState<Email[]>(() => recipients.filter((r) => r.status === "pending").map((r) => toEmail(r, subject, body)));
   const options = paceOptions(mailboxCap, dailyLimit);
@@ -107,6 +110,7 @@ export default function ReviewList({ campaignId, fromAddress, subject, body, dai
             <EmailCard
               key={e.id}
               email={e}
+              signature={shownSignature}
               campaignId={campaignId}
               demo={demo}
               onSaved={(next) => setEmails((list) => list.map((x) => (x.id === next.id ? next : x)))}
@@ -170,13 +174,15 @@ export default function ReviewList({ campaignId, fromAddress, subject, body, dai
 
 interface EmailCardProps {
   email: Email;
+  /** Added under the email when it goes out; empty when off. */
+  signature: string;
   campaignId: string;
   demo: boolean;
   onSaved: (e: Email) => void;
   onRemoved: () => void;
 }
 
-function EmailCard({ email, campaignId, demo, onSaved, onRemoved }: EmailCardProps) {
+function EmailCard({ email, signature, campaignId, demo, onSaved, onRemoved }: EmailCardProps) {
   const [editing, setEditing] = useState(false);
   const [subject, setSubject] = useState(email.subject);
   const [body, setBody] = useState(email.body);
@@ -259,6 +265,11 @@ function EmailCard({ email, campaignId, demo, onSaved, onRemoved }: EmailCardPro
         <div className="mt-4">
           <div className="text-[16px] font-semibold text-[var(--color-text)]">{email.subject}</div>
           <div className="mt-2 text-[16px] leading-[1.6] break-words whitespace-pre-wrap text-[var(--color-text-muted)]">{email.body}</div>
+        </div>
+      )}
+      {signature && (
+        <div className="mt-4 border-t border-[var(--color-border)] pt-3 text-[14.5px] leading-[1.55] whitespace-pre-wrap text-[var(--color-text-dim)]">
+          {signature}
         </div>
       )}
       {error && (

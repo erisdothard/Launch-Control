@@ -9,7 +9,8 @@ import { DEMO_CAMPAIGNS } from "@/components/compose/demo";
 import { CAMPAIGN_STATUS_LABEL } from "@/components/compose/types";
 import { campaignTone, StatusPill } from "@/components/compose/ui";
 import { formatTeamTime, sendDays } from "@/lib/email/merge";
-import { getCampaign, type CampaignDetail } from "@/lib/store/campaigns";
+import { getCampaign, getSendingAccounts, type CampaignDetail } from "@/lib/store/campaigns";
+import { signatureText } from "@/lib/email/signature";
 
 interface CampaignPageProps {
   params: Promise<{ id: string }>;
@@ -73,6 +74,11 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
   // A draft is a list of emails to read, edit and send, all on this page (2026-11-16).
   if (c.status === "draft") {
     const ready = c.recipients.filter((r) => r.status === "pending").length;
+    // The signature the sender adds, shown under each email so nobody types their own.
+    const account = demo ? undefined : (await getSendingAccounts()).find((a) => a.id === c.accountId);
+    const signature = account?.signatureName.trim()
+      ? signatureText({ name: account.signatureName, title: account.signatureTitle, address: account.address, phone: account.signaturePhone, lines: account.signatureLines })
+      : "";
     // Everything else these emails carry, so approving the list approves all of it.
     const followUps = c.followUpBody && c.followUpAfterDays ? 1 + c.followUpMore.length : 0;
     const extras = [
@@ -91,7 +97,7 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
           subtitle={c.fromAddress ? `From ${c.fromAddress}. Nothing goes out until you send.` : "Nothing goes out until you send."}
           actions={<CampaignControls id={c.id} status={c.status} hasFollowUp={Boolean(c.followUpAfterDays)} demo={demo} />}
         />
-        <ReviewList campaignId={c.id} fromAddress={c.fromAddress} subject={c.subject} body={c.bodyText} dailyLimit={c.dailyLimit} mailboxCap={mailboxDailyCap()} extras={extras} includeSignature={c.includeSignature} recipients={c.recipients} demo={demo} />
+        <ReviewList campaignId={c.id} fromAddress={c.fromAddress} subject={c.subject} body={c.bodyText} dailyLimit={c.dailyLimit} mailboxCap={mailboxDailyCap()} extras={extras} includeSignature={c.includeSignature} signature={signature} recipients={c.recipients} demo={demo} />
       </>
     );
   }
