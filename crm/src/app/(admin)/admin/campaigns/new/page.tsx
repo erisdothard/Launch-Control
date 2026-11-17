@@ -37,15 +37,14 @@ function fromCampaign(c: CampaignDetail): ComposerPrefill {
     edits: Object.fromEntries(
       c.recipients
         .filter((r) => r.subjectOverride || r.bodyOverride)
-        .map((r) => [r.email, { subject: r.subjectOverride ?? c.subject, body: r.bodyOverride ?? c.bodyText }])
+        // Keyed like evaluateAudience's recipient key (trimmed, lowercased), which the save action reads.
+        .map((r) => [r.email.trim().toLowerCase(), { subject: r.subjectOverride ?? c.subject, body: r.bodyOverride ?? c.bodyText }])
     ),
     skipContactedDays: c.skipContactedDays,
     perMinute: c.perMinute || DEFAULT_PER_MINUTE,
     dailyLimit: c.dailyLimit || DEFAULT_DAILY_LIMIT,
     followUp: c.followUpAfterDays && c.followUpBody ? { days: c.followUpAfterDays, subject: c.followUpSubject ?? "", body: c.followUpBody, more: c.followUpMore } : null,
-    note: isDraft
-      ? "Your saved draft. The list is checked again against who has opted out since."
-      : `Copied from “${c.name || c.subject}”. Check the list: anyone emailed since may be left out.`,
+    note: isDraft ? "" : `Copied from “${c.name || c.subject}”`,
   };
 }
 
@@ -70,7 +69,8 @@ function blankPrefill(candidates: Candidate[], note: string): ComposerPrefill {
 
 export default async function NewCampaignPage({ searchParams }: NewCampaignPageProps) {
   const params = await searchParams;
-  // ?demo=1 renders every step with invented people and never touches the database. Dev only.
+  // ?demo=1 renders the composer with invented people and never touches the database. Dev only.
+  // ?step=2 fills it in; ?step=3 also opens More options (for screenshots).
   const demo = params.demo === "1" && process.env.NODE_ENV !== "production";
   const step = params.step === "2" ? 2 : params.step === "3" ? 3 : 1;
 
@@ -88,12 +88,12 @@ export default async function NewCampaignPage({ searchParams }: NewCampaignPageP
   const ids = leadParam && leadParam !== "handoff" ? leadParam.split(",").filter((id) => UUID.test(id)).slice(0, 2000) : [];
   if (ids.length) {
     const picked = fromLeadIds(ids, leads);
-    prefill = blankPrefill(picked, `${picked.length} ${picked.length === 1 ? "person" : "people"} picked on the Leads page. Add more below if you like.`);
+    prefill = blankPrefill(picked, "");
   } else if (params.from && (UUID.test(params.from) || demo)) {
     const source = demo ? DEMO_CAMPAIGNS.find((c) => c.id === params.from) ?? null : await getCampaign(params.from);
     if (source) prefill = fromCampaign(source);
   } else if (demo && step > 1) {
-    // Screenshots of later steps need someone on the list and a message.
+    // Screenshots of a filled-in composer need someone on the list and a message.
     prefill = {
       ...blankPrefill(DEMO_LEADS.map((l) => leadCandidate(l, "Not contacted view")), ""),
       subject: DEMO_TEMPLATES[0].subject,
@@ -106,10 +106,7 @@ export default async function NewCampaignPage({ searchParams }: NewCampaignPageP
 
   return (
     <>
-      <AdminHeader
-        title={continuing ? "Finish your draft" : "New campaign"}
-        subtitle="Three steps: pick who gets it, write it once, then choose when it goes. Everyone gets their own email, filled in with their name."
-      />
+      <AdminHeader title={continuing ? "Finish your draft" : "New campaign"} />
       <Composer
         leads={leads}
         suppressed={suppressed}
@@ -119,7 +116,7 @@ export default async function NewCampaignPage({ searchParams }: NewCampaignPageP
         prefill={prefill}
         handoff={leadParam === "handoff"}
         demo={demo}
-        initialStep={step}
+        initialOptionsOpen={step === 3}
       />
     </>
   );

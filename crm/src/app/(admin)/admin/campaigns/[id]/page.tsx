@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import AdminHeader from "@/components/admin/AdminHeader";
 import CampaignControls, { AutoRefresh } from "@/components/compose/CampaignControls";
 import RecipientTable from "@/components/compose/RecipientTable";
+import ReviewList from "@/components/compose/ReviewList";
+import { mailboxDailyCap } from "@/lib/email/mailboxCap";
 import { DEMO_CAMPAIGNS } from "@/components/compose/demo";
 import { CAMPAIGN_STATUS_LABEL } from "@/components/compose/types";
 import { campaignTone, StatusPill } from "@/components/compose/ui";
@@ -68,6 +70,32 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
   const rate = n.sent ? Math.round((n.replied / n.sent) * 100) : null;
   const q = demo ? "?demo=1" : "";
 
+  // A draft is a list of emails to read, edit and send, all on this page (2026-11-16).
+  if (c.status === "draft") {
+    const ready = c.recipients.filter((r) => r.status === "pending").length;
+    // Everything else these emails carry, so approving the list approves all of it.
+    const followUps = c.followUpBody && c.followUpAfterDays ? 1 + c.followUpMore.length : 0;
+    const extras = [
+      ...(followUps ? [`${followUps === 1 ? "a follow-up" : `${followUps} follow-ups`} to anyone who doesn’t reply (first after ${c.followUpAfterDays} days)`] : []),
+      ...(c.attachments.length ? [`attached: ${c.attachments.map((a) => a.name).join(", ")}`] : []),
+      ...(c.includeSignature ? ["your signature and an unsubscribe link on each"] : ["an unsubscribe link on each"]),
+    ];
+    return (
+      <>
+        <Link href={`/admin/campaigns${q}`} className="btn-quiet mb-4 inline-flex items-center gap-1.5 text-[15px]">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M9 3L5 7l4 4" /></svg>
+          All campaigns
+        </Link>
+        <AdminHeader
+          title={`${ready} ${ready === 1 ? "email" : "emails"} ready`}
+          subtitle={c.fromAddress ? `From ${c.fromAddress}. Nothing goes out until you send.` : "Nothing goes out until you send."}
+          actions={<CampaignControls id={c.id} status={c.status} hasFollowUp={Boolean(c.followUpAfterDays)} demo={demo} />}
+        />
+        <ReviewList campaignId={c.id} fromAddress={c.fromAddress} subject={c.subject} body={c.bodyText} dailyLimit={c.dailyLimit} mailboxCap={mailboxDailyCap()} extras={extras} recipients={c.recipients} demo={demo} />
+      </>
+    );
+  }
+
   return (
     <>
       {c.status === "sending" && <AutoRefresh />}
@@ -91,7 +119,7 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
               {c.fromAddress && <span>From {c.fromAddress}</span>}
               <span className="text-[var(--color-text-dim)]">{c.dailyLimit} a weekday</span>
             </div>
-            {c.status !== "draft" && (
+            {(
               <>
                 <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-white/[0.06]" role="progressbar" aria-valuemin={0} aria-valuemax={audience} aria-valuenow={n.sent + n.failed} aria-label="Sent so far">
                   <div className="flex h-full">
@@ -134,7 +162,7 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
               </p>
             )}
           </div>
-          {c.status !== "draft" && (
+          {(
             <div className="md:border-l md:border-[var(--color-border)] md:pl-6 md:text-right">
               <div className="tabular text-[30px] leading-[1.1] font-light tracking-[-0.03em] text-[var(--color-steel)]">{rate === null ? "—" : `${rate}%`}</div>
               <div className="text-[14px] text-[var(--color-text-dim)]">replied</div>
@@ -146,7 +174,7 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
         </div>
       </div>
 
-      <RecipientTable recipients={c.recipients} draft={c.status === "draft"} />
+      <RecipientTable recipients={c.recipients} />
 
       {/* The message as written, with its fields */}
       <section aria-labelledby="message" className="mt-[34px] grid gap-6 lg:grid-cols-2">

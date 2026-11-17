@@ -57,6 +57,22 @@ export function renderMerge(template: string, values: MergeValues): string {
   return rendered.replace(/[ \t]+([,.!?;:])/g, "$1");
 }
 
+/**
+ * One campaign recipient's email exactly as the sender renders it (send-campaigns/route.ts): their
+ * own subject and body when written for them, else the campaign's, merged with their values. The
+ * review page shows this and the send check compares it, so what Max approves is what goes out.
+ */
+export function renderRecipient(
+  r: { subjectOverride: string | null; bodyOverride: string | null; merge: MergeValues },
+  subject: string,
+  body: string
+): { subject: string; body: string } {
+  return {
+    subject: renderMerge(r.subjectOverride ?? subject, r.merge).replace(/[\r\n]+/g, " ").trim(),
+    body: renderMerge(r.bodyOverride ?? body, r.merge).trim(),
+  };
+}
+
 /** Fields a recipient lacks that are used somewhere without a fallback (they'd come out blank). */
 export function missingFields(templates: string[], values: MergeValues): string[] {
   const missing = new Set<string>();

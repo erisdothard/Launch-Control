@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { formatTeamTime, sendDays, teamLocalToUtc } from "@/lib/email/merge";
+import { formatTeamTime, teamLocalToUtc } from "@/lib/email/merge";
 import { deleteTemplateAction, saveCampaignAction, saveTemplateAction, sendTestAction } from "@/app/(admin)/admin/campaigns/actions";
-import { buildContext, evaluateAudience, leadCandidate, recipientName, type AudienceLead, type Candidate } from "./audience";
+import { buildContext, evaluateAudience, leadCandidate, type AudienceLead, type Candidate } from "./audience";
 import RecipientsStep from "./RecipientsStep";
 import { useAddressCheck } from "./useAddressCheck";
 import { defaultSenderId, senderName, senderOptions } from "@/components/inbox/sender";
-import MessageStep from "./MessageStep";
+import { SignatureToggle } from "@/components/inbox/SendAs";
+import MessageStep, { TemplateSave } from "./MessageStep";
+import PreviewPanel from "./PreviewPanel";
 import SendStep, { type FollowUpDraft } from "./SendStep";
 import {
   ATTACHMENT_BUCKET,
@@ -31,14 +33,6 @@ import {
 } from "./types";
 import { Spinner } from "./ui";
 
-type Step = 1 | 2 | 3;
-
-const STEPS: { n: Step; title: string; short: string; sub: string }[] = [
-  { n: 1, title: "Who gets it", short: "Who", sub: "Pick the people" },
-  { n: 2, title: "What it says", short: "What", sub: "Write and preview" },
-  { n: 3, title: "When it goes", short: "When", sub: "Schedule and send" },
-];
-
 interface ComposerProps {
   leads: AudienceLead[];
   suppressed: string[];
@@ -49,7 +43,8 @@ interface ComposerProps {
   /** The Leads page left a long list in sessionStorage. */
   handoff: boolean;
   demo: boolean;
-  initialStep: Step;
+  /** Open with More options showing (?step=3, for screenshots). */
+  initialOptionsOpen: boolean;
 }
 
 function defaultAccount(accounts: ComposerAccount[], preferred?: string | null): string {
@@ -60,15 +55,20 @@ function safeName(name: string): string {
   return name.replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, " ").trim().slice(0, 120) || "file";
 }
 
-function followUpSummary(f: FollowUpDraft): string {
-  const days = [f.days, ...f.more.map((m) => m.days)];
-  if (days.length === 1) return `After ${f.days} days, to anyone who hasn't replied`;
-  return `${days.length} follow-ups, ${days.map((d, i) => `${i ? "then " : ""}${d} days`).join(", ")} apart, until they reply`;
+/** "Maxwell" from "Maxwell Hartmann"; the address when nobody signs it. */
+function shortSender(a: ComposerAccount | undefined): string {
+  if (!a) return "";
+  const n = senderName(a);
+  return n.includes("@") ? n : n.split(" ")[0];
 }
 
-export default function Composer({ leads, suppressed, accounts, templates: initialTemplates, userEmail, prefill, handoff, demo, initialStep }: ComposerProps) {
+const ROW = "grid grid-cols-[minmax(0,1fr)] gap-1.5 border-t border-[var(--color-border)] px-4 py-3 first:border-0 sm:grid-cols-[76px_minmax(0,1fr)] sm:items-start sm:gap-3 sm:px-6";
+const ROW_LABEL = "text-[15px] text-[var(--color-text-dim)] sm:pt-[9px]";
+
+// One page: From, To, Subject, Message, a folded preview and a folded "More options". Everything
+// in More options has a default, so the main path is: add people, write it, Send.
+export default function Composer({ leads, suppressed, accounts, templates: initialTemplates, userEmail, prefill, handoff, demo, initialOptionsOpen }: ComposerProps) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>(initialStep);
   const [candidates, setCandidates] = useState<Candidate[]>(prefill?.candidates ?? []);
   const [overrides, setOverrides] = useState<Set<string>>(new Set());
   const [skipDays, setSkipDays] = useState(prefill?.skipContactedDays ?? 0);
@@ -91,13 +91,18 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
   );
   const [name, setName] = useState(prefill?.name ?? "");
   const [testState, setTestState] = useState({ busy: false, message: "", error: false });
+  const [optionsOpen, setOptionsOpen] = useState(initialOptionsOpen);
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState<"draft" | "send" | null>(null);
+  /** A failed save, from the server. */
   const [error, setError] = useState("");
+  /** Send was pressed with something missing: that thing, shown until it's fixed. */
+  const [shownIssue, setShownIssue] = useState<string | null>(null);
   const [done, setDone] = useState<{ count: number; draft: boolean } | null>(null);
   const [dirty, setDirty] = useState(false);
   // Page-open time: the clock for the recent-contact rule and "that time has passed".
   const [openedAt] = useState(() => Date.now());
+  const sendButton = useRef<HTMLButtonElement>(null);
 
   // A long selection from the Leads page arrives through sessionStorage.
   useEffect(() => {
@@ -124,6 +129,17 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty, done]);
 
+  // The confirm: Send takes focus, Escape backs out.
+  useEffect(() => {
+    if (!confirming) return;
+    sendButton.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && saving === null) setConfirming(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [confirming, saving]);
+
   const touch = <T,>(set: (v: T) => void) => (v: T) => {
     set(v);
     setDirty(true);
@@ -135,26 +151,24 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
     [leads, suppressed, skipDays, overrides, openedAt, undeliverable]
   );
   const { included, excluded } = useMemo(() => evaluateAudience(candidates, ctx), [candidates, ctx]);
+  const options = senderOptions(accounts);
   const account = accounts.find((a) => a.id === accountId);
   const extraFields = useMemo(() => [...new Set(candidates.flatMap((c) => Object.keys(c.values)))], [candidates]);
   const previewAt = Math.min(previewIndex, Math.max(0, included.length - 1));
+  const scheduledIso = when.mode === "schedule" ? teamLocalToUtc(when.date, when.time) : null;
+  const people = `${included.length} ${included.length === 1 ? "person" : "people"}`;
 
-  const stepIssue: Record<Step, string> = {
-    1: included.length === 0 ? "Add at least one person." : "",
-    2: !accountId ? "Pick who it's from." : !subject.trim() ? "Add a subject." : !body.trim() ? "Write the message." : "",
-    3:
-      when.mode === "schedule" && !teamLocalToUtc(when.date, when.time)
-        ? "Pick a date and time."
-        : when.mode === "schedule" && new Date(teamLocalToUtc(when.date, when.time) ?? 0).getTime() < openedAt
-          ? "That time has passed. Pick a later one."
-          : followUp.enabled && !followUp.body.trim()
-            ? "Write the follow-up, or turn it off."
-            : followUp.enabled && followUp.more.some((m) => !m.body.trim())
-              ? "Write each follow-up, or remove the empty one."
-            : uploading.length
-              ? "Wait for the attachments to finish uploading."
-              : "",
-  };
+  // What stops a send, in order. `options` marks the ones fixed under More options.
+  const issues: { text: string; options?: boolean }[] = [
+    included.length === 0 && { text: "Add at least one person." },
+    !accountId && { text: "Connect an address to send from." },
+    !subject.trim() && { text: "Add a subject." },
+    !body.trim() && { text: "Write the message." },
+    when.mode === "schedule" && !scheduledIso && { text: "Pick a date and time.", options: true },
+    when.mode === "schedule" && scheduledIso && new Date(scheduledIso).getTime() < openedAt && { text: "That time has passed.", options: true },
+    followUp.enabled && (!followUp.body.trim() || followUp.more.some((m) => !m.body.trim())) && { text: "Write the follow-up, or turn it off.", options: true },
+    uploading.length > 0 && { text: "Files are still uploading." },
+  ].filter((x): x is { text: string; options?: boolean } => Boolean(x));
 
   function payload(): CampaignPayload {
     return {
@@ -204,7 +218,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
     const tooBig = files.find((f) => f.size > MAX_ATTACHMENT_BYTES);
     if (tooBig) return setAttachError(`${tooBig.name} is over ${MAX_FILE_MB} MB. Share a link to it instead.`);
     const total = [...attachments.map((a) => a.size), ...files.map((f) => f.size)].reduce((a, b) => a + b, 0);
-    if (total > MAX_TOTAL_ATTACHMENT_BYTES) return setAttachError(`Attachments would add up to more than ${MAX_TOTAL_MB} MB. Most mail servers refuse that.`);
+    if (total > MAX_TOTAL_ATTACHMENT_BYTES) return setAttachError(`Files would add up to more than ${MAX_TOTAL_MB} MB.`);
     setDirty(true);
     for (const f of files) {
       const path = `campaigns/${crypto.randomUUID()}/${safeName(f.name)}`;
@@ -229,12 +243,12 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
 
   async function sendTest() {
     const r = included[previewAt];
-    if (!r) return setTestState({ busy: false, message: "Add someone to the list first; the test is filled in as them.", error: true });
+    if (!r) return setTestState({ busy: false, message: "Add someone first.", error: true });
     if (!subject.trim() || !body.trim()) return setTestState({ busy: false, message: "Write a subject and message first.", error: true });
     setTestState({ busy: true, message: "", error: false });
     const e = edits[r.key];
     const result = await sendTestAction({ accountId, subject: e?.subject ?? subject, body: e?.body ?? body, values: r.values, attachments, includeSignature });
-    setTestState(result.ok ? { busy: false, message: `Sent to ${result.to}. Check your inbox.`, error: false } : { busy: false, message: result.error, error: true });
+    setTestState(result.ok ? { busy: false, message: `Sent to ${result.to}.`, error: false } : { busy: false, message: result.error, error: true });
   }
 
   async function saveTemplate(templateName: string, id: string | null): Promise<string | null> {
@@ -269,260 +283,222 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
     setDirty(true);
   }
 
-  const scheduledIso = when.mode === "schedule" ? teamLocalToUtc(when.date, when.time) : null;
-  const whenText = scheduledIso ? formatTeamTime(scheduledIso) : "Now";
-  const firstIssue = ([1, 2, 3] as Step[]).find((s) => stepIssue[s]);
+  function trySend() {
+    const first = issues[0];
+    setError("");
+    if (first) {
+      if (first.options) setOptionsOpen(true);
+      setShownIssue(first.text);
+      return;
+    }
+    setShownIssue(null);
+    setConfirming(true);
+  }
 
   if (done) {
     return (
-      <div className="card relative overflow-hidden px-6 py-10 sm:px-10">
-        <span aria-hidden="true" className="absolute top-0 bottom-0 left-0 flex w-[5px] flex-col">
-          <i className="flex-[5] bg-[var(--color-accent)]" />
-          <i className="flex-[3] bg-[var(--color-livery-orange)]" />
-          <i className="flex-[2] bg-[var(--color-livery-red)]" />
-        </span>
-        <div className="font-display text-[18px] tracking-[0.04em] text-[var(--color-steel)]">{done.draft ? "DRAFT SAVED" : "ON ITS WAY"}</div>
-        <p className="mt-3 max-w-xl text-[16px] text-[var(--color-text-muted)]">
-          Demo mode: nothing was saved or sent. In the real CRM this {done.draft ? "draft" : `campaign to ${done.count} people`} now shows on the Campaigns page.
-        </p>
+      <div className="card px-6 py-10 sm:px-10">
+        <div className="font-display text-[18px] tracking-[0.04em] text-[var(--color-steel)]">{done.draft ? "SAVED" : "SENT"}</div>
+        <p className="mt-3 text-[16px] text-[var(--color-text-muted)]">Demo: nothing was saved or sent.</p>
         <Link href="/admin/campaigns?demo=1" className="btn btn-secondary mt-6">
-          See campaigns
+          Campaigns
         </Link>
       </div>
     );
   }
 
+  const from = shortSender(account);
+  const barMessage = error || (shownIssue && issues.some((i) => i.text === shownIssue) ? shownIssue : "");
+
   return (
     <div className="pb-28">
-      {/* Steps */}
-      <ol className="mb-6 grid grid-cols-3 gap-2 sm:gap-3" aria-label="Steps">
-        {STEPS.map((s) => {
-          const active = s.n === step;
-          const complete = s.n < step && !stepIssue[s.n];
-          return (
-            <li key={s.n}>
-              <button
-                type="button"
-                aria-current={active ? "step" : undefined}
-                onClick={() => setStep(s.n)}
-                className={`flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-3 text-left transition-colors sm:px-4 ${
-                  active ? "bg-[var(--color-bg-card)] shadow-[inset_0_-2px_0_var(--color-steel)]" : "hover:bg-[var(--color-bg-hover)]"
-                }`}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_420px] xl:gap-6">
+        <section aria-label="Email" className="card self-start">
+          {/* From: a choice only when there is one to make. */}
+          <div className={ROW}>
+            <span id="from-label" className={ROW_LABEL}>
+              From
+            </span>
+            {options.length > 1 ? (
+              <select
+                aria-labelledby="from-label"
+                className="field !min-h-[40px] !w-auto max-w-full justify-self-start !py-1.5"
+                value={accountId}
+                onChange={(e) => touch(setAccountId)(e.target.value)}
               >
-                <span
-                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[15px] font-semibold ${
-                    active ? "bg-[var(--color-steel)] text-[var(--color-on-accent)]" : complete ? "bg-[var(--color-success)]/[0.16] text-[var(--color-success)]" : "bg-white/[0.06] text-[var(--color-text-muted)]"
-                  }`}
-                >
-                  {complete ? (
-                    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 7.5l2.5 2.5L11 4.5" /></svg>
-                  ) : (
-                    s.n
-                  )}
-                </span>
-                <span className="min-w-0">
-                  <span className={`block truncate text-[15px] sm:text-[16px] ${active ? "font-semibold text-[var(--color-text)]" : "text-[var(--color-text-muted)]"}`}><span className="sm:hidden">{s.short}</span>
-                    <span className="hidden sm:inline">{s.title}</span>
-                  </span>
-                  <span className="hidden truncate text-[14px] text-[var(--color-text-dim)] sm:block">
-                    {s.n === 1 && included.length > 0 ? `${included.length} ${included.length === 1 ? "person" : "people"}` : s.n === 2 && subject.trim() ? subject : s.n === 3 && step === 3 ? whenText : s.sub}
-                  </span>
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+                {options.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {senderName(a)}
+                  </option>
+                ))}
+              </select>
+            ) : options.length === 1 ? (
+              <span className="text-[15.5px] text-[var(--color-text)] sm:pt-[9px]">{from}</span>
+            ) : (
+              <a href="/admin/settings#email-accounts" className="btn-quiet text-[15px] text-[var(--color-text)] sm:mt-[9px] sm:justify-self-start">
+                Connect Outlook in Settings
+              </a>
+            )}
+          </div>
 
-      {step === 1 && (
-        <RecipientsStep
-          leads={leads}
-          candidates={candidates}
-          included={included}
-          excluded={excluded}
-          checking={checking}
-          skipDays={skipDays}
-          onSkipDays={touch(setSkipDays)}
-          onAdd={(add) => {
-            setCandidates((prev) => [...prev, ...add]);
-            setDirty(true);
-          }}
-          onRemove={(key) => setCandidates((prev) => prev.filter((c) => c.email.trim().toLowerCase() !== key && `lead:${c.leadId}` !== key))}
-          onClear={() => {
-            if (!confirm("Take everyone off the list?")) return;
-            setCandidates([]);
-            setOverrides(new Set());
-          }}
-          onOverride={(key, include) =>
-            setOverrides((prev) => {
-              const next = new Set(prev);
-              if (include) next.add(key);
-              else next.delete(key);
-              return next;
-            })
-          }
-          note={prefill?.note ?? ""}
-        />
-      )}
-
-      {step === 2 && (
-        <MessageStep
-          accounts={accounts}
-          accountId={accountId}
-          onAccount={touch(setAccountId)}
-          includeSignature={includeSignature}
-          onIncludeSignature={touch(setIncludeSignature)}
-          subject={subject}
-          onSubject={touch(setSubject)}
-          body={body}
-          onBody={touch(setBody)}
-          templates={templates}
-          templateId={templateId}
-          onLoadTemplate={loadTemplate}
-          onSaveTemplate={saveTemplate}
-          onDeleteTemplate={deleteTemplate}
-          attachments={attachments}
-          uploading={uploading}
-          onAttach={attach}
-          onRemoveAttachment={removeAttachment}
-          attachError={attachError}
-          recipients={included}
-          extraFields={extraFields}
-          edits={edits}
-          onEdit={(key, edit) => {
-            setEdits((prev) => {
-              const next = { ...prev };
-              if (edit) next[key] = edit;
-              else delete next[key];
-              return next;
-            });
-            setDirty(true);
-          }}
-          previewIndex={previewAt}
-          onPreviewIndex={setPreviewIndex}
-        />
-      )}
-
-      {step === 3 && (
-        <SendStep
-          count={included.length}
-          when={when}
-          onWhen={touch(setWhen)}
-          dailyLimit={dailyLimit}
-          onDailyLimit={touch(setDailyLimit)}
-          followUp={followUp}
-          onFollowUp={touch(setFollowUp)}
-          subject={subject}
-          name={name}
-          onName={touch(setName)}
-          extraFields={extraFields}
-          userEmail={userEmail}
-          testState={testState}
-          onSendTest={sendTest}
-          previewName={included[previewAt] ? recipientName(included[previewAt]) : ""}
-          demo={demo}
-        />
-      )}
-
-      {/* Footer: back, save, and the one primary action */}
-      <div className="fixed inset-x-0 bottom-[68px] z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-sidebar)]/95 shell:bottom-0 shell:left-60">
-        <div className="mx-auto flex max-w-[1204px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-          {step > 1 ? (
-            <button type="button" className="btn btn-secondary" onClick={() => setStep((step - 1) as Step)}>
-              Back
-            </button>
-          ) : (
-            <Link href={demo ? "/admin/campaigns?demo=1" : "/admin/campaigns"} className="btn btn-secondary">
-              Cancel
-            </Link>
-          )}
-          <button type="button" className="btn-quiet hidden sm:inline" disabled={saving !== null} onClick={() => save("draft")}>
-            {saving === "draft" ? "Saving..." : "Save as draft"}
-          </button>
-          <span className="ml-auto hidden min-w-0 truncate text-right text-[14.5px] text-[var(--color-text-dim)] md:block">
-            {stepIssue[step] || (step === 3 ? `${included.length} ${included.length === 1 ? "person" : "people"} · ${whenText}` : "")}
-          </span>
-          {step < 3 ? (
-            <button type="button" className="btn btn-primary ml-auto md:ml-0" onClick={() => setStep((step + 1) as Step)}>
-              Next: {STEPS[step].title.toLowerCase()}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary ml-auto md:ml-0"
-              onClick={() => {
-                if (firstIssue) {
-                  setStep(firstIssue);
-                  setError(stepIssue[firstIssue]);
-                  return;
-                }
-                setError("");
-                setConfirming(true);
+          <div className={ROW}>
+            <span id="to-label" className={ROW_LABEL}>
+              To
+            </span>
+            <RecipientsStep
+              labelId="to-label"
+              leads={leads}
+              candidates={candidates}
+              included={included}
+              excluded={excluded}
+              checking={checking}
+              onAdd={(add) => {
+                setCandidates((prev) => [...prev, ...add]);
+                setDirty(true);
               }}
-            >
-              Review and send
-            </button>
-          )}
+              onRemove={(key) => setCandidates((prev) => prev.filter((c) => c.email.trim().toLowerCase() !== key && `lead:${c.leadId}` !== key))}
+              onClear={() => {
+                if (!confirm("Take everyone off the list?")) return;
+                setCandidates([]);
+                setOverrides(new Set());
+              }}
+              onOverride={(key, include) =>
+                setOverrides((prev) => {
+                  const next = new Set(prev);
+                  if (include) next.add(key);
+                  else next.delete(key);
+                  return next;
+                })
+              }
+              note={prefill?.note ?? ""}
+            />
+          </div>
+
+          <MessageStep
+            subject={subject}
+            onSubject={touch(setSubject)}
+            body={body}
+            onBody={touch(setBody)}
+            templates={templates}
+            templateId={templateId}
+            onLoadTemplate={loadTemplate}
+            attachments={attachments}
+            uploading={uploading}
+            onAttach={attach}
+            onRemoveAttachment={removeAttachment}
+            attachError={attachError}
+            recipients={included}
+            extraFields={extraFields}
+            edits={edits}
+          />
+        </section>
+
+        <div className="xl:sticky xl:top-4 xl:self-start">
+          <PreviewPanel
+            recipients={included}
+            index={previewAt}
+            onIndex={setPreviewIndex}
+            account={account}
+            includeSignature={includeSignature}
+            subject={subject}
+            body={body}
+            edits={edits}
+            onEdit={(key, edit) => {
+              setEdits((prev) => {
+                const next = { ...prev };
+                if (edit) next[key] = edit;
+                else delete next[key];
+                return next;
+              });
+              setDirty(true);
+            }}
+            attachmentNames={attachments.map((a) => a.name)}
+            extraFields={extraFields}
+          />
         </div>
-        {error && !confirming && (
-          <p role="alert" className="mx-auto max-w-[1204px] px-4 pb-3 text-[15px] text-[var(--color-hot)] sm:px-6 lg:px-8">
-            {error}
-          </p>
+      </div>
+
+      <section aria-label="More options" className="card mt-4 xl:mr-[444px]">
+        <button
+          type="button"
+          aria-expanded={optionsOpen}
+          aria-controls="more-options"
+          onClick={() => setOptionsOpen((o) => !o)}
+          className="flex w-full items-center gap-2 rounded-[var(--radius-lg)] px-4 py-4 text-left text-[15.5px] text-[var(--color-text)] focus-visible:outline-2 focus-visible:outline-[var(--color-steel)] sm:px-6"
+        >
+          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" className={`text-[var(--color-text-dim)] transition-transform ${optionsOpen ? "" : "-rotate-90"}`}>
+            <path d="M3 4.5l3 3 3-3" />
+          </svg>
+          More options
+        </button>
+        {optionsOpen && (
+          <div id="more-options" className="border-t border-[var(--color-border)]">
+            <SendStep
+              when={when}
+              onWhen={touch(setWhen)}
+              dailyLimit={dailyLimit}
+              onDailyLimit={touch(setDailyLimit)}
+              skipDays={skipDays}
+              onSkipDays={touch(setSkipDays)}
+              followUp={followUp}
+              onFollowUp={touch(setFollowUp)}
+              subject={subject}
+              name={name}
+              onName={touch(setName)}
+              extraFields={extraFields}
+              userEmail={userEmail}
+              testState={testState}
+              onSendTest={sendTest}
+              demo={demo}
+              signature={<SignatureToggle account={account} on={includeSignature} onChange={touch(setIncludeSignature)} />}
+              templates={<TemplateSave templates={templates} templateId={templateId} subject={subject} onSave={saveTemplate} onDelete={deleteTemplate} />}
+            />
+          </div>
         )}
+      </section>
+
+      {/* Bottom bar: save for later, and the one primary action. */}
+      <div className="fixed inset-x-0 bottom-[68px] z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-sidebar)] shell:bottom-0 shell:left-60">
+        <div className="mx-auto flex max-w-[1204px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:flex-nowrap sm:px-6 lg:px-8">
+          <Link href={demo ? "/admin/campaigns?demo=1" : "/admin/campaigns"} className="btn-quiet hidden sm:inline">
+            Cancel
+          </Link>
+          <span className="ml-auto" />
+          {barMessage && !confirming ? (
+            <p role="alert" className="order-first min-w-0 basis-full text-[14.5px] text-[var(--color-hot)] sm:order-none sm:basis-auto sm:truncate sm:text-right">
+              {barMessage}
+            </p>
+          ) : null}
+          <button type="button" className="btn btn-secondary shrink-0" disabled={saving !== null} onClick={() => save("draft")}>
+            {saving === "draft" && <Spinner />}
+            Save for later
+          </button>
+          <button type="button" className="btn btn-primary shrink-0" onClick={trySend}>
+            {when.mode === "schedule" ? "Schedule" : "Send"}
+          </button>
+        </div>
       </div>
 
       {confirming && (
         <div className="fixed inset-0 z-[200] grid place-items-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-          <div className="card relative w-full max-w-lg overflow-hidden p-6 shadow-[0_24px_80px_rgba(0,0,0,0.6)] sm:p-8">
-            <span aria-hidden="true" className="absolute top-0 bottom-0 left-0 flex w-[5px] flex-col">
-              <i className="flex-[5] bg-[var(--color-accent)]" />
-              <i className="flex-[3] bg-[var(--color-livery-orange)]" />
-              <i className="flex-[2] bg-[var(--color-livery-red)]" />
-            </span>
-            <h2 id="confirm-title" className="text-[24px] font-semibold tracking-[-0.02em] text-[var(--color-steel)]">
-              {when.mode === "now" ? `Send to ${included.length} ${included.length === 1 ? "person" : "people"}?` : `Schedule for ${included.length} ${included.length === 1 ? "person" : "people"}?`}
+          <div className="card w-full max-w-md p-6 shadow-[0_24px_80px_rgba(0,0,0,0.6)] sm:p-7">
+            <h2 id="confirm-title" className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--color-text)]">
+              Send to {people}
+              {from ? ` from ${from}` : ""}?
             </h2>
-            <dl className="mt-5 grid grid-cols-[110px_minmax(0,1fr)] gap-x-4 gap-y-3 text-[15.5px]">
-              <dt className="text-[var(--color-text-dim)]">From</dt>
-              <dd className="truncate text-[var(--color-text)]">{account ? `${senderName(account)} · ${account.address}` : "—"}</dd>
-              <dt className="text-[var(--color-text-dim)]">Signature</dt>
-              <dd className="text-[var(--color-text)]">{includeSignature && account?.signatureName.trim() ? `${account.signatureName}'s, under every email` : "None"}</dd>
-              <dt className="text-[var(--color-text-dim)]">Subject</dt>
-              <dd className="text-[var(--color-text)]">{subject}</dd>
-              <dt className="text-[var(--color-text-dim)]">When</dt>
-              <dd className="text-[var(--color-text)]">{scheduledIso ? `${whenText} Central` : "Starting now"}</dd>
-              <dt className="text-[var(--color-text-dim)]">Pace</dt>
-              <dd className="text-[var(--color-text)]">
-                {dailyLimit} a weekday, {sendDays(included.length, dailyLimit)}
-              </dd>
-              <dt className="text-[var(--color-text-dim)]">Follow-up</dt>
-              <dd className="text-[var(--color-text)]">{followUp.enabled ? followUpSummary(followUp) : "None"}</dd>
-              {attachments.length > 0 && (
-                <>
-                  <dt className="text-[var(--color-text-dim)]">Files</dt>
-                  <dd className="truncate text-[var(--color-text)]">{attachments.map((a) => a.name).join(", ")}</dd>
-                </>
-              )}
-              {excluded.length > 0 && (
-                <>
-                  <dt className="text-[var(--color-text-dim)]">Left out</dt>
-                  <dd className="text-[var(--color-text)]">{excluded.length}, as listed in step 1</dd>
-                </>
-              )}
-            </dl>
-            <p className="mt-5 text-[15px] text-[var(--color-text-muted)]">Each person gets their own email. You can pause or cancel from the Campaigns page while it sends.</p>
+            {scheduledIso && <p className="mt-2 text-[15.5px] text-[var(--color-text-muted)]">{formatTeamTime(scheduledIso)} Central</p>}
             {error && (
               <p role="alert" className="mt-3 text-[15px] text-[var(--color-hot)]">
                 {error}
               </p>
             )}
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button type="button" className="btn btn-secondary" onClick={() => setConfirming(false)} disabled={saving !== null}>
-                Go back
+                Cancel
               </button>
-              <button type="button" className="btn btn-primary sm:ml-auto" onClick={() => save("send")} disabled={saving !== null}>
+              <button ref={sendButton} type="button" className="btn btn-primary" onClick={() => save("send")} disabled={saving !== null}>
                 {saving === "send" && <Spinner />}
-                {when.mode === "now" ? `Send to ${included.length}` : "Schedule it"}
+                {when.mode === "schedule" ? "Schedule" : "Send"}
               </button>
             </div>
           </div>

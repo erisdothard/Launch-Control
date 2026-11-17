@@ -382,9 +382,23 @@ export async function replaceDraft(id: string, c: NewCampaign, recipients: NewRe
     .select("id");
   if (error) throw error;
   if (!data.length) return false;
-  const { error: delError } = await supabase.from("campaign_recipients").delete().eq("campaign_id", id);
-  if (delError) throw delError;
-  await insertRecipients(supabase, id, recipients);
+  // New rows go in before the old ones come out, so a failed write never leaves the draft empty
+  // (an agent's pre-written emails would be lost). If the insert fails, the new rows are removed.
+  const { data: old, error: oldError } = await supabase.from("campaign_recipients").select("id").eq("campaign_id", id);
+  if (oldError) throw oldError;
+  const oldIds = old.map((r) => r.id);
+  try {
+    await insertRecipients(supabase, id, recipients);
+  } catch (err) {
+    let cleanup = supabase.from("campaign_recipients").delete().eq("campaign_id", id);
+    if (oldIds.length) cleanup = cleanup.not("id", "in", `(${oldIds.join(",")})`);
+    await cleanup;
+    throw err;
+  }
+  for (let i = 0; i < oldIds.length; i += 200) {
+    const { error: delError } = await supabase.from("campaign_recipients").delete().in("id", oldIds.slice(i, i + 200));
+    if (delError) throw delError;
+  }
   if (c.status !== "draft") await publish(supabase, id, c.status);
   return true;
 }
@@ -446,6 +460,85 @@ export async function controlCampaign(id: string, action: CampaignControl, clien
     .eq("status", "pending");
   if (rError) throw rError;
   return null;
+}
+
+/**
+ * The review page's edits to a draft (Max and Eris, 2026-11-16: read, edit and send a batch on one
+ * screen). Every write is scoped to a campaign that is still a draft, so nothing here can touch a
+ * campaign once it is sending. Each returns an error sentence, or null when done.
+ */
+async function isDraft(supabase: StoreClient, id: string): Promise<boolean> {
+  const { data, error } = await supabase.from("email_campaigns").select("status").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data?.status === "draft";
+}
+
+const NOT_A_DRAFT = "This one was already sent or deleted. Reload the page.";
+
+export async function updateDraftRecipient(
+  campaignId: string,
+  recipientId: string,
+  edit: { subject: string; body: string },
+  client?: StoreClient
+): Promise<string | null> {
+  const supabase = await getStoreClient(client);
+  if (!(await isDraft(supabase, campaignId))) return NOT_A_DRAFT;
+  const { data, error } = await supabase
+    .from("campaign_recipients")
+    .update({ subject_override: edit.subject, body_override: edit.body })
+    .eq("id", recipientId)
+    .eq("campaign_id", campaignId)
+    .eq("status", "pending")
+    .is("sent_at", null)
+    .select("id");
+  if (error) throw error;
+  return data.length ? null : "That person is no longer on this list.";
+}
+
+export async function removeDraftRecipient(campaignId: string, recipientId: string, client?: StoreClient): Promise<string | null> {
+  const supabase = await getStoreClient(client);
+  if (!(await isDraft(supabase, campaignId))) return NOT_A_DRAFT;
+  const { data, error } = await supabase
+    .from("campaign_recipients")
+    .delete()
+    .eq("id", recipientId)
+    .eq("campaign_id", campaignId)
+    .eq("status", "pending")
+    .is("sent_at", null)
+    .select("id");
+  if (error) throw error;
+  return data.length ? null : "That person is no longer on this list.";
+}
+
+/**
+ * Sends a draft as it stands: people who can't be emailed any more are marked skipped with the
+ * reason, the pace is saved, and the campaign goes to scheduled for the sender's next pass.
+ */
+export async function sendDraft(
+  campaignId: string,
+  dailyLimit: number,
+  skips: { id: string; reason: string }[],
+  client?: StoreClient
+): Promise<string | null> {
+  const supabase = await getStoreClient(client);
+  if (!(await isDraft(supabase, campaignId))) return NOT_A_DRAFT;
+  for (const s of skips) {
+    const { error } = await supabase
+      .from("campaign_recipients")
+      .update({ status: "skipped", skip_reason: s.reason })
+      .eq("id", s.id)
+      .eq("campaign_id", campaignId)
+      .eq("status", "pending");
+    if (error) throw error;
+  }
+  const { data, error } = await supabase
+    .from("email_campaigns")
+    .update({ status: "scheduled", scheduled_at: null, daily_limit: dailyLimit, updated_at: new Date().toISOString() })
+    .eq("id", campaignId)
+    .eq("status", "draft")
+    .select("id");
+  if (error) throw error;
+  return data.length ? null : NOT_A_DRAFT;
 }
 
 /** Addresses never to email again (opt-outs, bounces, manual). */

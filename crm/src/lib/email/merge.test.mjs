@@ -8,6 +8,7 @@ import {
   parseRecipientList,
   parseTokens,
   renderMerge,
+  renderRecipient,
   sendDuration,
   splitName,
   teamLocalToUtc,
@@ -88,4 +89,20 @@ test("a stray line doesn't turn a CSV into a loose list", () => {
   assert.equal(list.contacts[0].values.first_name, "Nina");
   assert.equal(list.contacts[0].values.company, "Brooks Bakery");
   assert.deepEqual(list.rejected, ["bad line"]);
+});
+
+test("renderRecipient renders a person's own email like the sender, else the campaign's", () => {
+  const merge = { first_name: "Brian", company: "Let's GO" };
+  // Their own email wins, and is still merged (the sender merges overrides too).
+  assert.deepEqual(renderRecipient({ subjectOverride: "Hi {{first_name}}\n", bodyOverride: " Hi {{first_name}} ,\n", merge }, "Generic", "Generic body"), {
+    subject: "Hi Brian",
+    body: "Hi Brian,",
+  });
+  // No override: the campaign template, merged.
+  assert.deepEqual(renderRecipient({ subjectOverride: null, bodyOverride: null, merge }, "An idea for {{company}}", "Hi {{first_name|there}}"), {
+    subject: "An idea for Let's GO",
+    body: "Hi Brian",
+  });
+  // An empty override is used as written (the sender uses ??), so the send check sees it as empty.
+  assert.equal(renderRecipient({ subjectOverride: "", bodyOverride: null, merge }, "Generic", "b").subject, "");
 });

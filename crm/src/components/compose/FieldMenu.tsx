@@ -9,7 +9,13 @@ interface FieldMenuProps {
   onInsert: (token: string) => void;
 }
 
-// "Insert a field" menu: puts {{first_name|there}} (or any field) where the cursor was.
+/** What goes in for each field. First name says "there" when someone has none. */
+function tokenFor(key: string): string {
+  return key === "first_name" ? "{{first_name|there}}" : `{{${key}}}`;
+}
+
+// "Insert name", plus a small menu for the other fields. The buttons never take focus from the
+// text box, so the pill lands where the cursor was.
 export default function FieldMenu({ extraFields, onInsert }: FieldMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -28,28 +34,32 @@ export default function FieldMenu({ extraFields, onInsert }: FieldMenuProps) {
   }, [open]);
 
   const fields = [
-    ...MERGE_FIELDS.map((f) => ({ key: f.key, label: f.label, example: f.example })),
-    ...extraFields.filter((k) => !MERGE_FIELDS.some((f) => f.key === k)).map((k) => ({ key: k, label: fieldLabel(k), example: "From your list" })),
+    ...MERGE_FIELDS.filter((f) => f.key !== "first_name").map((f) => ({ key: f.key, label: f.label })),
+    ...extraFields.filter((k) => !MERGE_FIELDS.some((f) => f.key === k)).map((k) => ({ key: k, label: fieldLabel(k) })),
   ];
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative flex items-center gap-1">
+      <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => onInsert(tokenFor("first_name"))} className="btn btn-secondary btn-sm">
+        Insert name
+      </button>
       <button
         type="button"
+        aria-label="Insert another detail"
         aria-haspopup="menu"
         aria-expanded={open}
-        // Keep the cursor where it is in the subject/message while the menu opens.
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen((o) => !o)}
-        className="btn btn-secondary btn-sm"
+        className="btn btn-secondary btn-sm !px-2.5"
       >
-        <span aria-hidden="true" className="font-mono text-[13px] normal-case tracking-normal">{"{ }"}</span>
-        Insert field
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+          <path d="M3 4.5l3 3 3-3" />
+        </svg>
       </button>
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-2 max-h-[360px] w-[280px] overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-1.5 shadow-[inset_0_0_0_1px_var(--color-border-bright),0_16px_40px_rgba(0,0,0,0.5)]"
+          className="absolute top-full right-0 z-30 mt-2 max-h-[320px] w-[220px] overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-1.5 shadow-[inset_0_0_0_1px_var(--color-border-bright),0_16px_40px_rgba(0,0,0,0.5)]"
         >
           {fields.map((f) => (
             <button
@@ -58,18 +68,14 @@ export default function FieldMenu({ extraFields, onInsert }: FieldMenuProps) {
               role="menuitem"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
-                onInsert(f.key === "first_name" ? "{{first_name|there}}" : `{{${f.key}}}`);
+                onInsert(tokenFor(f.key));
                 setOpen(false);
               }}
-              className="flex w-full items-baseline justify-between gap-3 rounded-[var(--radius-sm)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--color-bg-hover)] focus-visible:bg-[var(--color-bg-hover)]"
+              className="block w-full rounded-[var(--radius-sm)] px-3 py-2.5 text-left text-[15px] text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg-hover)] focus-visible:bg-[var(--color-bg-hover)] focus-visible:outline-none"
             >
-              <span className="text-[15px] text-[var(--color-text)]">{f.label}</span>
-              <span className="truncate text-[13.5px] text-[var(--color-text-dim)]">{f.example}</span>
+              {f.label}
             </button>
           ))}
-          <p className="border-t border-[var(--color-border)] px-3 pt-2.5 pb-1.5 text-[13.5px] leading-snug text-[var(--color-text-dim)]">
-            First name goes in as {"{{first_name|there}}"}: anyone without one gets &ldquo;there&rdquo;.
-          </p>
         </div>
       )}
     </div>

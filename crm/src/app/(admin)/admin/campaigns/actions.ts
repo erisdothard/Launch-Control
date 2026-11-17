@@ -17,15 +17,19 @@ import {
   MAX_DAILY_LIMIT,
   MAX_EXTRA_FOLLOW_UPS,
 } from "@/components/compose/types";
-import { renderMerge, teamLocalToUtc, type MergeValues } from "@/lib/email/merge";
+import { renderMerge, renderRecipient, teamLocalToUtc, type MergeValues } from "@/lib/email/merge";
 import { sendEmail } from "@/lib/email/send";
 import { currentCrmUserEmail } from "@/lib/email/session";
 import {
   controlCampaign,
   createCampaign,
   getAudienceLeads,
+  getCampaign,
   getSuppressedEmails,
+  removeDraftRecipient,
   replaceDraft,
+  sendDraft,
+  updateDraftRecipient,
   type CampaignControl,
   type NewRecipient,
 } from "@/lib/store/campaigns";
@@ -296,6 +300,122 @@ export async function checkDomainsAction(domains: string[]): Promise<ActionResul
     return { ok: true, bad };
   } catch {
     return { ok: false, error: "Couldn't check the addresses right now. They'll be checked again when you save." };
+  }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Saves one person's email on a draft, from the review page's Edit. */
+export async function editDraftEmailAction(campaignId: string, recipientId: string, subject: string, body: string): Promise<ActionResult> {
+  const user = await currentCrmUserEmail();
+  if (!user) return { ok: false, error: "Sign in again to continue." };
+  if (!UUID.test(campaignId) || !UUID.test(recipientId)) return { ok: false, error: "That email doesn't exist." };
+  const s = str(subject, MAX_SUBJECT + 1).replace(/[\r\n]+/g, " ").trim();
+  const b = str(body, MAX_BODY + 1).trim();
+  if (!s) return { ok: false, error: "Add a subject." };
+  if (!b) return { ok: false, error: "The email is empty." };
+  if (s.length > MAX_SUBJECT) return { ok: false, error: "The subject is too long." };
+  if (b.length > MAX_BODY) return { ok: false, error: "The email is too long." };
+  try {
+    const error = await updateDraftRecipient(campaignId, recipientId, { subject: s, body: b });
+    revalidateCampaigns(campaignId);
+    return error ? { ok: false, error } : { ok: true };
+  } catch (err) {
+    console.error("editDraftEmailAction failed", campaignId, err instanceof Error ? err.message : err);
+    return { ok: false, error: "Couldn't save. Try again." };
+  }
+}
+
+/** Takes one person off a draft. */
+export async function removeDraftPersonAction(campaignId: string, recipientId: string): Promise<ActionResult> {
+  const user = await currentCrmUserEmail();
+  if (!user) return { ok: false, error: "Sign in again to continue." };
+  if (!UUID.test(campaignId) || !UUID.test(recipientId)) return { ok: false, error: "That person isn't on this list." };
+  try {
+    const error = await removeDraftRecipient(campaignId, recipientId);
+    revalidateCampaigns(campaignId);
+    return error ? { ok: false, error } : { ok: true };
+  } catch (err) {
+    console.error("removeDraftPersonAction failed", campaignId, err instanceof Error ? err.message : err);
+    return { ok: false, error: "Couldn't remove them. Try again." };
+  }
+}
+
+/** What the review page showed for one email: the send refuses if the list changed since. */
+export interface ReviewedEmail {
+  id: string;
+  subject: string;
+  body: string;
+}
+
+/**
+ * Sends a draft as it stands, from the review page. Refuses unless the pending list is exactly
+ * what the page showed (same people, same words), so nothing goes out that wasn't read. Runs the
+ * same checks a new campaign gets (opted out, do not contact, call list, dead address, emailed
+ * recently); anyone who fails one is left out with the reason. The sender re-checks opt-outs,
+ * do not contact and dead addresses before each email.
+ */
+export async function sendDraftAction(
+  campaignId: string,
+  dailyLimit: number,
+  reviewed: ReviewedEmail[]
+): Promise<ActionResult<{ count: number; skipped: number }>> {
+  const user = await currentCrmUserEmail();
+  if (!user) return { ok: false, error: "Sign in again to continue." };
+  if (!UUID.test(campaignId)) return { ok: false, error: "That campaign doesn't exist." };
+  const limit = int(dailyLimit, 1, MAX_DAILY_LIMIT);
+  if (limit === null) return { ok: false, error: "Pick how many a day." };
+  if (!Array.isArray(reviewed)) return { ok: false, error: "Reload the page and try again." };
+  try {
+    const c = await getCampaign(campaignId);
+    if (!c || c.status !== "draft") return { ok: false, error: "This one was already sent or deleted. Reload the page." };
+    const account = await activeAccount(c.accountId ?? "");
+    if (!account) return { ok: false, error: `${c.fromAddress ?? "The sending address"} needs reconnecting in Settings first.` };
+    const pending = c.recipients.filter((r) => r.status === "pending");
+    if (pending.length === 0) return { ok: false, error: "Nobody is on the list." };
+
+    const seen = new Map(reviewed.map((e) => [String(e?.id), e]));
+    const rendered = pending.map((r) => ({ r, ...renderRecipient(r, c.subject, c.bodyText) }));
+    const changed =
+      seen.size !== pending.length ||
+      rendered.some(({ r, subject, body }) => {
+        const e = seen.get(r.id);
+        return !e || e.subject !== subject || e.body !== body;
+      });
+    if (changed) return { ok: false, error: "This list changed since you opened it. Reload the page, read it again, then send." };
+    if (rendered.some((x) => !x.subject || !x.body)) return { ok: false, error: "One of the emails is empty. Edit it or remove that person." };
+
+    const candidates: Candidate[] = pending.map((r) => ({ email: r.email, leadId: r.leadId, values: r.merge, origin: "draft" }));
+    const [leads, suppressed, undeliverable] = await Promise.all([
+      getAudienceLeads(teamTodayISO()),
+      getSuppressedEmails(),
+      undeliverableAddresses(pending.map((r) => r.email).filter(isValidEmail)),
+    ]);
+    const { excluded } = evaluateAudience(candidates, buildContext(leads, suppressed, c.skipContactedDays, [], Date.now(), undeliverable));
+    // Every row per address: a duplicate address leaves out the later copies, any other reason all of them.
+    const rowsByEmail = new Map<string, string[]>();
+    for (const r of pending) {
+      const k = r.email.trim().toLowerCase();
+      rowsByEmail.set(k, [...(rowsByEmail.get(k) ?? []), r.id]);
+    }
+    const skipIds = new Map<string, string>();
+    for (const r of excluded) {
+      if (!r.excluded) continue;
+      const ids = rowsByEmail.get(r.email) ?? [];
+      const reason = r.excluded === "undeliverable" && r.detail ? r.detail : EXCLUDE_LABELS[r.excluded].title + (r.detail ? ` (${r.detail})` : "");
+      for (const id of r.excluded === "duplicate" ? ids.slice(1) : ids) if (!skipIds.has(id)) skipIds.set(id, reason);
+    }
+    const skips = [...skipIds].map(([id, reason]) => ({ id, reason }));
+    if (skips.length === pending.length) {
+      const why = [...new Set(skips.map((s) => s.reason))].slice(0, 3).join("; ");
+      return { ok: false, error: `Nobody here can be emailed: ${why}. Nothing was sent.` };
+    }
+    const error = await sendDraft(campaignId, limit, skips);
+    revalidateCampaigns(campaignId);
+    return error ? { ok: false, error } : { ok: true, count: pending.length - skips.length, skipped: skips.length };
+  } catch (err) {
+    console.error("sendDraftAction failed", campaignId, err instanceof Error ? err.message : err);
+    return { ok: false, error: "Couldn't send. Nothing went out. Try again." };
   }
 }
 

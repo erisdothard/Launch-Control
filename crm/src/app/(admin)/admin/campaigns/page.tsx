@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
-import { AutoRefresh } from "@/components/compose/CampaignControls";
+import { AutoRefresh, DeleteDraftButton } from "@/components/compose/CampaignControls";
 import { DEMO_CAMPAIGNS } from "@/components/compose/demo";
 import { CAMPAIGN_STATUS_LABEL } from "@/components/compose/types";
 import { campaignTone, StatusPill } from "@/components/compose/ui";
@@ -21,10 +21,6 @@ function whenLine(c: CampaignSummary): string {
   if (c.status === "paused") return "Paused";
   if (c.status === "cancelled") return `Cancelled ${c.finishedAt ? formatTeamTime(c.finishedAt) : ""}`.trim();
   return `Sent ${formatTeamTime(c.finishedAt ?? c.startedAt ?? c.createdAt)}`;
-}
-
-function replyRate(c: CampaignSummary): string {
-  return c.counts.sent > 0 ? `${Math.round((c.counts.replied / c.counts.sent) * 100)}%` : "—";
 }
 
 function lede(campaigns: CampaignSummary[]): string {
@@ -58,6 +54,9 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
   const q = demo ? "?demo=1" : "";
   const hero = campaigns.find((c) => c.status === "sending") ?? campaigns.find((c) => c.status === "scheduled") ?? campaigns.find((c) => c.status === "paused");
   const rest = campaigns.filter((c) => c !== hero);
+  const drafts = rest.filter((c) => c.status === "draft");
+  const past = rest.filter((c) => c.status === "cancelled");
+  const done = rest.filter((c) => c.status !== "draft" && c.status !== "cancelled");
 
   return (
     <>
@@ -132,60 +131,75 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
         </Link>
       )}
 
-      {rest.length > 0 && (
-        <section aria-labelledby="all-campaigns" className="mt-[34px]">
-          <h2 id="all-campaigns" className="mb-1 text-[17px] font-semibold text-[var(--color-text)]">
-            {hero ? "The rest" : "All campaigns"}
+      {drafts.length > 0 && (
+        <section aria-labelledby="waiting" className="mt-[34px]">
+          <h2 id="waiting" className="mb-1 text-[17px] font-semibold text-[var(--color-text)]">
+            Waiting for you
           </h2>
           <ul>
-            {rest.map((c) => {
-              const bar =
-                c.status === "sent" ? "bg-[var(--color-success)]/70" : c.status === "draft" ? "bg-[var(--color-text-dim)]/50" : c.status === "paused" ? "bg-[var(--color-warm)]" : "bg-white/10";
+            {drafts.map((c) => {
+              const n = c.counts.total - c.counts.skipped;
               return (
-                <li key={c.id} className="border-b border-[var(--color-border)]">
-                  <Link
-                    href={`/admin/campaigns/${c.id}${q}`}
-                    className="group grid grid-cols-[4px_minmax(0,1fr)] gap-x-4 gap-y-2 py-[18px] md:grid-cols-[4px_minmax(0,1fr)_220px_220px_20px] md:items-center"
-                  >
-                    <i aria-hidden="true" className={`row-span-2 self-stretch rounded-[2px] md:row-span-1 ${bar}`} />
-                    <div className="min-w-0">
-                      <div className="truncate text-[16px] font-semibold text-[var(--color-text)] group-hover:text-white">{c.name || c.subject}</div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14.5px] text-[var(--color-text-muted)]">
-                        <StatusPill label={CAMPAIGN_STATUS_LABEL[c.status]} tone={campaignTone(c.status)} />
-                        <span className="truncate">{whenLine(c)}</span>
-                      </div>
+                <li key={c.id} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-[var(--color-border)] py-[18px]">
+                  <Link href={`/admin/campaigns/${c.id}${q}`} className="group min-w-0 flex-1">
+                    <div className="truncate text-[16px] font-semibold text-[var(--color-text)] group-hover:text-white">{c.name || c.subject}</div>
+                    <div className="mt-0.5 text-[14.5px] text-[var(--color-text-muted)]">
+                      {n} {n === 1 ? "email" : "emails"}
+                      {c.fromAddress && <span className="text-[var(--color-text-dim)]"> · from {c.fromAddress}</span>}
                     </div>
-                    <div className="col-start-2 text-[15px] text-[var(--color-text-muted)] md:col-start-auto">
-                      {c.status === "draft" ? (
-                        <span className="text-[var(--color-text-dim)]">{c.counts.total ? `${c.counts.total} on the list` : "No one on the list yet"}</span>
-                      ) : (
-                        <>
-                          <span className="tabular text-[var(--color-text)]">{c.counts.sent}</span> sent
-                          {c.counts.pending > 0 && <span> · {c.counts.pending} waiting</span>}
-                          {c.counts.failed > 0 && <span className="text-[var(--color-hot)]"> · {c.counts.failed} failed</span>}
-                          {c.counts.skipped > 0 && <span className="text-[var(--color-text-dim)]"> · {c.counts.skipped} left out</span>}
-                        </>
-                      )}
-                    </div>
-                    <div className="col-start-2 text-[15px] text-[var(--color-text-muted)] md:col-start-auto">
-                      {c.status !== "draft" && (
-                        <>
-                          <span className="tabular text-[var(--color-text)]">{c.counts.replied}</span> replied
-                          <span className="text-[var(--color-text-dim)]"> · {replyRate(c)}</span>
-                          {c.counts.followUpsSent > 0 && <span className="text-[var(--color-text-dim)]"> · {c.counts.followUpsSent} followed up</span>}
-                        </>
-                      )}
-                    </div>
-                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="hidden text-[var(--color-text-dim)] transition-transform group-hover:translate-x-0.5 md:block">
-                      <path d="M6 3l5 5-5 5" />
-                    </svg>
                   </Link>
+                  <DeleteDraftButton id={c.id} label={c.name || c.subject || "this draft"} demo={demo} />
                 </li>
               );
             })}
           </ul>
         </section>
       )}
+
+      {done.length > 0 && <CampaignRows title={hero || drafts.length ? "Sent" : "All campaigns"} list={done} q={q} />}
+
+      {past.length > 0 && (
+        <details className="mt-[34px]">
+          <summary className="cursor-pointer text-[15px] text-[var(--color-text-dim)] hover:text-[var(--color-text)]">Past ({past.length})</summary>
+          <CampaignRows list={past} q={q} />
+        </details>
+      )}
     </>
+  );
+}
+
+function CampaignRows({ title, list, q }: { title?: string; list: CampaignSummary[]; q: string }) {
+  return (
+    <section className="mt-[34px]">
+      {title && <h2 className="mb-1 text-[17px] font-semibold text-[var(--color-text)]">{title}</h2>}
+      <ul>
+        {list.map((c) => (
+          <li key={c.id} className="border-b border-[var(--color-border)]">
+            <Link
+              href={`/admin/campaigns/${c.id}${q}`}
+              className="group grid grid-cols-[minmax(0,1fr)] gap-y-1 py-[18px] md:grid-cols-[minmax(0,1fr)_200px_160px_20px] md:items-center md:gap-x-4"
+            >
+              <div className="min-w-0">
+                <div className="truncate text-[16px] font-semibold text-[var(--color-text)] group-hover:text-white">{c.name || c.subject}</div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[14.5px] text-[var(--color-text-muted)]">
+                  <StatusPill label={CAMPAIGN_STATUS_LABEL[c.status]} tone={campaignTone(c.status)} />
+                  <span className="truncate">{whenLine(c)}</span>
+                </div>
+              </div>
+              <div className="text-[15px] text-[var(--color-text-muted)]">
+                <span className="tabular text-[var(--color-text)]">{c.counts.sent}</span> sent
+                {c.counts.failed > 0 && <span className="text-[var(--color-hot)]"> · {c.counts.failed} failed</span>}
+              </div>
+              <div className="text-[15px] text-[var(--color-text-muted)]">
+                <span className="tabular text-[var(--color-text)]">{c.counts.replied}</span> replied
+              </div>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="hidden text-[var(--color-text-dim)] transition-transform group-hover:translate-x-0.5 md:block">
+                <path d="M6 3l5 5-5 5" />
+              </svg>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

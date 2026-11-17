@@ -40,11 +40,11 @@ export default function CampaignControls({ id, status, hasFollowUp, demo }: Camp
       <div className="flex flex-wrap gap-3">
         {status === "draft" && (
           <>
-            <Link href={`/admin/campaigns/new?from=${id}${q}`} className="btn btn-primary">
-              Review, edit and send
+            <Link href={`/admin/campaigns/new?from=${id}${q}`} className="btn-quiet px-3 text-[15px]">
+              Add people or follow-ups
             </Link>
-            <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run("delete_draft", "Delete this draft? This can't be undone.")}>
-              Delete draft
+            <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run("delete_draft", "Delete all of these emails? This can't be undone.")}>
+              Delete
             </button>
           </>
         )}
@@ -92,6 +92,39 @@ export default function CampaignControls({ id, status, hasFollowUp, demo }: Camp
         </p>
       )}
     </div>
+  );
+}
+
+/** One-click delete for a draft on the Campaigns list, so old drafts are easy to clear out. */
+export function DeleteDraftButton({ id, label, demo }: { id: string; label: string; demo: boolean }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState("");
+  return (
+    <span className="inline-flex items-center gap-2">
+      <button
+        type="button"
+        className="btn-quiet px-3 text-[15px]"
+        disabled={pending}
+        onClick={() => {
+          if (!confirm(`Delete "${label}"? This can't be undone.`)) return;
+          if (demo) return setError("Demo");
+          start(async () => {
+            const result = await controlCampaignAction(id, "delete_draft");
+            if (result.ok) router.refresh();
+            else setError(result.error);
+          });
+        }}
+      >
+        {pending && <Spinner />}
+        Delete
+      </button>
+      {error && (
+        <span role="alert" className="text-[14px] text-[var(--color-hot)]">
+          {error}
+        </span>
+      )}
+    </span>
   );
 }
 
