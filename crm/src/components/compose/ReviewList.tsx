@@ -219,7 +219,7 @@ function EmailCard({ email, campaignId, demo, onSaved, onRemoved }: EmailCardPro
       {editing ? (
         <div className="mt-4 flex flex-col gap-3">
           <input aria-label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} className="field font-semibold" />
-          <textarea aria-label="Email" value={body} onChange={(e) => setBody(e.target.value)} rows={Math.max(8, body.split("\n").length + 2)} className="field leading-[1.6]" />
+          <textarea aria-label="Email" value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="field leading-[1.6] [field-sizing:content] min-h-[220px]" />
           <div className="flex gap-3">
             <button type="button" className="btn btn-primary" disabled={pending} onClick={save}>
               {pending && <Spinner />}
