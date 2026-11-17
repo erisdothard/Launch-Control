@@ -36,7 +36,10 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/admin/dashboard");
+    // Back to where sign-in was asked for (the connect-an-AI screen, or a CRM page); nowhere else.
+    const next = new URLSearchParams(window.location.search).get("next") ?? "";
+    const safe = /^\/(oauth\/consent\?|admin(\/|$))/.test(next) && !next.startsWith("//") ? next : "/admin/dashboard";
+    router.push(safe);
     router.refresh();
   }
 
