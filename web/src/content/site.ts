@@ -217,7 +217,7 @@ export const siteSchema = z.object({
       email: z.string(),
       launching: z.string(),
       budget: z.string(),
-      budgetOptions: z.array(z.string()).length(3),
+      budgetOptions: z.array(z.string()).min(2),
       placeholders: z.object({ name: z.string(), email: z.string(), launching: z.string(), budget: z.string() }),
     }),
     submit: z.string(),
@@ -573,7 +573,7 @@ const content: SiteContent = {
       email: "Email",
       launching: "What are you launching",
       budget: "Budget",
-      budgetOptions: ["Under 10k", "10k to 30k", "Over 30k"],
+      budgetOptions: ["10k to 30k", "Over 30k"],
       placeholders: {
         name: "Your name",
         email: "you@company.com",
