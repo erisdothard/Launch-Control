@@ -1,4 +1,5 @@
 import { getStoreClient, type StoreClient } from "./db";
+import { isAutoReply } from "@/lib/email/deliverability";
 import { getLeads } from "./leads";
 import { getDeals } from "./deals";
 import { getPendingDrafts, type EmailDraft } from "./drafts";
@@ -471,11 +472,11 @@ async function replyRate(now: Date, client?: StoreClient): Promise<TodayFigures[
   const since = new Date(now.getTime() - 30 * DAY_MS).toISOString();
   // Oldest first (first email, then any reply after it), read in full: a single capped request
   // would drop the newest messages, which are the replies.
-  const data: { lead_id: string | null; direction: string; created_at: string }[] = [];
+  const data: { lead_id: string | null; direction: string; created_at: string; subject: string | null }[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data: page, error } = await supabase
       .from("email_messages")
-      .select("lead_id, direction, created_at")
+      .select("lead_id, direction, created_at, subject")
       .gte("created_at", since)
       .not("lead_id", "is", null)
       .order("created_at", { ascending: true })
@@ -490,7 +491,8 @@ async function replyRate(now: Date, client?: StoreClient): Promise<TodayFigures[
   for (const m of data) {
     if (!m.lead_id) continue;
     if (m.direction === "out" && !firstOut.has(m.lead_id)) firstOut.set(m.lead_id, m.created_at);
-    if (m.direction === "in" && firstOut.has(m.lead_id)) replied.add(m.lead_id);
+    // An out-of-office auto-reply is not someone writing back.
+    if (m.direction === "in" && firstOut.has(m.lead_id) && !isAutoReply(m.subject ?? "")) replied.add(m.lead_id);
   }
   if (firstOut.size === 0) return null;
   return { pct: Math.round((replied.size / firstOut.size) * 100), replied: replied.size, emailed: firstOut.size };
