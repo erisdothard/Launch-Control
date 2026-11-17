@@ -42,15 +42,33 @@ LLM_TIMEOUT_S = 60.0
 # Used when the decision itself carries a banned word and is scrubbed away.
 SAFE_DECISION = "Read the latest agent rows in Mission Control; the decision text was withheld by the copy check."
 
+# Eris (2026-11-17): "Rewrite in plain words always." The old brief said the same jargon every day
+# ("usable rate", "latest window", agent names, n=32). Now: what changed since the last brief, where
+# things stand, what is waiting, problems, and the one decision, in words a busy owner reads at a glance.
 SYSTEM = (
-    "You write the daily brief for Eris, who runs Launch Control, a business development systems firm. "
-    "Plain English, short: at most 120 words. Three parts: what happened (the numbers you are given, "
-    "nothing else), one line per agent on what it did, and the ONE decision that needs Eris, as a "
-    "single sentence starting 'Decision:'. Use only the facts provided; never invent or estimate numbers. "
-    "Zero prospect replies is a normal fact, state it plainly. Never mention time, duration or speed: "
-    "no hours, minutes, days, weeks, 'faster', 'quick', 'overnight', 'time saved'. Say 'in the latest "
-    "window' instead of naming a span. No greeting, no sign-off, no markdown headings."
+    "You write a short daily update for Eris, who owns Launch Control. Write it like a text to a busy "
+    "owner: plain everyday words, short sentences, at most 80 words. Lines, in this order:\n"
+    "1. 'Since the last update:' then what changed, from the 'changes' facts only. If 'changes' is "
+    "empty or missing, the whole line is exactly 'Nothing new since the last update.'\n"
+    "2. 'So far:' emails sent, businesses emailed, replies, meetings, deals won.\n"
+    "3. 'Waiting for approval:' only if something is waiting, in plain words with the oldest date.\n"
+    "4. 'Problems:' only if a problem is listed in 'problems'.\n"
+    "5. The one decision, as a single sentence starting 'Decision:', keeping any links it has.\n"
+    "Use only the facts given; never invent, estimate or combine numbers in new ways. Never use these "
+    "words: window, usable, scanned, kept, rate, agent, crew, Guardian, Prospector, Strategist, "
+    "Outreach-writer, heartbeat, worker, n=, percent signs. Describe what the helpers did only when it "
+    "changed something, as 'the lead finder', 'the email writer', 'the safety check'. Zero replies is a "
+    "normal fact, state it plainly. Never mention time, duration or speed: no hours, minutes, days, "
+    "weeks, 'faster', 'quick', 'overnight', 'time saved'. No greeting, no sign-off, no headings, no markdown."
 )
+# Heartbeats written only when someone opens the CRM (its page-load mail sync), not by a loop. They go
+# quiet whenever nobody is signed in, so they are not a sign anything stopped. The worker's own Outlook
+# sync reports failures through alarms.py instead.
+ON_DEMAND_BEATS = {"crm-mail-sync"}
+# What the brief compares against the last brief, in the order it says them.
+CHANGE_KEYS = (("sent", "email sent", "emails sent"), ("contacted", "new business emailed", "new businesses emailed"),
+               ("replies", "reply", "replies"), ("meetings", "meeting", "meetings"), ("won", "deal won", "deals won"),
+               ("usable", "new lead found", "new leads found"))
 
 
 def last_row(store: Store, agent: str, finished_only: bool = False) -> dict[str, Any] | None:
@@ -83,7 +101,7 @@ def heartbeats(store: Store, now: datetime) -> list[dict[str, Any]]:
     out = []
     for r in rows:
         # alarms.py keeps its per-job state in "alarm:*" rows, written on change rather than on a beat.
-        if str(r.get("name") or "").startswith(alarms.PREFIX):
+        if str(r.get("name") or "").startswith(alarms.PREFIX) or r.get("name") in ON_DEMAND_BEATS:
             continue
         age = int((now - _parse(r["beat_at"])).total_seconds())
         every = (r.get("detail") or {}).get("every_s")
@@ -121,15 +139,49 @@ def agent_activity(store: Store) -> dict[str, dict[str, Any]]:
     return out
 
 
+def changes(store: Store, totals: dict[str, Any]) -> dict[str, int] | None:
+    """What moved since the last finished brief, from its stored totals. None on the first brief."""
+    prev = last_row(store, AGENT, finished_only=True)
+    before = ((prev or {}).get("evidence") or {}).get("totals")
+    if not isinstance(before, dict):
+        return None
+    out = {}
+    for key, _one, _many in CHANGE_KEYS:
+        if isinstance(totals.get(key), int) and isinstance(before.get(key), int) and totals[key] != before[key]:
+            out[key] = totals[key] - before[key]
+    return out
+
+
+def problems(facts: dict[str, Any]) -> list[str]:
+    out = []
+    if facts["outbound_halted"]:
+        out.append("Sending is stopped by the safety check.")
+    stale = [h["name"] for h in facts["heartbeats"] if h["stale"]]
+    if stale:
+        out.append(f"These background jobs stopped checking in: {', '.join(stale)}.")
+    for agent, row in facts["agents"].items():
+        if row.get("status") in ("failed", "error"):
+            out.append(f"The {PLAIN_NAMES.get(agent, agent)} failed on its last try.")
+    return out
+
+
+PLAIN_NAMES = {"guardian": "safety check", "prospector": "lead finder", "outreach-writer": "email writer",
+               "strategist": "strategy check"}
+
+
 def collect(store: Store, now: datetime) -> dict[str, Any]:
-    return {
-        "totals": metrics.snapshot(store),
+    totals = metrics.snapshot(store)
+    facts: dict[str, Any] = {
+        "totals": totals,
+        "changes": changes(store, totals),
         "latest_window": metrics.snapshot(store, since=(now - timedelta(hours=24)).isoformat()),
         "heartbeats": heartbeats(store, now),
         "approvals": pending_approvals(store),
         "outbound_halted": agent_log.outbound_halted(store),
         "agents": agent_activity(store),
     }
+    facts["problems"] = problems(facts)
+    return facts
 
 
 # --- the brief -----------------------------------------------------------------------------------
@@ -138,36 +190,50 @@ def the_decision(facts: dict[str, Any]) -> str:
     """The one thing that needs Eris, in priority order: halt, approvals, dead worker, guardian warning."""
     if facts["outbound_halted"]:
         why = (facts["agents"].get("guardian") or {}).get("decision") or "see the Guardian's last row"
-        return f"Outbound is halted. Review the reason and clear the halt in the CRM if it is safe: {why}"
+        return f"Sending is stopped. Read why and turn it back on in the CRM if it is safe: {why}"
     a = facts["approvals"]
     if a["campaign_drafts"] or a["drafts_pending"]:
         since = _since(a.get("oldest_waiting"))
-        return (f"Review what is waiting for approval: {a['campaign_drafts']} campaign draft(s) and "
-                f"{a['drafts_pending']} email draft(s)" + (f", the oldest waiting since {since}" if since else "")
-                + f". Nothing new goes out until each is approved or deleted. Campaigns: {CAMPAIGNS_URL} Drafts: {DRAFTS_URL}")
+        return (f"Get Max to send or delete what is waiting ({waiting_words(a)})"
+                + (f", some since {since}" if since else "")
+                + f". Nothing new goes out until he does. Campaigns: {CAMPAIGNS_URL} Drafts: {DRAFTS_URL}")
     stale = [h["name"] for h in facts["heartbeats"] if h["stale"]]
     if stale:
-        return f"These workers stopped checking in: {', '.join(stale)}. Check the worker deploy."
+        return f"These background jobs stopped checking in: {', '.join(stale)}. Check the worker on Railway."
     g = (facts["agents"].get("guardian") or {}).get("decision") or ""
     if "Warnings:" in g:
-        return "The Guardian has a warning to resolve: " + g.split("Warnings:", 1)[1].strip()
+        return "The safety check has a warning: " + g.split("Warnings:", 1)[1].strip()
     return "Nothing needs a decision."
 
 
+def _n(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def waiting_words(a: dict[str, Any]) -> str:
+    parts = []
+    if a["campaign_drafts"]:
+        parts.append(_n(a["campaign_drafts"], "email batch", "email batches"))
+    if a["drafts_pending"]:
+        parts.append(_n(a["drafts_pending"], "follow-up", "follow-ups"))
+    return " and ".join(parts)
+
+
 def deterministic_brief(facts: dict[str, Any]) -> str:
-    t, w = facts["totals"], facts["latest_window"]
-    lines = [
-        f"Latest window: {w['sent']} emails sent to {w['contacted']} prospects, {w['replies']} prospect replies, "
-        f"{w['meetings']} meetings.",
-        f"Totals: {t['scanned']} businesses scanned, {t['kept']} kept, {t['usable']} usable "
-        f"({t['usable_rate']:.0%}), {t['contacted']} contacted, {t['replies']} replies, {t['won']} won.",
-    ]
-    for agent, row in facts["agents"].items():
-        lines.append(f"{agent}: {row['status']}. {row['decision']}".strip())
-    missing = sorted(agent_log.AGENTS - {AGENT} - set(facts["agents"]))
-    if missing:
-        lines.append(f"No runs logged yet: {', '.join(missing)}.")
-    lines.append("Outbound: HALTED." if facts["outbound_halted"] else "Outbound: open.")
+    t, ch = facts["totals"], facts.get("changes")
+    if ch:
+        moved = [f"{v:+d} {many}" if v < 0 else _n(v, one, many) for key, one, many in CHANGE_KEYS if (v := ch.get(key))]
+        lines = ["Since the last update: " + ", ".join(moved) + "."]
+    else:
+        lines = ["Nothing new since the last update."]
+    lines.append(f"So far: {_n(t['sent'], 'email', 'emails')} sent to {_n(t['contacted'], 'business', 'businesses')}, "
+                 f"{_n(t['replies'], 'reply', 'replies')}, {_n(t['meetings'], 'meeting', 'meetings')}, "
+                 f"{_n(t['won'], 'deal', 'deals')} won.")
+    a = facts["approvals"]
+    if a["campaign_drafts"] or a["drafts_pending"]:
+        lines.append(f"Waiting for approval: {waiting_words(a)}.")
+    if facts.get("problems"):
+        lines.append("Problems: " + " ".join(facts["problems"]))
     clean, _removed = scrub_time_words("\n".join(lines))
     return f"{clean}\n{decision_line(facts)}"
 

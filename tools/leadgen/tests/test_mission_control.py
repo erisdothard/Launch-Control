@@ -73,8 +73,13 @@ def test_deterministic_brief_without_a_key(rest: FakeRest, monkeypatch: pytest.M
     assert brief is not None
     [run] = rest.runs("mission-control")
     assert run["status"] == "done" and run["decision"] == brief
-    assert "Latest window: 1 emails sent to 1 prospects, 0 prospect replies" in brief
-    assert "Decision: Review what is waiting for approval: 1 campaign draft(s) and 1 email draft(s)" in brief
+    assert brief.startswith("Nothing new since the last update.")  # the first brief has nothing to compare with
+    assert "So far: 1 email sent to 1 business, 0 replies, 0 meetings, 0 deals won." in brief
+    assert "Waiting for approval: 1 email batch and 1 follow-up." in brief
+    assert "Decision: Get Max to send or delete what is waiting (1 email batch and 1 follow-up)" in brief
+    # Plain words (Eris, 2026-11-17): none of the old jargon.
+    for word in ("window", "usable", "scanned", "prospects", "Guardian", "draft(s)"):
+        assert word not in brief
     assert mission_control.TIME_WORDS.search(brief) is None
     ev = run["evidence"]
     assert ev["brief"]["writer"] == "deterministic"
@@ -89,7 +94,8 @@ def test_halt_is_the_one_decision(rest: FakeRest) -> None:  # noqa: F811
     seed(rest)
     rest.tables["system_flags"][0]["value"] = True
     brief = mission_control.run_daily(rest.store(), now=MORNING, use_default_writer=False)
-    assert brief is not None and "Decision: Outbound is halted" in brief
+    assert brief is not None and "Decision: Sending is stopped" in brief
+    assert "Problems: Sending is stopped by the safety check." in brief
 
 
 def test_llm_brief_drops_time_words_and_flags_them(rest: FakeRest) -> None:  # noqa: F811
@@ -106,7 +112,7 @@ def test_llm_brief_drops_time_words_and_flags_them(rest: FakeRest) -> None:  # n
 def test_llm_failure_falls_back_to_the_deterministic_brief(rest: FakeRest) -> None:  # noqa: F811
     seed(rest)
     brief = mission_control.run_daily(rest.store(), now=MORNING, writer=FakeWriter(error=RuntimeError("overloaded")))
-    assert brief is not None and brief.startswith("Latest window:")
+    assert brief is not None and brief.startswith("Nothing new since the last update.")
     assert rest.runs("mission-control")[0]["evidence"]["brief"]["reason"] == "llm error: RuntimeError"
 
 
@@ -190,11 +196,11 @@ def test_fallback_brief_and_decision_line_are_scrubbed(rest: FakeRest, monkeypat
                                       "decision": "Halted: the daily cap was hit today."})
     brief = mission_control.run_daily(rest.store(), now=MORNING, use_default_writer=False)
     assert brief is not None and copy_rules.TIME_WORDS.search(brief) is None
-    assert brief.splitlines()[-1] == "Decision: Outbound is halted."  # the guardian's 'daily ... today' sentence is gone
+    assert brief.splitlines()[-1] == "Decision: Sending is stopped."  # the guardian's 'daily ... today' sentence is gone
     # An LLM brief without its own Decision line gets the scrubbed one appended.
     facts = mission_control.collect(rest.store(), MORNING)
     text, _ = mission_control.write_brief(facts, FakeWriter("Nothing was sent."))
-    assert text == "Nothing was sent.\nDecision: Outbound is halted."
+    assert text == "Nothing was sent.\nDecision: Sending is stopped."
     # A decision with nothing left after the scrub becomes the safe one, never an empty line.
     monkeypatch.setattr(mission_control, "the_decision", lambda _f: "Check the daily cap today.")
     assert mission_control.decision_line(facts) == f"Decision: {mission_control.SAFE_DECISION}"
@@ -265,3 +271,23 @@ def test_prospector_is_not_called_for_a_failed_run(cfg: Config, monkeypatch: pyt
     monkeypatch.setattr(worker, "run", failing)
     monkeypatch.setattr(worker.prospector, "after_run", lambda *a: pytest.fail("called"))
     assert worker.process_one(cfg, QueueStore({"id": "R9", "params": {}})) is True  # type: ignore[arg-type]
+
+
+def test_brief_says_what_changed_since_the_last_one(rest: FakeRest) -> None:  # noqa: F811
+    seed(rest)
+    before = {"sent": 0, "contacted": 0, "replies": 0, "meetings": 0, "won": 0, "usable": 1}
+    rest.tables["agent_runs"].append({"id": "prev", "agent": "mission-control", "status": "done",
+                                      "started_at": (MORNING - timedelta(hours=20)).isoformat(),
+                                      "evidence": {"totals": before}})
+    brief = mission_control.run_daily(rest.store(), now=MORNING, use_default_writer=False)
+    assert brief is not None
+    assert brief.startswith("Since the last update: 1 email sent, 1 new business emailed.")
+    assert rest.runs("mission-control")[-1]["evidence"]["changes"] == {"sent": 1, "contacted": 1}
+
+
+def test_page_load_mail_sync_is_never_reported_as_stopped(rest: FakeRest) -> None:  # noqa: F811
+    seed(rest)
+    rest.tables["worker_heartbeats"].append({"name": "crm-mail-sync", "beat_at": (MORNING - timedelta(hours=9)).isoformat(),
+                                             "detail": {"every_s": 90}})
+    names = [h["name"] for h in mission_control.heartbeats(rest.store(), MORNING)]
+    assert "crm-mail-sync" not in names
