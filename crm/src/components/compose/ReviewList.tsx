@@ -25,6 +25,8 @@ interface ReviewListProps {
   mailboxCap: number;
   /** Anything else that goes out with these emails, in plain words ("A follow-up after 4 days"). */
   extras: string[];
+  /** Add the sending address's signature under each email. Off when the emails already end with one. */
+  includeSignature: boolean;
   recipients: CampaignRecipient[];
   demo: boolean;
 }
@@ -58,7 +60,8 @@ function paceOptions(cap: number, current: number): number[] {
 
 const plural = (n: number) => `${n} ${n === 1 ? "email" : "emails"}`;
 
-export default function ReviewList({ campaignId, fromAddress, subject, body, dailyLimit, mailboxCap, extras, recipients, demo }: ReviewListProps) {
+export default function ReviewList({ campaignId, fromAddress, subject, body, dailyLimit, mailboxCap, extras, includeSignature, recipients, demo }: ReviewListProps) {
+  const [signature, setSignature] = useState(includeSignature);
   const router = useRouter();
   const [emails, setEmails] = useState<Email[]>(() => recipients.filter((r) => r.status === "pending").map((r) => toEmail(r, subject, body)));
   const options = paceOptions(mailboxCap, dailyLimit);
@@ -79,6 +82,7 @@ export default function ReviewList({ campaignId, fromAddress, subject, body, dai
         campaignId,
         limit,
         chosen,
+        signature,
         emails.map((e) => ({ id: e.id, subject: e.subject, body: e.body }))
       );
       if (!result.ok) {
@@ -124,7 +128,8 @@ export default function ReviewList({ campaignId, fromAddress, subject, body, dai
               <>
                 <span className="text-[16px] text-[var(--color-text)]">
                   Send {plural(n)}
-                  {fromAddress ? ` from ${fromAddress}` : ""}?
+                  {fromAddress ? ` from ${fromAddress}` : ""}
+                  {signature ? " with your signature" : " without a signature"}?
                 </span>
                 <ReminderSelect value={reminder} onChange={setReminder} />
                 <button type="button" className="btn btn-secondary" disabled={sending} onClick={() => setConfirming(false)}>
@@ -137,6 +142,10 @@ export default function ReviewList({ campaignId, fromAddress, subject, body, dai
               </>
             ) : (
               <>
+                <label className="flex cursor-pointer items-center gap-2 text-[15px] text-[var(--color-text-muted)]">
+                  <input type="checkbox" checked={signature} onChange={(ev) => setSignature(ev.target.checked)} className="h-[18px] w-[18px] accent-[var(--color-accent)]" />
+                  Add my signature
+                </label>
                 <label className="flex items-center gap-2 text-[15px] text-[var(--color-text-muted)]">
                   <span className="hidden sm:inline">Send</span>
                   <select aria-label="How many a day" value={limit} onChange={(ev) => setLimit(Number(ev.target.value))} className="field !w-auto !min-h-[40px] !py-1.5">

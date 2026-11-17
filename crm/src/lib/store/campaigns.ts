@@ -525,6 +525,7 @@ export async function sendDraft(
   campaignId: string,
   dailyLimit: number,
   reminderDays: number | null,
+  includeSignature: boolean,
   skips: { id: string; reason: string }[],
   client?: StoreClient
 ): Promise<string | null> {
@@ -541,7 +542,7 @@ export async function sendDraft(
   }
   const { data, error } = await supabase
     .from("email_campaigns")
-    .update({ status: "scheduled", scheduled_at: null, daily_limit: dailyLimit, follow_up_reminder_days: reminderDays, updated_at: new Date().toISOString() })
+    .update({ status: "scheduled", scheduled_at: null, daily_limit: dailyLimit, follow_up_reminder_days: reminderDays, include_signature: includeSignature, updated_at: new Date().toISOString() })
     .eq("id", campaignId)
     .eq("status", "draft")
     .select("id");

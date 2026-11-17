@@ -374,6 +374,7 @@ export async function sendDraftAction(
   campaignId: string,
   dailyLimit: number,
   reminderDays: number | null,
+  includeSignature: boolean,
   reviewed: ReviewedEmail[]
 ): Promise<ActionResult<{ count: number; skipped: number }>> {
   const user = await currentCrmUserEmail();
@@ -428,7 +429,7 @@ export async function sendDraftAction(
       const why = [...new Set(skips.map((s) => s.reason))].slice(0, 3).join("; ");
       return { ok: false, error: `Nobody here can be emailed: ${why}. Nothing was sent.` };
     }
-    const error = await sendDraft(campaignId, limit, reminder, skips);
+    const error = await sendDraft(campaignId, limit, reminder, includeSignature === true, skips);
     revalidateCampaigns(campaignId);
     return error ? { ok: false, error } : { ok: true, count: pending.length - skips.length, skipped: skips.length };
   } catch (err) {

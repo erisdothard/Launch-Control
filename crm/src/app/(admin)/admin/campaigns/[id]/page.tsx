@@ -78,7 +78,7 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
     const extras = [
       ...(followUps ? [`${followUps === 1 ? "a follow-up" : `${followUps} follow-ups`} to anyone who doesn’t reply (first after ${c.followUpAfterDays} days)`] : []),
       ...(c.attachments.length ? [`attached: ${c.attachments.map((a) => a.name).join(", ")}`] : []),
-      ...(c.includeSignature ? ["your signature and an unsubscribe link on each"] : ["an unsubscribe link on each"]),
+      "an unsubscribe link on each",
     ];
     return (
       <>
@@ -91,7 +91,7 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
           subtitle={c.fromAddress ? `From ${c.fromAddress}. Nothing goes out until you send.` : "Nothing goes out until you send."}
           actions={<CampaignControls id={c.id} status={c.status} hasFollowUp={Boolean(c.followUpAfterDays)} demo={demo} />}
         />
-        <ReviewList campaignId={c.id} fromAddress={c.fromAddress} subject={c.subject} body={c.bodyText} dailyLimit={c.dailyLimit} mailboxCap={mailboxDailyCap()} extras={extras} recipients={c.recipients} demo={demo} />
+        <ReviewList campaignId={c.id} fromAddress={c.fromAddress} subject={c.subject} body={c.bodyText} dailyLimit={c.dailyLimit} mailboxCap={mailboxDailyCap()} extras={extras} includeSignature={c.includeSignature} recipients={c.recipients} demo={demo} />
       </>
     );
   }
