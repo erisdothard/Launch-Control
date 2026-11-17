@@ -68,6 +68,8 @@ export interface CampaignPayload {
   perMinute: number;
   dailyLimit: number;
   followUp: FollowUpSettings | null;
+  /** Max's follow-up reminder for each lead emailed: days out, null for none, undefined when not picked. */
+  reminderDays?: number | null;
 }
 
 /** What the composer opens with: leads picked on the Leads page, or a campaign to copy or continue. */
@@ -85,9 +87,22 @@ export interface ComposerPrefill {
   perMinute: number;
   dailyLimit: number;
   followUp: FollowUpSettings | null;
+  /** The reminder a copied or continued campaign had; undefined when there is none to copy. */
+  reminderDays?: number | null;
   /** Where the prefill came from, in words, shown above step 1. */
   note: string;
 }
+
+/**
+ * The follow-up reminder Max picks when sending a campaign (Eris, 2026-11-17: "Max needs to set a
+ * follow date when creating campaigns"). Value is days out; null means no reminder.
+ */
+export const REMINDER_CHOICES: { days: number | null; label: string }[] = [
+  { days: 3, label: "In 3 days" },
+  { days: 7, label: "In 1 week" },
+  { days: 14, label: "In 2 weeks" },
+  { days: null, label: "No reminder" },
+];
 
 export const DEFAULT_PER_MINUTE = 10;
 export const MAX_PER_MINUTE = 30;

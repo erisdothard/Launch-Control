@@ -100,6 +100,13 @@ function cleanCandidates(value: unknown): Candidate[] {
   });
 }
 
+/** days, null (no reminder), undefined (not picked yet), or "invalid". */
+function reminderChoice(value: unknown): number | null | undefined | "invalid" {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return int(value, 1, 60) ?? "invalid";
+}
+
 interface Validated {
   name: string;
   accountId: string;
@@ -112,6 +119,7 @@ interface Validated {
   skipDays: number;
   scheduledAt: string | null;
   followUp: { days: number; subject: string; body: string; more: { days: number; subject: string; body: string }[] } | null;
+  reminderDays: number | null;
   recipients: NewRecipient[];
   pendingCount: number;
 }
@@ -170,6 +178,11 @@ async function validate(p: CampaignPayload, forSending: boolean): Promise<Valida
     followUp = { days, subject: fuSubject, body: fuBody, more };
   }
 
+  // Max picks the follow-up reminder before a campaign sends; a draft may leave it for later.
+  const reminder = reminderChoice(p.reminderDays);
+  if (reminder === "invalid") return "Pick a follow-up reminder.";
+  if (forSending && reminder === undefined) return "Pick when to be reminded to follow up, or No reminder.";
+
   const attachments = cleanAttachments(p.attachments);
   if (typeof attachments === "string") return attachments;
 
@@ -226,6 +239,7 @@ async function validate(p: CampaignPayload, forSending: boolean): Promise<Valida
     skipDays,
     scheduledAt,
     followUp,
+    reminderDays: reminder ?? null,
     recipients,
     pendingCount: included.length,
   };
@@ -260,6 +274,7 @@ export async function saveCampaignAction(
       followUpBody: v.followUp?.body ?? null,
       followUpMore: v.followUp?.more ?? [],
       includeSignature: v.includeSignature,
+      followUpReminderDays: v.reminderDays,
       createdBy: user,
     };
     let id: string;
@@ -358,6 +373,7 @@ export interface ReviewedEmail {
 export async function sendDraftAction(
   campaignId: string,
   dailyLimit: number,
+  reminderDays: number | null,
   reviewed: ReviewedEmail[]
 ): Promise<ActionResult<{ count: number; skipped: number }>> {
   const user = await currentCrmUserEmail();
@@ -365,6 +381,8 @@ export async function sendDraftAction(
   if (!UUID.test(campaignId)) return { ok: false, error: "That campaign doesn't exist." };
   const limit = int(dailyLimit, 1, MAX_DAILY_LIMIT);
   if (limit === null) return { ok: false, error: "Pick how many a day." };
+  const reminder = reminderChoice(reminderDays);
+  if (reminder === undefined || reminder === "invalid") return { ok: false, error: "Pick when to be reminded to follow up, or No reminder." };
   if (!Array.isArray(reviewed)) return { ok: false, error: "Reload the page and try again." };
   try {
     const c = await getCampaign(campaignId);
@@ -410,7 +428,7 @@ export async function sendDraftAction(
       const why = [...new Set(skips.map((s) => s.reason))].slice(0, 3).join("; ");
       return { ok: false, error: `Nobody here can be emailed: ${why}. Nothing was sent.` };
     }
-    const error = await sendDraft(campaignId, limit, skips);
+    const error = await sendDraft(campaignId, limit, reminder, skips);
     revalidateCampaigns(campaignId);
     return error ? { ok: false, error } : { ok: true, count: pending.length - skips.length, skipped: skips.length };
   } catch (err) {

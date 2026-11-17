@@ -389,6 +389,7 @@ export type Database = {
           created_by: string | null
           finished_at: string | null
           follow_up_after_days: number | null
+          follow_up_reminder_days: number | null
           follow_up_body: string | null
           follow_up_subject: string | null
           id: string
@@ -415,6 +416,7 @@ export type Database = {
           created_by?: string | null
           finished_at?: string | null
           follow_up_after_days?: number | null
+          follow_up_reminder_days?: number | null
           follow_up_body?: string | null
           follow_up_subject?: string | null
           id?: string
@@ -441,6 +443,7 @@ export type Database = {
           created_by?: string | null
           finished_at?: string | null
           follow_up_after_days?: number | null
+          follow_up_reminder_days?: number | null
           follow_up_body?: string | null
           follow_up_subject?: string | null
           id?: string
@@ -747,6 +750,7 @@ export type Database = {
           email: string
           follow_up_count: number
           follow_up_on: string | null
+          follow_up_soft: boolean
           id: string
           last_contacted_at: string | null
           last_reply_at: string | null
@@ -781,6 +785,7 @@ export type Database = {
           email?: string
           follow_up_count?: number
           follow_up_on?: string | null
+          follow_up_soft?: boolean
           id?: string
           last_contacted_at?: string | null
           last_reply_at?: string | null
@@ -815,6 +820,7 @@ export type Database = {
           email?: string
           follow_up_count?: number
           follow_up_on?: string | null
+          follow_up_soft?: boolean
           id?: string
           last_contacted_at?: string | null
           last_reply_at?: string | null

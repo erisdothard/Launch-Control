@@ -148,6 +148,7 @@ function summary(id: string, patch: Partial<CampaignSummary>, rows: CampaignReci
     perMinute: 10,
     dailyLimit: 20,
     followUpAfterDays: null,
+    followUpReminderDays: null,
     counts: countRecipients(rows),
     ...patch,
   };

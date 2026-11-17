@@ -38,6 +38,8 @@ export interface CampaignSummary {
   perMinute: number;
   dailyLimit: number;
   followUpAfterDays: number | null;
+  /** Max's follow-up reminder for each lead emailed: days out, or null for none. */
+  followUpReminderDays: number | null;
   counts: CampaignCounts;
 }
 
@@ -87,6 +89,7 @@ interface CampaignRow {
   daily_limit: number | null;
   skip_contacted_days: number;
   follow_up_after_days: number | null;
+  follow_up_reminder_days?: number | null;
   follow_up_subject: string | null;
   follow_up_body: string | null;
   more_follow_ups?: Json;
@@ -183,12 +186,13 @@ function rowToSummary(row: CampaignRow, counts: CampaignCounts): CampaignSummary
     perMinute: row.per_minute,
     dailyLimit: row.daily_limit ?? 20,
     followUpAfterDays: row.follow_up_after_days,
+    followUpReminderDays: row.follow_up_reminder_days ?? null,
     counts,
   };
 }
 
 const CAMPAIGN_COLUMNS =
-  "id, name, subject, body_text, status, account_id, attachments, scheduled_at, started_at, finished_at, created_at, created_by, per_minute, daily_limit, skip_contacted_days, follow_up_after_days, follow_up_subject, follow_up_body, more_follow_ups, include_signature, email_accounts(address)";
+  "id, name, subject, body_text, status, account_id, attachments, scheduled_at, started_at, finished_at, created_at, created_by, per_minute, daily_limit, skip_contacted_days, follow_up_after_days, follow_up_reminder_days, follow_up_subject, follow_up_body, more_follow_ups, include_signature, email_accounts(address)";
 
 /** Every campaign, newest first, with recipient counts. */
 /** Campaigns waiting for someone to approve them. Nothing in a draft campaign sends until it is approved. */
@@ -282,6 +286,8 @@ export interface NewCampaign {
   followUpBody: string | null;
   followUpMore: FollowUpStep[];
   includeSignature: boolean;
+  /** Days until each emailed lead's follow-up reminder; null for none. */
+  followUpReminderDays: number | null;
   createdBy: string;
 }
 
@@ -322,6 +328,7 @@ function campaignInsert(c: NewCampaign) {
     follow_up_body: c.followUpBody,
     more_follow_ups: c.followUpMore as unknown as Json,
     include_signature: c.includeSignature,
+    follow_up_reminder_days: c.followUpReminderDays,
     created_by: c.createdBy,
   };
 }
@@ -517,6 +524,7 @@ export async function removeDraftRecipient(campaignId: string, recipientId: stri
 export async function sendDraft(
   campaignId: string,
   dailyLimit: number,
+  reminderDays: number | null,
   skips: { id: string; reason: string }[],
   client?: StoreClient
 ): Promise<string | null> {
@@ -533,7 +541,7 @@ export async function sendDraft(
   }
   const { data, error } = await supabase
     .from("email_campaigns")
-    .update({ status: "scheduled", scheduled_at: null, daily_limit: dailyLimit, updated_at: new Date().toISOString() })
+    .update({ status: "scheduled", scheduled_at: null, daily_limit: dailyLimit, follow_up_reminder_days: reminderDays, updated_at: new Date().toISOString() })
     .eq("id", campaignId)
     .eq("status", "draft")
     .select("id");

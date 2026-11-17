@@ -83,10 +83,18 @@ export interface TodayFigures {
   replyRate: { pct: number; replied: number; emailed: number } | null;
 }
 
+/** A soft automatic reminder: shown as one quiet line at the bottom of Today, never in the queue. */
+export interface GentleNudge {
+  leadId: string;
+  name: string;
+}
+
 export interface TodayData {
   greeting: string;
   firstName: string | null;
   items: TodayItem[];
+  /** Soft automatic follow-up dates that have come (Eris, 2026-11-17: "soft small notifications"). */
+  gentle?: GentleNudge[];
   agenda: AgendaEvent[];
   figures: TodayFigures;
   nowISO: string;
@@ -331,6 +339,14 @@ function followUpItem(lead: Lead, draft: EmailDraft | null, ctx: Ctx): TodayItem
   };
 }
 
+/** Soft reminders whose date has come, oldest first: open leads we're waiting on, not in the queue. */
+export function gentleNudges(leads: Lead[], today: string): GentleNudge[] {
+  return leads
+    .filter((l) => l.followUpSoft && l.followUpOn !== null && l.followUpOn <= today && matchesView(l, "waiting", today) && !matchesView(l, "needs-reply", today))
+    .sort((a, b) => (a.followUpOn ?? "").localeCompare(b.followUpOn ?? ""))
+    .map((l) => ({ leadId: l.id, name: person(l).name }));
+}
+
 function inquiryItem(lead: Lead, ctx: Ctx): TodayItem {
   const b = base(lead, ctx);
   const day = teamDay(lead.createdAt);
@@ -520,6 +536,7 @@ export async function getToday(userEmail: string | null | undefined, client?: St
     greeting: greetingFor(now),
     firstName,
     items: buildQueue(leads, drafts, deals, events, inbound, now),
+    gentle: gentleNudges(leads, today),
     agenda: toAgenda(events, byId),
     figures: buildFigures(deals, won, rate, now),
     nowISO: now.toISOString(),

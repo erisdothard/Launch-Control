@@ -20,6 +20,7 @@ interface LeadRow {
   created_at: string;
   next_action: string;
   follow_up_on: string | null;
+  follow_up_soft?: boolean;
   last_contacted_at: string | null;
   last_reply_at: string | null;
   status_reason: string;
@@ -91,6 +92,7 @@ function rowToLead(row: LeadRow): Lead {
     createdAt: row.created_at,
     nextAction: row.next_action,
     followUpOn: row.follow_up_on,
+    followUpSoft: row.follow_up_soft === true,
     lastContactedAt: row.last_contacted_at,
     lastReplyAt: row.last_reply_at,
     statusReason: row.status_reason ?? "",
@@ -307,7 +309,8 @@ export async function updateLead(
       ...(patch.source !== undefined && { source: patch.source }),
       ...(patch.notes !== undefined && { notes: patch.notes }),
       ...(patch.nextAction !== undefined && { next_action: patch.nextAction }),
-      ...(patch.followUpOn !== undefined && { follow_up_on: patch.followUpOn }),
+      // A date set here (by Max, or by a status change) is a full reminder, never the soft automatic kind.
+      ...(patch.followUpOn !== undefined && { follow_up_on: patch.followUpOn, follow_up_soft: false }),
       ...(patch.statusReason !== undefined && { status_reason: patch.statusReason }),
       ...(patch.awaiting !== undefined && { awaiting: patch.awaiting }),
     })

@@ -13,6 +13,7 @@ import { renderRecipient, type MergeValues } from "@/lib/email/merge";
 import type { CampaignRecipient } from "@/lib/store/campaigns";
 import { DEFAULT_DAILY_LIMIT } from "./types";
 import { Spinner } from "./ui";
+import ReminderSelect, { reminderDays, type ReminderValue } from "./ReminderSelect";
 
 interface ReviewListProps {
   campaignId: string;
@@ -63,17 +64,21 @@ export default function ReviewList({ campaignId, fromAddress, subject, body, dai
   const options = paceOptions(mailboxCap, dailyLimit);
   const [limit, setLimit] = useState(options.includes(dailyLimit) ? dailyLimit : Math.min(DEFAULT_DAILY_LIMIT, mailboxCap));
   const [confirming, setConfirming] = useState(false);
+  const [reminder, setReminder] = useState<ReminderValue>("");
   const [error, setError] = useState("");
   const [sending, start] = useTransition();
   const n = emails.length;
+  const chosen = reminderDays(reminder);
 
   function send() {
     setError("");
     if (demo) return setError("Demo: nothing is sent.");
     start(async () => {
+      if (chosen === undefined) return setError("Pick when to be reminded to follow up, or No reminder.");
       const result = await sendDraftAction(
         campaignId,
         limit,
+        chosen,
         emails.map((e) => ({ id: e.id, subject: e.subject, body: e.body }))
       );
       if (!result.ok) {
@@ -121,10 +126,11 @@ export default function ReviewList({ campaignId, fromAddress, subject, body, dai
                   Send {plural(n)}
                   {fromAddress ? ` from ${fromAddress}` : ""}?
                 </span>
+                <ReminderSelect value={reminder} onChange={setReminder} />
                 <button type="button" className="btn btn-secondary" disabled={sending} onClick={() => setConfirming(false)}>
                   Cancel
                 </button>
-                <button type="button" className="btn btn-primary" disabled={sending} onClick={send}>
+                <button type="button" className="btn btn-primary" disabled={sending || chosen === undefined} onClick={send}>
                   {sending && <Spinner />}
                   Yes, send
                 </button>

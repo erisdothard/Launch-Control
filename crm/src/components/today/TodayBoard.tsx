@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ApprovalCounts } from "@/lib/store/campaigns";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useUndoableSend } from "@/components/ui/useUndoableSend";
 import { sendDraftAction } from "@/app/(admin)/admin/drafts/actions";
-import type { TodayItem } from "@/lib/store/today";
+import type { GentleNudge, TodayItem } from "@/lib/store/today";
 import { defaultSenderId, senderOptions, type SenderAccount } from "@/components/inbox/sender";
 import { useDraftAutosave } from "@/components/inbox/useDraftAutosave";
 import Dropdown, { Chevron, Tick } from "./Dropdown";
@@ -26,6 +27,8 @@ interface TodayBoardProps {
   accounts: SenderAccount[];
   /** Draft campaigns waiting for approval, said at the top every visit. */
   approvals?: ApprovalCounts;
+  /** Soft automatic reminders: one quiet line under the list, never rows in it. */
+  gentle?: GentleNudge[];
 }
 
 interface PanelState {
@@ -45,7 +48,7 @@ function reducedMotion(): boolean {
 // Today: everyone who needs Max, grouped, one line each. A row (or "Review & send") opens the draft
 // in a slide-over; Send holds for a few seconds with Undo, then runs the existing send action. The
 // list is the server's items minus what was sent or skipped here, so refreshes flow straight through.
-export default function TodayBoard({ title, items, nextUp, stats, demo, accounts, approvals }: TodayBoardProps) {
+export default function TodayBoard({ title, items, nextUp, stats, demo, accounts, approvals, gentle = [] }: TodayBoardProps) {
   const router = useRouter();
   const senders = useMemo(() => senderOptions(accounts), [accounts]);
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
@@ -322,6 +325,21 @@ export default function TodayBoard({ title, items, nextUp, stats, demo, accounts
           })
         )}
       </section>
+
+      {gentle.length > 0 && (
+        <p className="mt-6 text-[14.5px] leading-relaxed text-[var(--color-text-dim)]">
+          Follow up?{" "}
+          {gentle.slice(0, 8).map((g, i) => (
+            <span key={g.leadId}>
+              {i > 0 && ", "}
+              <Link href={`/admin/leads/${g.leadId}`} className="underline decoration-white/15 underline-offset-2 hover:text-[var(--color-text-muted)]">
+                {g.name}
+              </Link>
+            </span>
+          ))}
+          {gentle.length > 8 && <span> and {gentle.length - 8} more</span>}
+        </p>
+      )}
 
       {panel && (
         <DraftPanel

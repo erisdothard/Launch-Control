@@ -79,11 +79,12 @@ export function matchesView(lead: Lead, view: LeadView, today: string): boolean 
       return open && lead.awaiting === "us";
     case "follow-up":
       // Our chase (they haven't answered) or a date someone set by hand: either way, not a reply.
-      return active && !freshInquiry(lead) && lead.awaiting !== "us" && lead.followUpOn !== null && lead.followUpOn <= today;
+      // Soft automatic dates (lead.followUpSoft) are not in this list: Today shows them as one quiet line.
+      return active && !freshInquiry(lead) && lead.awaiting !== "us" && !lead.followUpSoft && lead.followUpOn !== null && lead.followUpOn <= today;
     case "new-inquiries":
       return active && freshInquiry(lead);
     case "waiting":
-      return active && lead.awaiting === "them" && (lead.followUpOn === null || lead.followUpOn > today);
+      return active && lead.awaiting === "them" && (lead.followUpOn === null || lead.followUpOn > today || lead.followUpSoft === true);
     case "in-play":
       return open && (lead.status === "meeting" || lead.status === "proposal" || lead.status === "negotiation");
     case "quiet":
@@ -131,6 +132,8 @@ export interface Lead {
   createdAt: string;
   nextAction: string;
   followUpOn: string | null; // YYYY-MM-DD
+  /** The date came from the automatic rule (3 business days after an email): shown softly on Today. */
+  followUpSoft?: boolean;
   lastContactedAt: string | null; // set by the DB when the team emails the lead from the CRM
   lastReplyAt: string | null; // set by the DB when a reply from them is recorded
   statusReason: string; // why the status is what it is ("They replied", "Meeting Oct 21")

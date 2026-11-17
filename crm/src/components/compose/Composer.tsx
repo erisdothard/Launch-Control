@@ -1,5 +1,6 @@
 "use client";
 
+import ReminderSelect, { reminderDays, type ReminderValue } from "./ReminderSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -93,6 +94,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
   const [testState, setTestState] = useState({ busy: false, message: "", error: false });
   const [optionsOpen, setOptionsOpen] = useState(initialOptionsOpen);
   const [confirming, setConfirming] = useState(false);
+  const [reminder, setReminder] = useState<ReminderValue>("");
   const [saving, setSaving] = useState<"draft" | "send" | null>(null);
   /** A failed save, from the server. */
   const [error, setError] = useState("");
@@ -187,6 +189,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
       perMinute,
       dailyLimit,
       followUp: followUp.enabled ? { days: followUp.days, subject: followUp.subject, body: followUp.body, more: followUp.more } : null,
+      reminderDays: reminderDays(reminder),
     };
   }
 
@@ -487,6 +490,9 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
               {from ? ` from ${from}` : ""}?
             </h2>
             {scheduledIso && <p className="mt-2 text-[15.5px] text-[var(--color-text-muted)]">{formatTeamTime(scheduledIso)} Central</p>}
+            <div className="mt-4">
+              <ReminderSelect value={reminder} onChange={setReminder} />
+            </div>
             {error && (
               <p role="alert" className="mt-3 text-[15px] text-[var(--color-hot)]">
                 {error}
@@ -496,7 +502,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
               <button type="button" className="btn btn-secondary" onClick={() => setConfirming(false)} disabled={saving !== null}>
                 Cancel
               </button>
-              <button ref={sendButton} type="button" className="btn btn-primary" onClick={() => save("send")} disabled={saving !== null}>
+              <button ref={sendButton} type="button" className="btn btn-primary" onClick={() => save("send")} disabled={saving !== null || reminderDays(reminder) === undefined}>
                 {saving === "send" && <Spinner />}
                 {when.mode === "schedule" ? "Schedule" : "Send"}
               </button>

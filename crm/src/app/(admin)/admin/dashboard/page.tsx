@@ -65,5 +65,5 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
   const title = `${data.greeting}${data.firstName ? `, ${data.firstName}` : ""}.`;
 
-  return <TodayBoard title={title} items={data.items} nextUp={nextUpLine(data)} stats={glance(data)} demo={data.demo} accounts={accounts} approvals={approvals} />;
+  return <TodayBoard title={title} items={data.items} nextUp={nextUpLine(data)} stats={glance(data)} demo={data.demo} accounts={accounts} approvals={approvals} gentle={data.gentle} />;
 }
