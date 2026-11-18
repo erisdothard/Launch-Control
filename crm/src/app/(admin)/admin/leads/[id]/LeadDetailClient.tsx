@@ -18,6 +18,7 @@ import {
 } from "../actions";
 import LeadHero, { type HeroDraft, type HeroQuote } from "./LeadHero";
 import LeadFacts from "./LeadFacts";
+import LogContact from "./LogContact";
 
 // The lead record. Layout (Close/Attio pattern): hero across the top, facts on the left, the
 // email thread and history on the right. On a phone it's one column in the order Max needs:
@@ -232,6 +233,7 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
           <section aria-label="More actions" className="order-7 card p-5 sm:p-6 lg:order-none">
             <h2 className="text-[17px] font-semibold text-[var(--color-text)]">Move it along</h2>
             <div className="mt-4 flex flex-col gap-3">
+              <LogContact leadId={lead.id} today={today} disabled={isPending} />
               {dealValue === null ? (
                 <button type="button" onClick={() => setDealValue(deal ? String(deal.value) : "")} disabled={isPending || closed} className="btn btn-secondary w-full">
                   {deal ? "Open another deal" : "Create deal"}

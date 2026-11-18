@@ -12,7 +12,7 @@ export interface InboxState {
   demo?: boolean;
 }
 
-export const FOLDERS: InboxFolder[] = ["inbox", "needs", "drafts", "sent", "archive"];
+export const FOLDERS: InboxFolder[] = ["inbox", "needs", "drafts", "sent", "archive", "trash"];
 
 export function parseFolder(value: string | undefined): InboxFolder {
   return FOLDERS.includes(value as InboxFolder) ? (value as InboxFolder) : "inbox";

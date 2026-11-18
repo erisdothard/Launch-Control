@@ -24,13 +24,12 @@ function whenLine(c: CampaignSummary): string {
 }
 
 function lede(campaigns: CampaignSummary[]): string {
-  if (campaigns.length === 0) return "Write one email and send it to many people, each getting their own copy with their name in it.";
+  if (campaigns.length === 0) return "";
   const sending = campaigns.filter((c) => c.status === "sending").length;
   const scheduled = campaigns.filter((c) => c.status === "scheduled").length;
   const parts: string[] = [];
   if (sending) parts.push(`${word(sending)} ${sending === 1 ? "is" : "are"} sending now.`);
   if (scheduled) parts.push(`${word(scheduled)} ${scheduled === 1 ? "is" : "are"} scheduled.`);
-  parts.push("Replies land in your Inbox like any other email.");
   return parts.join(" ");
 }
 

@@ -7,6 +7,9 @@ import { syncOutlookIfDue } from "@/lib/email/outlookSync";
 import { isEmail } from "@/lib/email/text";
 import { createLead } from "@/lib/store/leads";
 import {
+  BULK_MAIL_OPS,
+  bulkConversations,
+  type BulkMailOp,
   findLeadIdByEmail,
   getConversation,
   linkConversationToLead,
@@ -105,6 +108,28 @@ export async function setArchivedAction(key: string, archived: boolean): Promise
   }
   revalidateInbox();
   return { ok: true };
+}
+
+const MAX_BULK = 100;
+
+/** The Inbox's tick-boxes: mark read or unread, archive, delete (to Trash) or put back, many at once. */
+export async function bulkInboxAction(keys: string[], op: BulkMailOp): Promise<{ ok: true; done: number } | { ok: false; error: string }> {
+  if (!(await currentCrmUserEmail())) return { ok: false, error: SIGN_IN };
+  if (!BULK_MAIL_OPS.includes(op)) return { ok: false, error: "That action isn't available." };
+  if (!Array.isArray(keys) || keys.length === 0) return { ok: false, error: "Nothing is selected." };
+  if (keys.length > MAX_BULK) return { ok: false, error: `Up to ${MAX_BULK} conversations at a time.` };
+  const unique = [...new Set(keys)];
+  const valid = unique.filter(validKey);
+  if (valid.length !== unique.length) return { ok: false, error: "One of those conversations wasn't found. Reload and try again." };
+  let done = 0;
+  try {
+    done = await bulkConversations(valid, op);
+  } catch {
+    return { ok: false, error: "Couldn't update those conversations. Try again." };
+  }
+  revalidateInbox();
+  if (done < valid.length) return { ok: false, error: `${valid.length - done} of ${valid.length} didn't go through. Try those again.` };
+  return { ok: true, done };
 }
 
 // Free mailboxes say nothing about the business; a company domain usually names it.

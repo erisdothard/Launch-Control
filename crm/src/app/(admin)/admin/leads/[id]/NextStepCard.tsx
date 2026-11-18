@@ -81,7 +81,7 @@ export default function NextStep({ lead, today, draft }: { lead: Lead; today: st
       <p className="mt-1 text-sm text-[var(--color-text-dim)]">
         {lead.lastContactedAt ? (
           <>
-            Last emailed <LocalDate iso={lead.lastContactedAt} options={{ month: "short", day: "numeric" }} />
+            Last contacted <LocalDate iso={lead.lastContactedAt} options={{ month: "short", day: "numeric" }} />
             {lead.followUpCount > 0 && ` · ${lead.followUpCount} follow-up${lead.followUpCount === 1 ? "" : "s"} so far`}
           </>
         ) : (

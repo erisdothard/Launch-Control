@@ -1,5 +1,9 @@
 import { after } from "next/server";
+import { cookies } from "next/headers";
 import AdminShell from "@/components/admin/AdminShell";
+import { NAV_COOKIE } from "@/lib/nav/collapse";
+import { getTheme } from "@/lib/store/theme";
+import { themeCss } from "@/lib/theme/theme";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { roleFromUser } from "@/lib/auth/roles";
 import { getCompanyInfo } from "@/lib/store/company";
@@ -27,21 +31,25 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const navCollapsed = (await cookies()).get(NAV_COOKIE)?.value === "collapsed";
   const role = roleFromUser(user);
   // New mail is pulled in after the page is sent (at most every 90s), so it never slows a load.
   if (user && !isDemoMode()) after(() => syncOutlookIfDue());
-  const [company, unread, drafts, approvals, demo, navOrder] = await Promise.all([
+  const [company, unread, drafts, approvals, demo, navOrder, theme] = await Promise.all([
     getCompanyInfo(),
     user ? getUnreadCount() : Promise.resolve(0),
     user ? getPendingDraftCount() : Promise.resolve(0),
     user ? getApprovalCounts().then((a) => a.batches + a.campaigns).catch(() => 0) : Promise.resolve(0),
     demoState(),
     getNavOrder(user?.email),
+    getTheme(user?.email),
   ]);
 
   return (
     <div className="fixed inset-0 z-[100] flex bg-[var(--color-bg-primary)] text-[var(--color-text)]">
-      <AdminShell role={role} userEmail={user?.email ?? ""} companyName={company.name} logoUrl={company.logoUrl} unread={unread} drafts={drafts} approvals={approvals} userId={user?.id ?? ""} navOrder={navOrder} demo={demo}>
+      {/* This person's colours. themeCss builds every value from parsed numbers, never raw input. */}
+      {theme && <style>{themeCss(theme)}</style>}
+      <AdminShell role={role} userEmail={user?.email ?? ""} companyName={company.name} logoUrl={company.logoUrl} unread={unread} drafts={drafts} approvals={approvals} userId={user?.id ?? ""} navOrder={navOrder} demo={demo} navCollapsed={navCollapsed}>
         {children}
       </AdminShell>
     </div>

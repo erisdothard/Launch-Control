@@ -12,7 +12,7 @@ export interface StoredAttachment {
   providerId?: string;
 }
 
-export type MailFolder = "inbox" | "sent" | "archive";
+export type MailFolder = "inbox" | "sent" | "archive" | "trash";
 
 export interface EmailMessage {
   id: string;
@@ -227,7 +227,7 @@ export async function getReplyNeededLeadIds(client?: StoreClient): Promise<Set<s
 
 // ---- Inbox (v2): the whole mailbox, grouped into conversations ---------------------------------
 
-export type InboxFolder = "inbox" | "needs" | "drafts" | "sent" | "archive";
+export type InboxFolder = "inbox" | "needs" | "drafts" | "sent" | "archive" | "trash";
 
 /** One conversation in the thread list. */
 export interface ThreadSummary {
@@ -323,7 +323,7 @@ function group(rows: LightRow[]): Grouped[] {
   return [...map.entries()].map(([key, list]) => ({ key, rows: list }));
 }
 
-const unreadIn = (g: Grouped) => g.rows.filter((r) => r.direction === "in" && !r.read_at && r.folder !== "archive").length;
+const unreadIn = (g: Grouped) => g.rows.filter((r) => r.direction === "in" && !r.read_at && r.folder !== "archive" && r.folder !== "trash").length;
 const inInbox = (g: Grouped) => g.rows.some((r) => r.folder === "inbox");
 // Replies needed: their message is the last word, on a lead whose move it is. Mail from someone
 // who isn't a lead is plain incoming mail (counted as unread), never a reply "needed".
@@ -385,7 +385,7 @@ export async function getInboxPage(
   const counts = countsOf(liveGroups, replyLeads);
 
   let groups: Grouped[];
-  if (folder === "archive") groups = group(await scan(supabase, ["archive"], q));
+  if (folder === "archive" || folder === "trash") groups = group(await scan(supabase, [folder], q));
   else {
     const source = q ? group(await scan(supabase, ["inbox", "sent"], q)) : liveGroups;
     groups =
@@ -465,11 +465,13 @@ export async function setConversationRead(key: string, read: boolean, client?: S
   if (error) throw error;
 }
 
-/** Archive files every message of the conversation away; restoring puts theirs in Inbox and ours in Sent. */
-export async function setConversationArchived(key: string, archived: boolean, client?: StoreClient): Promise<void> {
-  const supabase = await getStoreClient(client);
-  if (archived) {
-    const { error } = await byKey(supabase.from("email_messages").update({ folder: "archive" }), key);
+/**
+ * Files every message of the conversation away (Archive) or bins it (Trash). Putting it back sends
+ * theirs to the Inbox and ours to Sent. Trash is a folder, never an erase: nothing here deletes a row.
+ */
+async function setConversationFiled(key: string, away: "archive" | "trash", filed: boolean, supabase: StoreClient): Promise<void> {
+  if (filed) {
+    const { error } = await byKey(supabase.from("email_messages").update({ folder: away }), key);
     if (error) throw error;
     return;
   }
@@ -477,9 +479,33 @@ export async function setConversationArchived(key: string, archived: boolean, cl
     ["in", "inbox"],
     ["out", "sent"],
   ] as const) {
-    const { error } = await byKey(supabase.from("email_messages").update({ folder }).eq("folder", "archive").eq("direction", direction), key);
+    const { error } = await byKey(supabase.from("email_messages").update({ folder }).eq("folder", away).eq("direction", direction), key);
     if (error) throw error;
   }
+}
+
+export async function setConversationArchived(key: string, archived: boolean, client?: StoreClient): Promise<void> {
+  await setConversationFiled(key, "archive", archived, await getStoreClient(client));
+}
+
+export async function setConversationTrashed(key: string, trashed: boolean, client?: StoreClient): Promise<void> {
+  await setConversationFiled(key, "trash", trashed, await getStoreClient(client));
+}
+
+export type BulkMailOp = "read" | "unread" | "archive" | "unarchive" | "trash" | "restore";
+
+export const BULK_MAIL_OPS: readonly BulkMailOp[] = ["read", "unread", "archive", "unarchive", "trash", "restore"];
+
+/** One action over several conversations. Returns how many went through; the rest are left as they were. */
+export async function bulkConversations(keys: string[], op: BulkMailOp, client?: StoreClient): Promise<number> {
+  const supabase = await getStoreClient(client);
+  const run = (key: string): Promise<void> => {
+    if (op === "read" || op === "unread") return setConversationRead(key, op === "read", supabase);
+    if (op === "archive" || op === "unarchive") return setConversationFiled(key, "archive", op === "archive", supabase);
+    return setConversationFiled(key, "trash", op === "trash", supabase);
+  };
+  const results = await Promise.allSettled(keys.map(run));
+  return results.filter((r) => r.status === "fulfilled").length;
 }
 
 /** Ties a conversation, and any other unlinked mail to or from exactly that address, to a lead. */

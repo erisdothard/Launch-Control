@@ -13,7 +13,8 @@ import {
   ReplyIcon,
   SourceIcon,
 } from "@/components/records/icons";
-import { AUTOMATED_LEAD_SOURCE, type Lead } from "@/lib/store/types";
+import { AUTOMATED_LEAD_SOURCE, LEAD_STATUSES, type Lead, type LeadStatus } from "@/lib/store/types";
+import { statusLabel } from "@/components/admin/StatusBadge";
 import { updateLeadAction } from "../actions";
 
 // The facts column: icon-led fields (Attio/Close record pattern). Edit turns the same card into
@@ -47,7 +48,13 @@ export default function LeadFacts({ lead, editing, onDone }: LeadFactsProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ businessName: lead.businessName, email: lead.email, phone: lead.phone, notes: lead.notes });
+  const [form, setForm] = useState<{ businessName: string; email: string; phone: string; notes: string; status: LeadStatus }>({
+    businessName: lead.businessName,
+    email: lead.email,
+    phone: lead.phone,
+    notes: lead.notes,
+    status: lead.status,
+  });
   const firstField = useRef<HTMLInputElement>(null);
   const card = useRef<HTMLElement>(null);
 
@@ -59,7 +66,7 @@ export default function LeadFacts({ lead, editing, onDone }: LeadFactsProps) {
   }, [editing]);
 
   function cancel() {
-    setForm({ businessName: lead.businessName, email: lead.email, phone: lead.phone, notes: lead.notes });
+    setForm({ businessName: lead.businessName, email: lead.email, phone: lead.phone, notes: lead.notes, status: lead.status });
     setError(null);
     onDone();
   }
@@ -72,7 +79,9 @@ export default function LeadFacts({ lead, editing, onDone }: LeadFactsProps) {
     setError(null);
     startTransition(async () => {
       try {
-        await updateLeadAction(lead.id, { ...form, businessName: form.businessName.trim() });
+        const { status, ...details } = form;
+        // Only send the status when it was changed here, so an untouched form never overrides the automatic one.
+        await updateLeadAction(lead.id, { ...details, businessName: form.businessName.trim(), ...(status !== lead.status && { status }) });
         onDone();
         router.refresh();
       } catch {
@@ -110,6 +119,16 @@ export default function LeadFacts({ lead, editing, onDone }: LeadFactsProps) {
           <label className="block">
             <span className="mb-1.5 block text-sm text-[var(--color-text-dim)]">Phone</span>
             <input type="tel" className="field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm text-[var(--color-text-dim)]">Status</span>
+            <select className="field" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as LeadStatus })}>
+              {LEAD_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {statusLabel(s)}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm text-[var(--color-text-dim)]">Notes</span>

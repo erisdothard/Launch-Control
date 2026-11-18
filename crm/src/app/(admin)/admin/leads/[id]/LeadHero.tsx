@@ -5,6 +5,7 @@ import LocalDate from "@/components/admin/LocalDate";
 import StatusBadge, { statusLabel } from "@/components/admin/StatusBadge";
 import { Avatar, formatMoney } from "@/components/records/format";
 import { CalendarIcon, PhoneIcon, SparkIcon } from "@/components/records/icons";
+import { TemperaturePicker } from "@/components/records/Temperature";
 import type { Deal, Lead } from "@/lib/store/types";
 import NextStep, { type StepDraft } from "./NextStepCard";
 
@@ -61,6 +62,7 @@ export default function LeadHero({ lead, deal, draft, lastFromThem, today, onEdi
       <div className="py-5 pr-5 pl-6 sm:py-6 sm:pr-7 sm:pl-9">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[15px] text-[var(--color-text-muted)]">
           <StatusBadge status={lead.status} variant="lead" />
+          <TemperaturePicker key={lead.temperature ?? "auto"} lead={lead} />
           {lead.statusReason && (
             <span className="min-w-0">
               {lead.statusReason}

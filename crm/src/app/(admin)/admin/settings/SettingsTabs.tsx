@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export type SettingsTab = "signatures" | "autopilot" | "company";
+export type SettingsTab = "signatures" | "autopilot" | "company" | "appearance";
 
 interface TabInfo {
   id: SettingsTab;
@@ -33,6 +33,14 @@ export const TAB_ICONS: Record<SettingsTab, React.ReactNode> = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={ICON} aria-hidden="true">
       <path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16" />
       <path d="M15 10h4a1 1 0 0 1 1 1v10M2 21h20M8 8h3M8 12h3M8 16h3" />
+    </svg>
+  ),
+  appearance: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={ICON} aria-hidden="true">
+      <path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.2-4-7.5-9-7.5z" />
+      <circle cx="7.5" cy="11.5" r="1" />
+      <circle cx="10.5" cy="7.5" r="1" />
+      <circle cx="15" cy="7.5" r="1" />
     </svg>
   ),
 };
@@ -68,7 +76,7 @@ export default function SettingsTabs({
 
   return (
     <div>
-      <div role="tablist" aria-label="Settings" className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div role="tablist" aria-label="Settings" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         {tabs.map((tab, i) => {
           const on = tab.id === active;
           return (

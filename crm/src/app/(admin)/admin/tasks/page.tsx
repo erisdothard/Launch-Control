@@ -18,7 +18,6 @@ export default async function TasksPage() {
     <>
       <AdminHeader
         title="Tasks"
-        subtitle="Anything the CRM doesn't track for you: calls to make, things to send, reminders. Replies and follow-ups are kept on Today."
       />
       <TasksListClient tasks={tasks} relatedOptions={relatedOptions} work={countWork(leads, teamTodayISO())} />
     </>

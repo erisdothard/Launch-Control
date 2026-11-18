@@ -233,14 +233,17 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          theme: Json | null
         }
         Insert: {
           created_at?: string
           email: string
+          theme?: Json | null
         }
         Update: {
           created_at?: string
           email?: string
+          theme?: Json | null
         }
         Relationships: []
       }
@@ -771,6 +774,7 @@ export type Database = {
           status: string
           status_changed_at: string | null
           status_reason: string
+          temperature: string | null
           website: string | null
         }
         Insert: {
@@ -806,6 +810,7 @@ export type Database = {
           status?: string
           status_changed_at?: string | null
           status_reason?: string
+          temperature?: string | null
           website?: string | null
         }
         Update: {
@@ -841,6 +846,7 @@ export type Database = {
           status?: string
           status_changed_at?: string | null
           status_reason?: string
+          temperature?: string | null
           website?: string | null
         }
         Relationships: [

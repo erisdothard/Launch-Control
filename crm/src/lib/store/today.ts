@@ -7,6 +7,7 @@ import { getEvents } from "./calendar";
 import { matchesView, type CalendarEvent, type Deal, type DealStage, type Lead } from "./types";
 import { teamTodayISO } from "@/lib/leads/followUp";
 import { emailConfig } from "@/lib/email/config";
+import { TEMPERATURE_RANK, temperatureOf } from "@/lib/leads/temperature";
 import { teamLocalToUtc } from "@/lib/email/merge";
 
 // The Today screen: everything waiting on Max, ranked, plus his day and the pipeline.
@@ -50,8 +51,8 @@ export interface TodayItem {
   /** One or two lines for the list row. */
   summary: string;
   meta: string[];
-  /** The lede's last sentence when this item leads the queue. */
-  startHint: string;
+  /** When the wait began (their message, or the inquiry coming in), for the row's live timer. */
+  since?: string;
   /** Last send failure recorded on the draft. */
   error: string | null;
   /** Follow-ups only: the due day (YYYY-MM-DD, team time) and how many days past it. */
@@ -280,12 +281,6 @@ function base(lead: Lead, ctx: Ctx) {
   };
 }
 
-function callHint(lead: Lead, first: string, ctx: Ctx): string | null {
-  const ev = ctx.callToday.get(lead.id);
-  if (!ev || new Date(ev.startsAt).getTime() < ctx.now.getTime()) return null;
-  return `Start with ${first}; your call is at ${clockTime(ev.startsAt)}.`;
-}
-
 function replyItem(lead: Lead, draft: EmailDraft | null, ctx: Ctx): TodayItem {
   const b = base(lead, ctx);
   const inbound = draft?.replyingTo ? { body: draft.replyingTo.body, at: draft.replyingTo.at } : ctx.inbound.get(lead.id) ?? null;
@@ -304,7 +299,7 @@ function replyItem(lead: Lead, draft: EmailDraft | null, ctx: Ctx): TodayItem {
     note: text ? null : { text: lead.statusReason || "They wrote back.", said: `${b.firstName}, ${whenSaid(since, ctx.now)}` },
     summary: text ? `Wrote: “${oneLine(text, 110)}”` : lead.statusReason || "Wrote back.",
     meta: [waitLabel, draft ? "Reply drafted" : "No draft yet"],
-    startHint: callHint(lead, b.firstName, ctx) ?? `Start with ${b.firstName}, who has been ${waitLabel.toLowerCase()}.`,
+    since,
     error: draft?.error ?? null,
   };
 }
@@ -331,9 +326,6 @@ function followUpItem(lead: Lead, draft: EmailDraft | null, ctx: Ctx): TodayItem
     note: { text: noteText, said: wantsCall ? lead.phone : chased ? `${ordinal} follow-up · ${lastWrote}` : "Not emailed yet" },
     summary: lead.nextAction?.trim() || (chased ? `${lastWrote}, no reply. ${ordinal} follow-up is due.` : "Follow-up date has come."),
     meta: [waitLabel, draft ? "Follow-up drafted" : wantsCall ? lead.phone : "No draft yet"],
-    startHint:
-      callHint(lead, b.firstName, ctx) ??
-      (late > 0 ? `Start with ${b.firstName}; the follow-up is overdue.` : `Start with ${b.firstName}; the follow-up is due today.`),
     error: draft?.error ?? null,
     dueOn: due,
     lateDays: Math.max(0, late),
@@ -365,7 +357,7 @@ function inquiryItem(lead: Lead, ctx: Ctx): TodayItem {
     note: said ? null : { text: "New website inquiry. Nobody has written back yet.", said: `Website form, ${whenSaid(lead.createdAt, ctx.now)}` },
     summary: said ? `New website inquiry: “${oneLine(said, 100)}”` : "New website inquiry.",
     meta: [day === ctx.today ? `Website, ${shortTime(lead.createdAt)}` : cameIn, ...(lead.phone ? [lead.phone] : [])],
-    startHint: callHint(lead, b.firstName, ctx) ?? `Start with ${b.firstName}, who ${day === ctx.today ? "came in today" : "is still waiting for a first reply"}.`,
+    since: lead.createdAt,
     error: null,
   };
 }
@@ -394,21 +386,25 @@ export function buildQueue(leads: Lead[], drafts: EmailDraft[], deals: Deal[], e
     if (!map.has(d.leadId)) map.set(d.leadId, d);
   }
 
+  // Within each kind of work the hottest lead comes first: Max's own rating when he set one, the
+  // CRM's reading otherwise. The older orderings (longest wait, most overdue) break the ties.
+  const heat = (a: Lead, b: Lead) => TEMPERATURE_RANK[temperatureOf(a)] - TEMPERATURE_RANK[temperatureOf(b)];
+
   const waitedSince = (l: Lead) => replyDraft.get(l.id)?.replyingTo?.at ?? l.lastReplyAt ?? l.createdAt;
   const replies = leads
     .filter((l) => matchesView(l, "needs-reply", today))
-    .sort((a, b) => waitedSince(a).localeCompare(waitedSince(b)))
+    .sort((a, b) => heat(a, b) || waitedSince(a).localeCompare(waitedSince(b)))
     .map((l) => replyItem(l, replyDraft.get(l.id) ?? null, ctx));
 
   const dueOf = (l: Lead) => l.followUpOn ?? today;
   const followUps = leads
     .filter((l) => matchesView(l, "follow-up", today))
-    .sort((a, b) => dueOf(a).localeCompare(dueOf(b)) || (a.lastContactedAt ?? "").localeCompare(b.lastContactedAt ?? ""))
+    .sort((a, b) => heat(a, b) || dueOf(a).localeCompare(dueOf(b)) || (a.lastContactedAt ?? "").localeCompare(b.lastContactedAt ?? ""))
     .map((l) => followUpItem(l, followDraft.get(l.id) ?? null, ctx));
 
   const inquiries = leads
     .filter((l) => matchesView(l, "new-inquiries", today))
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .sort((a, b) => heat(a, b) || a.createdAt.localeCompare(b.createdAt))
     .map((l) => inquiryItem(l, ctx));
 
   return [...replies, ...followUps, ...inquiries];

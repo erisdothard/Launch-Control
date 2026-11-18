@@ -12,10 +12,7 @@ export default async function CustomersPage() {
   const signed: Record<string, number> = {};
   for (const d of deals) if (d.stage === "won" && d.fromLeadId) signed[d.fromLeadId] = (signed[d.fromLeadId] ?? 0) + d.value;
   const n = customers.length;
-  const subtitle =
-    n === 0
-      ? "Nobody has signed yet. When a deal is won, the business shows up here."
-      : `${WORDS[n] ?? n} ${n === 1 ? "business has" : "businesses have"} signed. Open one to see how they got here.`;
+  const subtitle = n === 0 ? undefined : `${WORDS[n] ?? n} signed`;
 
   return (
     <>

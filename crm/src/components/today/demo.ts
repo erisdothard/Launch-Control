@@ -18,7 +18,7 @@ export function demoToday(now: Date = new Date()): TodayData {
       value: 48000, phone: "", email: "dana@example.com", waitLabel: "Waiting 19 hours",
       quote: { text: "Looks great. Can you price it for three cars, not two? We'd want it live before the March opener.", said: "Dana, yesterday 3:14pm" },
       note: null, summary: "Wrote: “Looks great. Can you price it for three cars, not two?”", meta: ["Waiting 19 hours", "Reply drafted"],
-      startHint: "Start with Dana, who has been waiting 19 hours.", error: null,
+      error: null,
     },
     {
       key: "demo-kevin", leadId: "demo-kevin", kind: "reply", tone: "hot", action: "send",
@@ -27,7 +27,7 @@ export function demoToday(now: Date = new Date()): TodayData {
       value: 22500, phone: "", email: "kevin@example.com", waitLabel: "Waiting 3 hours",
       quote: { text: "Confirmed for 1:00. Who else should join from your side?", said: "Kevin, today 7:40am" },
       note: null, summary: "Wrote: “Confirmed for 1:00. Who else should join from your side?”", meta: ["Waiting 3 hours", "Reply drafted"],
-      startHint: "Start with Kevin; your call is at 1:00.", error: null,
+      error: null,
     },
     {
       key: "demo-sofia", leadId: "demo-sofia", kind: "followup", tone: "warm", action: "send",
@@ -36,7 +36,7 @@ export function demoToday(now: Date = new Date()): TodayData {
       value: 16000, phone: "", email: "sofia@example.com", waitLabel: "Follow-up due today",
       quote: null, note: { text: "Proposal went out Friday and she hasn't replied.", said: "Second follow-up · You last wrote Friday 10:12am" },
       summary: "Proposal went out Friday, no reply. Second follow-up is due today.", meta: ["Follow-up due today", "Follow-up drafted"],
-      startHint: "Start with Sofia; the follow-up is due today.", error: null,
+      error: null,
     },
     {
       key: "demo-marcus", leadId: "demo-marcus", kind: "followup", tone: "warm", action: "call",
@@ -44,7 +44,7 @@ export function demoToday(now: Date = new Date()): TodayData {
       value: 12000, phone: "(310) 555-0192", email: "", waitLabel: "Follow-up due today",
       quote: null, note: { text: "Call after the season finale. That was Sunday.", said: "(310) 555-0192" },
       summary: "Call after the season finale. That was Sunday.", meta: ["Follow-up due today", "(310) 555-0192"],
-      startHint: "Start with Marcus; the follow-up is due today.", error: null,
+      error: null,
     },
     {
       key: "demo-jen", leadId: "demo-jen", kind: "new", tone: "new", action: "write",
@@ -52,7 +52,7 @@ export function demoToday(now: Date = new Date()): TodayData {
       value: null, phone: "", email: "jen@example.com", waitLabel: "Came in 7:58am",
       quote: { text: "Need a site and bookings before spring. Budget $10–30k.", said: "Website form, today 7:58am" },
       note: null, summary: "New website inquiry: “Need a site and bookings before spring.” Budget $10–30k.", meta: ["Website, 7:58am"],
-      startHint: "Start with Jen, who came in today.", error: null,
+      error: null,
     },
   ];
   const ev = (id: string, title: string, who: string, h: number) => ({

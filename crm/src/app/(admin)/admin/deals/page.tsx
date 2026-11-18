@@ -11,7 +11,7 @@ type View = "board" | "list";
 
 function lede(rows: PipelineRow[]): string {
   const open = rows.filter((r) => r.deal.stage !== "won" && r.deal.stage !== "lost");
-  if (open.length === 0) return "No open deals right now. Create one from a lead's record when they ask for a price.";
+  if (open.length === 0) return "No open deals";
   const total = open.reduce((sum, r) => sum + r.deal.value, 0);
   const byStage = new Map<string, number>();
   for (const r of open) byStage.set(r.deal.stage, (byStage.get(r.deal.stage) ?? 0) + r.deal.value);
@@ -19,7 +19,7 @@ function lede(rows: PipelineRow[]): string {
   const where = STAGE_COPY[topStage as keyof typeof STAGE_COPY].label;
   const deals = open.length === 1 ? "open deal" : "open deals";
   const tail = total > 0 && byStage.size > 1 ? ` Most of it is in ${where}.` : "";
-  return `${countWord(open.length)} ${deals} worth ${formatMoney(total)}.${tail} Drag a card, or use Move, to change its stage.`;
+  return `${countWord(open.length)} ${deals} · ${formatMoney(total)}.${tail}`;
 }
 
 export default async function PipelinePage({ searchParams }: { searchParams: Promise<{ view?: string; demo?: string }> }) {

@@ -16,11 +16,6 @@ function nextMeeting(data: TodayData) {
   return data.agenda.find((e) => !e.allDay && new Date(e.startsAt).getTime() > now) ?? null;
 }
 
-function nextUpLine(data: TodayData): string | null {
-  const next = nextMeeting(data);
-  return next ? `Next up is ${next.title} at ${next.time}.` : null;
-}
-
 /** "4:30pm" in team time. */
 function clock(iso: string): string {
   return new Intl.DateTimeFormat("en-US", { timeZone: TEAM_TIME_ZONE, hour: "numeric", minute: "2-digit", hour12: true })
@@ -65,5 +60,5 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
   const title = `${data.greeting}${data.firstName ? `, ${data.firstName}` : ""}.`;
 
-  return <TodayBoard title={title} items={data.items} nextUp={nextUpLine(data)} stats={glance(data)} demo={data.demo} accounts={accounts} approvals={approvals} gentle={data.gentle} />;
+  return <TodayBoard title={title} items={data.items} stats={glance(data)} demo={data.demo} accounts={accounts} approvals={approvals} gentle={data.gentle} />;
 }

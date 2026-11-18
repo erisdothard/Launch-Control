@@ -20,7 +20,6 @@ import styles from "./board.module.css";
 interface TodayBoardProps {
   title: string;
   items: TodayItem[];
-  nextUp: string | null;
   stats: GlanceStat[];
   /** Demo mode (development only): sends never reach the server. */
   demo: boolean;
@@ -48,7 +47,7 @@ function reducedMotion(): boolean {
 // Today: everyone who needs Max, grouped, one line each. A row (or "Review & send") opens the draft
 // in a slide-over; Send holds for a few seconds with Undo, then runs the existing send action. The
 // list is the server's items minus what was sent or skipped here, so refreshes flow straight through.
-export default function TodayBoard({ title, items, nextUp, stats, demo, accounts, approvals, gentle = [] }: TodayBoardProps) {
+export default function TodayBoard({ title, items, stats, demo, accounts, approvals, gentle = [] }: TodayBoardProps) {
   const router = useRouter();
   const senders = useMemo(() => senderOptions(accounts), [accounts]);
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
@@ -223,7 +222,7 @@ export default function TodayBoard({ title, items, nextUp, stats, demo, accounts
 
   return (
     <div className={`${styles.board} ${panel ? styles.open : ""}`}>
-      <TodayHead title={title} queue={queue} nextUp={nextUp} stats={stats} approvals={approvals} />
+      <TodayHead title={title} queue={queue} stats={stats} approvals={approvals} />
 
       <div className={styles.toolbar}>
         <Dropdown
@@ -293,7 +292,6 @@ export default function TodayBoard({ title, items, nextUp, stats, demo, accounts
         {grouped.length === 0 ? (
           <div className={styles.empty}>
             <b>YOU&apos;RE CLEAR</b>
-            Nothing here needs you. New replies show up on their own.
           </div>
         ) : (
           grouped.map((g) => {

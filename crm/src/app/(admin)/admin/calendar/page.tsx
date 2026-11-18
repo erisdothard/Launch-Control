@@ -68,7 +68,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
   return (
     <>
-      <AdminHeader title="Calendar" subtitle="Your appointments, with follow-ups and tasks when you want them. Use the switches to show or hide each kind." />
+      <AdminHeader title="Calendar" />
       <CalendarClient
         year={year}
         month={month}

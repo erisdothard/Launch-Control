@@ -4,6 +4,7 @@ import type { ContactFilterKey } from "@/lib/leads/contactFilter";
 import { logActivity } from "./activity";
 import { createCustomer, type Customer } from "./customers";
 import { createDeal, type Deal } from "./deals";
+import { parseTemperature, temperatureOf, type Temperature } from "@/lib/leads/temperature";
 import { LEAD_VIEWS, matchesView, type Awaiting, type Lead, type LeadStatus, type LeadView, type Prospect, type ScoreFactor } from "./types";
 
 export type { Lead, LeadStatus } from "./types";
@@ -26,6 +27,7 @@ interface LeadRow {
   status_reason: string;
   status_changed_at: string | null;
   awaiting: string | null;
+  temperature?: string | null;
   do_not_contact: boolean;
   follow_up_count: number;
   segment: string | null;
@@ -36,13 +38,23 @@ interface LeadRow {
   contact_name: string | null;
   contact_title: string | null;
   score: number | null;
-  score_breakdown: unknown;
-  score_reason: string | null;
-  outreach_hook: string | null;
-  signals: unknown;
+  score_breakdown?: unknown;
+  score_reason?: string | null;
+  outreach_hook?: string | null;
+  signals?: unknown;
+  /** The list read pulls just this flag out of signals instead of the whole object. */
+  call_list?: unknown;
   run_id: string | null;
   scored_at: string | null;
 }
+
+// What a list of leads needs. The scorer's working (score_breakdown, signals, score_reason,
+// outreach_hook) is about 3 KB a lead and only the record and the lead-gen page show it, so every
+// other page leaves it behind: the whole table is read on most screens.
+const LIST_COLUMNS =
+  "id, business_name, email, phone, status, source, notes, created_at, next_action, follow_up_on, follow_up_soft, " +
+  "last_contacted_at, last_reply_at, status_reason, status_changed_at, awaiting, temperature, do_not_contact, follow_up_count, " +
+  "segment, city, state, website, domain, contact_name, contact_title, score, run_id, scored_at, call_list:signals->call_list";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -72,8 +84,8 @@ function rowToProspect(row: LeadRow): Prospect | null {
     contactTitle: row.contact_title,
     score: row.score,
     scoreBreakdown: toBreakdown(row.score_breakdown),
-    scoreReason: row.score_reason,
-    outreachHook: row.outreach_hook,
+    scoreReason: row.score_reason ?? null,
+    outreachHook: row.outreach_hook ?? null,
     signals: isRecord(row.signals) ? row.signals : null,
     runId: row.run_id,
     scoredAt: row.scored_at,
@@ -98,8 +110,9 @@ function rowToLead(row: LeadRow): Lead {
     statusReason: row.status_reason ?? "",
     statusChangedAt: row.status_changed_at,
     awaiting: row.awaiting === "us" || row.awaiting === "them" ? (row.awaiting as Awaiting) : null,
+    temperature: parseTemperature(row.temperature),
     doNotContact: row.do_not_contact ?? false,
-    callList: isRecord(row.signals) && row.signals.call_list === true,
+    callList: row.call_list === true || (isRecord(row.signals) && row.signals.call_list === true),
     followUpCount: row.follow_up_count ?? 0,
     prospect: rowToProspect(row),
   };
@@ -117,6 +130,10 @@ export interface GetLeadsParams {
   minScore?: number;
   sortByScore?: boolean;
   has?: ContactFilterKey[];
+  /** Hot, warm or cold: Max's own setting, or the CRM's reading when he hasn't set one. */
+  temperature?: Temperature;
+  /** Also read the scorer's working (breakdown, signals, reason, hook). Off by default: it is most of the weight. */
+  detail?: boolean;
 }
 
 export async function getLeads(params?: GetLeadsParams, client?: StoreClient): Promise<Lead[]> {
@@ -126,10 +143,12 @@ export async function getLeads(params?: GetLeadsParams, client?: StoreClient): P
   for (let from = 0; ; from += LEADS_PAGE) {
     const { data, error } = await leadsQuery(supabase, params).order("id", { ascending: true }).range(from, from + LEADS_PAGE - 1);
     if (error) throw error;
-    out.push(...(data as LeadRow[]));
+    out.push(...(data as unknown as LeadRow[]));
     if (data.length < LEADS_PAGE) break;
   }
-  const leads = out.map(rowToLead);
+  const all = out.map(rowToLead);
+  const temperature = params?.temperature;
+  const leads = temperature ? all.filter((lead) => temperatureOf(lead) === temperature) : all;
   const view = params?.view;
   if (!view || view === "all") return leads;
   const today = params?.today ?? new Date().toISOString().slice(0, 10);
@@ -139,7 +158,7 @@ export async function getLeads(params?: GetLeadsParams, client?: StoreClient): P
 const LEADS_PAGE = 1000;
 
 function leadsQuery(supabase: Awaited<ReturnType<typeof getStoreClient>>, params?: GetLeadsParams) {
-  let query = supabase.from("leads").select("*");
+  let query = supabase.from("leads").select(params?.detail ? "*" : LIST_COLUMNS);
   query = params?.sortByScore
     ? query.order("score", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false })
     : query.order("created_at", { ascending: false });
@@ -171,12 +190,35 @@ function leadsQuery(supabase: Awaited<ReturnType<typeof getStoreClient>>, params
   return query;
 }
 
-/** How many leads each view holds, for the tab counts. One read of the whole table. */
-export async function getLeadViewCounts(today: string, client?: StoreClient): Promise<Record<LeadView, number>> {
-  const leads = await getLeads(undefined, client);
+function countViews(leads: Lead[], today: string): Record<LeadView, number> {
   const counts = Object.fromEntries(LEAD_VIEWS.map((v) => [v.key, 0])) as Record<LeadView, number>;
   for (const lead of leads) for (const v of LEAD_VIEWS) if (matchesView(lead, v.key, today)) counts[v.key] += 1;
   return counts;
+}
+
+/** How many leads each view holds, for the tab counts. One read of the whole table. */
+export async function getLeadViewCounts(today: string, client?: StoreClient): Promise<Record<LeadView, number>> {
+  return countViews(await getLeads(undefined, client), today);
+}
+
+/**
+ * The Leads page in one go: the tab counts (always over every lead) and the leads in a view. With
+ * no search or contact filter both come from a single read of the table; `pickView` chooses the
+ * view once the counts are known (the page opens on the first view that has work in it).
+ */
+export async function getLeadsPage(
+  today: string,
+  filters: Pick<GetLeadsParams, "search" | "has" | "temperature">,
+  pickView: (counts: Record<LeadView, number>) => LeadView,
+  client?: StoreClient
+): Promise<{ counts: Record<LeadView, number>; view: LeadView; leads: Lead[] }> {
+  const narrowed = Boolean(filters.search) || Boolean(filters.has?.length);
+  const [everyone, matching] = await Promise.all([getLeads(undefined, client), narrowed ? getLeads({ search: filters.search, has: filters.has }, client) : null]);
+  const counts = countViews(everyone, today);
+  const view = pickView(counts);
+  const temperature = filters.temperature;
+  const leads = (matching ?? everyone).filter((lead) => (!temperature || temperatureOf(lead) === temperature) && matchesView(lead, view, today));
+  return { counts, view, leads };
 }
 
 export async function getLeadById(id: string, client?: StoreClient): Promise<Lead | null> {
@@ -313,6 +355,7 @@ export async function updateLead(
       ...(patch.followUpOn !== undefined && { follow_up_on: patch.followUpOn, follow_up_soft: false }),
       ...(patch.statusReason !== undefined && { status_reason: patch.statusReason }),
       ...(patch.awaiting !== undefined && { awaiting: patch.awaiting }),
+      ...(patch.temperature !== undefined && { temperature: patch.temperature }),
     })
     .eq("id", id)
     .select()
@@ -332,6 +375,77 @@ export async function updateLead(
     client
   );
 
+  return lead;
+}
+
+export type OutsideContactKind = "emailed" | "called" | "met" | "they-replied";
+
+export interface OutsideContactInput {
+  kind: OutsideContactKind;
+  /** The day it happened, YYYY-MM-DD in team time. */
+  on: string;
+  note: string;
+}
+
+const OUTSIDE_WORDS: Record<OutsideContactKind, string> = {
+  emailed: "Emailed them outside the CRM",
+  called: "Called them",
+  met: "Met with them",
+  "they-replied": "They got back to me outside the CRM",
+};
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** The dated line an outside contact adds to the lead's notes: "Nov 12: Called them. Wants pricing." */
+export function outsideContactLine(input: OutsideContactInput): string {
+  const [, m, d] = input.on.split("-").map(Number);
+  const note = input.note.trim();
+  return `${MONTHS[m - 1]} ${d}: ${OUTSIDE_WORDS[input.kind]}.${note ? ` ${note}` : ""}`;
+}
+
+/**
+ * Something that happened outside the CRM (Max's other mailbox, a call, a track day). It moves the
+ * lead the way the same event inside the CRM would, and writes a dated line into the notes, which
+ * is what the email writer and Today read. Nothing is sent, and no automatic chase is started: a
+ * follow-up from this mailbox on a conversation held somewhere else would read as a stranger.
+ */
+export async function logOutsideContact(id: string, input: OutsideContactInput, client?: StoreClient): Promise<Lead | null> {
+  const supabase = await getStoreClient(client);
+  const existing = await getLeadById(id, supabase);
+  if (!existing) return null;
+
+  // Noon UTC on the day keeps the date the same in every US time zone.
+  const at = new Date(`${input.on}T12:00:00Z`).toISOString();
+  const later = (current: string | null) => (current && current > at ? current : at);
+  const theirs = input.kind === "they-replied";
+  const stillOpen = existing.status === "new" || existing.status === "contacted" || existing.status === "nurture";
+  const line = outsideContactLine(input);
+
+  const { data, error } = await supabase
+    .from("leads")
+    .update({
+      notes: existing.notes.trim() ? `${line}\n${existing.notes.trim()}` : line,
+      ...(theirs ? { last_reply_at: later(existing.lastReplyAt) } : { last_contacted_at: later(existing.lastContactedAt) }),
+      ...(stillOpen && {
+        status: theirs ? "replied" : "contacted",
+        status_reason: theirs ? "They replied (outside the CRM)" : "Contacted outside the CRM",
+      }),
+      // Whose move: ours is made when we reached out; a reply Max already handled elsewhere leaves
+      // nobody waiting on anybody.
+      ...(!existing.doNotContact && existing.status !== "converted" && existing.status !== "lost" && { awaiting: theirs ? null : "them" }),
+      // No date survives this. A lead that wrote in carries today's "reply to them" date, and a
+      // date that has come on a lead we're waiting on is exactly what the worker chases.
+      follow_up_on: null,
+      follow_up_soft: false,
+      next_action: "",
+    })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  const lead = rowToLead(data as LeadRow);
+
+  await logActivity({ entityType: "lead", entityId: id, entityLabel: lead.businessName, action: "updated", detail: line }, client);
   return lead;
 }
 

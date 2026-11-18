@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { replySubject } from "@/lib/email/text";
 import type { EmailAccount, EmailMessage, ThreadLead } from "@/lib/store/messages";
-import { addAsLeadAction, setArchivedAction, setReadAction } from "@/app/(admin)/admin/inbox/actions";
+import { addAsLeadAction, bulkInboxAction, setArchivedAction, setReadAction } from "@/app/(admin)/admin/inbox/actions";
 import Composer, { type ComposerFields, type ComposerMode } from "./Composer";
 import { BackIcon } from "./icons";
 import MessageItem, { senderName, splitAddresses as split } from "./MessageItem";
@@ -18,6 +18,8 @@ interface ReadingPaneProps {
   defaultAccountId: string;
   backHref: string;
   archived: boolean;
+  /** The conversation is in Trash: the only move is putting it back. */
+  trashed?: boolean;
   demo: boolean;
 }
 
@@ -31,7 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
   lost: "Closed",
 };
 
-export default function ReadingPane({ threadKey, messages, lead, accounts, defaultAccountId, backHref, archived, demo }: ReadingPaneProps) {
+export default function ReadingPane({ threadKey, messages, lead, accounts, defaultAccountId, backHref, archived, trashed = false, demo }: ReadingPaneProps) {
   const router = useRouter();
   const [mode, setMode] = useState<Exclude<ComposerMode, "new" | "draft">>("reply");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -109,13 +111,23 @@ export default function ReadingPane({ threadKey, messages, lead, accounts, defau
                 Mark unread
               </button>
             )}
+            {!trashed && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={pending}
+                onClick={() => run(() => setArchivedAction(threadKey, !archived), () => router.push(backHref, { scroll: false }))}
+              >
+                {archived ? "Move to Inbox" : "Archive"}
+              </button>
+            )}
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className={`btn btn-secondary btn-sm ${trashed ? "" : "hover:!text-[var(--color-hot)]"}`}
               disabled={pending}
-              onClick={() => run(() => setArchivedAction(threadKey, !archived), () => router.push(backHref, { scroll: false }))}
+              onClick={() => run(() => bulkInboxAction([threadKey], trashed ? "restore" : "trash"), () => router.push(backHref, { scroll: false }))}
             >
-              {archived ? "Move to Inbox" : "Archive"}
+              {trashed ? "Put back" : "Delete"}
             </button>
           </div>
         </div>

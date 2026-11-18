@@ -8,9 +8,9 @@ import SearchBox from "@/components/inbox/SearchBox";
 import { DraftRows, ThreadRows } from "@/components/inbox/ThreadList";
 import { DEMO_ACCOUNTS, DEMO_COUNTS, DEMO_DRAFTS, demoConversation, demoLead, demoThreads } from "@/components/inbox/demo";
 import { BackIcon } from "@/components/inbox/icons";
-import { countWord, inboxHref, parseFolder } from "@/components/inbox/url";
+import { inboxHref, parseFolder } from "@/components/inbox/url";
 import Link from "next/link";
-import { getPendingDrafts, type EmailDraft } from "@/lib/store/drafts";
+import { getPendingDrafts } from "@/lib/store/drafts";
 import {
   getConversation,
   getEmailAccounts,
@@ -31,20 +31,6 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 function primaryAccount(accounts: EmailAccount[]): string {
   const active = accounts.filter((a) => a.status === "active");
   return (active.find((a) => a.provider === "outlook" && !a.mailbox) ?? active.find((a) => a.provider === "outlook") ?? active[0])?.id ?? "";
-}
-
-// The same three numbers, in the same words, as Today and Leads: unread mail, replies needed (a
-// lead wrote last and it's our move) and drafts waiting to be checked. Drafts are never "waiting".
-function lede(unread: number, needs: number, drafts: EmailDraft[]): string {
-  const parts: string[] = [];
-  parts.push(unread === 0 ? "No unread mail." : unread === 1 ? "One unread conversation." : `${countWord(unread)} unread conversations.`);
-  parts.push(needs === 0 ? "No replies needed." : needs === 1 ? "One reply needed." : `${countWord(needs)} replies needed.`);
-  if (drafts.length) {
-    const followUps = drafts.filter((d) => d.kind === "follow_up").length;
-    const what = followUps === drafts.length ? (drafts.length === 1 ? "follow-up" : "follow-ups") : followUps === 0 ? (drafts.length === 1 ? "reply" : "replies") : drafts.length === 1 ? "email" : "emails";
-    parts.push(`${countWord(drafts.length)} drafted ${what} ${drafts.length === 1 ? "is" : "are"} in Drafts for you to check and send.`);
-  }
-  return parts.join(" ");
 }
 
 export default async function InboxPage({ searchParams }: { searchParams: Search }) {
@@ -109,13 +95,6 @@ export default async function InboxPage({ searchParams }: { searchParams: Search
           searchLeads
           autoFocus
         />
-        <p className="mt-4 px-2 text-[15px] text-[var(--color-text-muted)]">
-          Writing to many people at once?{" "}
-          <Link href="/admin/campaigns/new" className="btn-quiet text-[15px] text-[var(--color-text)]">
-            Start a campaign
-          </Link>
-          . Each person gets their own copy.
-        </p>
       </div>
     );
   } else if (draft) {
@@ -131,6 +110,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Search
         defaultAccountId={primary}
         backHref={listHref}
         archived={folder === "archive" || (conversation.length > 0 && conversation.every((m) => m.folder === "archive"))}
+        trashed={folder === "trash" || (conversation.length > 0 && conversation.every((m) => m.folder === "trash"))}
         demo={demo}
       />
     );
@@ -138,8 +118,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Search
     reading = (
       <div className="grid h-full min-h-[420px] place-items-center p-10 text-center">
         <div>
-          <p className="text-[18px] text-[var(--color-text)]">{draftId || thread ? "That one was sent, moved or removed." : "Pick a conversation to read it."}</p>
-          <p className="mt-2 text-[15px] text-[var(--color-text-muted)]">Replies, drafts and new mail all start from here.</p>
+          <p className="text-[18px] text-[var(--color-text-muted)]">{draftId || thread ? "That one was sent, moved or removed." : "Pick a conversation to read it."}</p>
         </div>
       </div>
     );
@@ -148,7 +127,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Search
   return (
     <>
       <div className={open ? "hidden lg:block" : undefined}>
-        <AdminHeader title="Inbox" subtitle={lede(counts.unread, counts.needsReply, drafts)} actions={<CheckMail demo={demo} />} />
+        <AdminHeader title="Inbox" actions={<CheckMail demo={demo} />} />
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:h-[calc(100dvh-15rem)] lg:min-h-[560px] lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] xl:grid-cols-[188px_minmax(320px,336px)_minmax(0,1fr)]">
         <aside className="hidden xl:block">

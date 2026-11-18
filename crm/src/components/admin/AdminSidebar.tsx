@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { Role } from "@/lib/auth/roles";
-import { BrandLockup } from "@/components/brand/BrandMark";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { isOwner } from "@/lib/auth/owner";
 import { useState } from "react";
 import { NAV_KEYS, type NavKey } from "@/lib/nav/order";
@@ -161,51 +161,85 @@ interface AdminSidebarProps {
   userId: string;
   /** The order saved on the server, once that's switched on. */
   navOrder: NavKey[] | null;
+  /** Icons only, to give the page more room. */
+  collapsed: boolean;
+  onToggle: () => void;
 }
 
 // The real CRM links to the demo deployment so Max can open it in front of a client. The demo itself has no such link.
 const demoUrl = process.env.NEXT_PUBLIC_DEMO_MODE === "1" ? null : (process.env.NEXT_PUBLIC_DEMO_URL ?? null);
 
-export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, drafts, approvals = 0, userId, navOrder }: AdminSidebarProps) {
+export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, approvals = 0, userId, navOrder, collapsed, onToggle }: AdminSidebarProps) {
   const { order, save } = useNavOrder(userId, navOrder);
   // Reorder mode holds a working copy; Done saves it.
-  const [draft, setDraft] = useState<NavKey[] | null>(null);
+  const [reorder, setDraft] = useState<NavKey[] | null>(null);
+  // Reordering needs the labels, so it only runs with the sidebar open.
+  const draft = collapsed ? null : reorder;
   const byKey = new Map(crmItems.map((i) => [i.key, i]));
   const ordered = order.map((k) => byKey.get(k)!);
   const pathname = usePathname();
   const search = useSearchParams();
-  // The Inbox badge is incoming mail nobody has opened. Drafts are counted on their own line: a
-  // drafted email is work to check, not someone waiting.
-  const draftsActive = pathname === "/admin/inbox" && search.get("folder") === "drafts";
+  // The Inbox badge is incoming mail nobody has opened. Drafts are a folder inside the Inbox.
 
   function isActive(href: string): boolean {
     if (href.includes("?")) return pathname === href.split("?")[0] && search.get("view") === new URLSearchParams(href.split("?")[1]).get("view");
     if (href === "/admin/dashboard") return pathname === "/admin/dashboard" || pathname === "/admin";
-    if (href === "/admin/inbox") return pathname.startsWith(href) && !draftsActive;
     return pathname.startsWith(href);
   }
 
   const itemClass = (active: boolean) =>
-    `relative flex items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2.5 text-[15px] transition-colors ${
+    `relative flex items-center gap-3 rounded-[var(--radius-sm)] py-2.5 text-[15px] transition-colors ${collapsed ? "justify-center px-0" : "px-3"} ${
       active
         ? "bg-[var(--color-bg-card)] text-[var(--color-text)] before:absolute before:top-2.5 before:bottom-2.5 before:-left-3 before:w-[3px] before:rounded-r-sm before:bg-[var(--color-steel)]"
         : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
     }`;
 
   return (
-    <aside className="fixed top-0 left-0 z-40 hidden h-screen w-60 flex-col border-r border-[var(--color-border)] bg-[var(--color-bg-sidebar)] px-3 pt-5 pb-3 shell:flex">
-      {/* Logo: an uploaded company logo wins; otherwise the Launch Control lockup */}
-      <Link href="/admin/dashboard" className="mb-5 flex items-center gap-2.5 px-2.5">
-        {logoUrl ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element -- uploaded file, not worth next/image's optimization pipeline for a 28px mark */}
-            <img src={logoUrl} alt="" className="h-7 w-7 shrink-0 rounded-[2px] object-cover" />
-            <span className="truncate font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)]">{companyName}</span>
-          </>
-        ) : (
-          <BrandLockup className="text-[10.5px]" />
-        )}
-      </Link>
+    <aside
+      className={`fixed top-0 left-0 z-40 hidden h-screen flex-col overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-bg-sidebar)] pt-5 pb-3 shell:flex ${
+        collapsed ? "w-[68px] px-2" : "w-60 px-3"
+      }`}
+    >
+      {/* Logo: an uploaded company logo wins; otherwise the Launch Control lockup. It shares the row
+          with the collapse button and shrinks first, so it can never run past the sidebar's edge. */}
+      <div className={`mb-5 flex items-center ${collapsed ? "flex-col gap-3" : "gap-1 pl-2.5"}`}>
+        <Link href="/admin/dashboard" aria-label={collapsed ? "Today" : undefined} className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
+          {logoUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element -- uploaded file, not worth next/image's optimization pipeline for a 28px mark */}
+              <img src={logoUrl} alt="" className="h-7 w-7 shrink-0 rounded-[2px] object-cover" />
+              {!collapsed && <span className="truncate font-display text-[11px] uppercase tracking-[var(--tracking-signage)] text-[var(--color-steel)]">{companyName}</span>}
+            </>
+          ) : collapsed ? (
+            <BrandMark className="h-6 w-auto shrink-0" />
+          ) : (
+            // The wordmark on two lines. Michroma is a very wide face: on one line "LAUNCH CONTROL"
+            // is wider than the sidebar, which is what ran it over the edge before.
+            <>
+              <BrandMark className="h-7 w-auto shrink-0" />
+              <span className="font-display text-[10.5px] leading-[1.35] tracking-[var(--tracking-signage)] whitespace-nowrap text-[var(--color-steel)] uppercase">
+                Launch
+                <br />
+                Control
+              </span>
+            </>
+          )}
+        </Link>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={collapsed ? "Open the menu" : "Collapse the menu"}
+          aria-expanded={!collapsed}
+          title={collapsed ? "Open the menu" : "Collapse the menu"}
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-sm)] text-[var(--color-text-dim)] transition-colors hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="14" height="12" rx="2" />
+            <path d="M8 4v12" />
+            <path d={collapsed ? "M11.5 8.5L13 10l-1.5 1.5" : "M13 8.5L11.5 10l1.5 1.5"} />
+          </svg>
+        </button>
+      </div>
 
       <nav className="flex-1 overflow-y-auto" aria-label="CRM">
         {draft ? (
@@ -229,28 +263,21 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  aria-label={count > 0 ? `${item.label}, ${count} ${countLabel}` : undefined}
+                  aria-label={count > 0 ? `${item.label}, ${count} ${countLabel}` : collapsed ? item.label : undefined}
+                  title={collapsed ? item.label : undefined}
                   className={itemClass(active)}
                 >
                   <span className="shrink-0">{item.icon}</span>
-                  {item.label}
-                  {count > 0 && (
-                    <span className="ml-auto rounded-full bg-[var(--color-livery-red)] px-2 text-[13px] leading-5 font-medium text-white tabular">{count}</span>
-                  )}
+                  {!collapsed && item.label}
+                  {count > 0 &&
+                    (collapsed ? (
+                      <span aria-hidden="true" className="absolute top-1 right-1.5 min-w-[18px] rounded-full bg-[var(--color-livery-red)] px-1 text-center text-[11px] leading-[18px] font-semibold text-white tabular">
+                        {count > 99 ? "99+" : count}
+                      </span>
+                    ) : (
+                      <span className="ml-auto rounded-full bg-[var(--color-livery-red)] px-2 text-[13px] leading-5 font-medium text-white tabular">{count}</span>
+                    ))}
                 </Link>
-                {item.href === "/admin/inbox" && drafts > 0 && (
-                  <Link
-                    href="/admin/inbox?folder=drafts"
-                    aria-current={draftsActive ? "page" : undefined}
-                    aria-label={`Drafts, ${drafts} to check`}
-                    className={`flex items-center rounded-[var(--radius-sm)] py-1.5 pr-3 pl-[44px] text-[14.5px] transition-colors ${
-                      draftsActive ? "bg-[var(--color-bg-card)] text-[var(--color-text)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
-                    }`}
-                  >
-                    Drafts
-                    <span className="ml-auto px-2 text-[14px] text-[var(--color-text-dim)] tabular">{drafts}</span>
-                  </Link>
-                )}
               </li>
             );
           })}
@@ -260,9 +287,9 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
         <ul className="mt-6 space-y-0.5">
           {(isOwner(userEmail) ? [opsItem, ...footItems] : footItems).map((item) => (
             <li key={item.href}>
-              <Link href={item.href} className={itemClass(isActive(item.href))}>
+              <Link href={item.href} aria-label={collapsed ? item.label : undefined} title={collapsed ? item.label : undefined} className={itemClass(isActive(item.href))}>
                 <span className="shrink-0">{item.icon}</span>
-                {item.label}
+                {!collapsed && item.label}
               </Link>
             </li>
           ))}
@@ -270,7 +297,7 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
       </nav>
 
       {/* Signed in as, change password, sign out */}
-      {!draft && (
+      {!draft && !collapsed && (
         <button
           type="button"
           onClick={() => setDraft(order)}
@@ -283,18 +310,19 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
         </button>
       )}
       <div className="mt-3 border-t border-[var(--color-border)] px-1 pt-3">
-        <div className="mb-1 flex items-center gap-2.5 px-2">
+        <div className={`mb-1 flex items-center gap-2.5 ${collapsed ? "justify-center" : "px-2"}`} title={collapsed ? userEmail || undefined : undefined}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] text-[13px] font-semibold text-[var(--color-steel)] uppercase">
             {userEmail ? userEmail[0] : "?"}
           </div>
-          <p className="min-w-0 truncate text-[13px] text-[var(--color-text-muted)]">{userEmail || "Signed in"}</p>
+          {!collapsed && <p className="min-w-0 truncate text-[13px] text-[var(--color-text-muted)]">{userEmail || "Signed in"}</p>}
         </div>
-        {demoUrl && (
+        {demoUrl && !collapsed && (
           <a href={demoUrl} target="_blank" rel="noopener noreferrer" className="mb-1 flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-2 text-[13px] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]">
             <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--color-accent)]" />
             Open the client demo
           </a>
         )}
+        {!collapsed && (
         <div className="flex">
           <Link href="/admin/update-password" className="flex-1 rounded-[var(--radius-sm)] px-2 py-2 text-[13px] text-[var(--color-text-dim)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]">
             Change password
@@ -305,6 +333,7 @@ export default function AdminSidebar({ userEmail, companyName, logoUrl, unread, 
             </button>
           </form>
         </div>
+        )}
       </div>
     </aside>
   );

@@ -32,7 +32,7 @@ function csvCell(value: string | number | null | undefined): string {
 // Lives under /admin, so the auth middleware and RLS both apply.
 export async function GET(request: Request) {
   const params = Object.fromEntries(new URL(request.url).searchParams);
-  const leads = await getLeads({ source: AUTOMATED_LEAD_SOURCE, sortByScore: true, ...parseLeadGenFilters(params) });
+  const leads = await getLeads({ detail: true, source: AUTOMATED_LEAD_SOURCE, sortByScore: true, ...parseLeadGenFilters(params) });
 
   const rows = leads.map((lead) => {
     const p = lead.prospect;

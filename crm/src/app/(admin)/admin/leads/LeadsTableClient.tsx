@@ -12,6 +12,8 @@ import LocalDate from "@/components/admin/LocalDate";
 import { followUpState } from "@/lib/leads/followUp";
 import { Avatar, Check } from "@/components/compose/ui";
 import { HANDOFF_KEY, URL_LEAD_LIMIT } from "@/components/compose/types";
+import { TemperatureBadge } from "@/components/records/Temperature";
+import { TEMPERATURES, TEMPERATURE_LABEL, type Temperature } from "@/lib/leads/temperature";
 
 function displayName(lead: Lead): { primary: string; secondary: string } {
   const person = lead.prospect?.contactName?.trim();
@@ -29,11 +31,11 @@ function LastContact({ lead }: { lead: Lead }) {
   if (lead.lastContactedAt) {
     return (
       <span>
-        Emailed <LocalDate iso={lead.lastContactedAt} options={{ month: "short", day: "numeric" }} />
+        Contacted <LocalDate iso={lead.lastContactedAt} options={{ month: "short", day: "numeric" }} />
       </span>
     );
   }
-  return <span className="text-[var(--color-text-dim)]">Never emailed</span>;
+  return <span className="text-[var(--color-text-dim)]">Not contacted</span>;
 }
 
 // "Oct 25" from a team-local YYYY-MM-DD, built from its parts so no time zone shifts the day.
@@ -66,10 +68,11 @@ interface LeadsTableClientProps {
   today: string;
   due: DueFilterKey | null;
   dueCounts: Record<DueFilterKey, number>;
+  temperature: Temperature | null;
 }
 
 // The leads list. Tick people (or everyone in the view) to email them together.
-export default function LeadsTableClient({ leads, view, counts, searchQuery, today, due, dueCounts }: LeadsTableClientProps) {
+export default function LeadsTableClient({ leads, view, counts, searchQuery, today, due, dueCounts, temperature }: LeadsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -77,7 +80,7 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
   // Kept across views, so a list can be built from more than one view.
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  function pushParams(next: { view?: string; search?: string }) {
+  function pushParams(next: { view?: string; search?: string; temp?: string }) {
     const sp = new URLSearchParams(searchParams.toString());
     for (const [key, value] of Object.entries(next)) {
       if (value) sp.set(key, value);
@@ -124,8 +127,6 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
     }
   }
 
-  const hint = LEAD_VIEWS.find((v) => v.key === view)?.hint;
-
   return (
     <div className={selected.size ? "pb-28" : ""}>
       {/* Views: kept current by the database, so a lead shows up here the moment something happens */}
@@ -139,6 +140,7 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
               key={v.key}
               type="button"
               aria-current={active ? "page" : undefined}
+              title={v.hint}
               onClick={() => pushParams({ view: v.key })}
               className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-[15px] transition-colors ${
                 active
@@ -173,20 +175,40 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
             className="field"
           />
         </form>
-        <ContactFilterChips />
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="relative">
+            <span className="sr-only">Temperature</span>
+            <select
+              value={temperature ?? ""}
+              onChange={(e) => pushParams({ temp: e.target.value })}
+              className={`h-10 cursor-pointer appearance-none rounded-full bg-transparent pr-9 pl-4 text-[15px] shadow-[inset_0_0_0_1px_var(--color-border-bright)] transition-colors hover:text-[var(--color-text)] ${
+                temperature ? "font-medium text-[var(--color-text)] shadow-[inset_0_0_0_1px_var(--color-steel)]" : "text-[var(--color-text-muted)]"
+              }`}
+            >
+              <option value="">Any temperature</option>
+              {TEMPERATURES.map((t) => (
+                <option key={t} value={t}>
+                  {TEMPERATURE_LABEL[t]}
+                </option>
+              ))}
+            </select>
+            <svg aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[var(--color-text-dim)]" width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3.5 5.5L7 9l3.5-3.5" />
+            </svg>
+          </label>
+          <ContactFilterChips />
+        </div>
       </div>
 
       <div className="mb-4">
         <DueFilterChips active={due} counts={dueCounts} />
       </div>
 
-      {hint && <p className="mb-2 text-[15px] text-[var(--color-text-dim)]">{hint}</p>}
-
       {/* Columns follow the card's own width, not the screen's: beside the sidebar on a narrow
           or sideways screen the card is far narrower than the window. Under 56rem it stacks. */}
       <div className="card @container overflow-hidden">
         {/* Column heads double as the select-all control */}
-        <div className="flex items-center gap-4 border-b border-[var(--color-border)] px-4 py-3 sm:px-5 @4xl:grid @4xl:grid-cols-[22px_36px_minmax(0,1fr)_170px_140px_220px]">
+        <div className="flex items-center gap-4 border-b border-[var(--color-border)] px-4 py-3 sm:px-5 @4xl:grid @4xl:grid-cols-[22px_36px_minmax(0,1fr)_230px_140px_200px]">
           <Check
             checked={allInView}
             indeterminate={inViewSelected > 0}
@@ -210,7 +232,7 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
               <li
                 key={lead.id}
                 onClick={() => router.push(`/admin/leads/${lead.id}`)}
-                className={`group grid cursor-pointer grid-cols-[22px_36px_minmax(0,1fr)] items-start gap-x-4 gap-y-2 border-b border-[var(--color-border)] px-4 py-4 transition-colors last:border-0 hover:bg-[var(--color-bg-hover)] sm:px-5 @4xl:grid-cols-[22px_36px_minmax(0,1fr)_170px_140px_220px] ${
+                className={`group grid cursor-pointer grid-cols-[22px_36px_minmax(0,1fr)] items-start gap-x-4 gap-y-2 border-b border-[var(--color-border)] px-4 py-4 transition-colors last:border-0 hover:bg-[var(--color-bg-hover)] sm:px-5 @4xl:grid-cols-[22px_36px_minmax(0,1fr)_230px_140px_200px] ${
                   on ? "bg-[var(--color-accent)]/[0.04]" : ""
                 }`}
               >
@@ -232,8 +254,9 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
                     {lead.phone && <span className="text-[var(--color-text-dim)]"> · {lead.phone}</span>}
                   </div>
                   {/* Phones: status, last contact and next step stack under the name */}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--color-text-muted)] @4xl:hidden">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] text-[var(--color-text-muted)] @4xl:hidden">
                     <StatusBadge status={lead.status} variant="lead" />
+                    <TemperatureBadge lead={lead} />
                     <LastContact lead={lead} />
                   </div>
                   <div className="mt-1 text-[14px] @4xl:hidden">
@@ -241,7 +264,10 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
                   </div>
                 </div>
                 <div className="hidden min-w-0 pt-0.5 @4xl:block">
-                  <StatusBadge status={lead.status} variant="lead" />
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <StatusBadge status={lead.status} variant="lead" />
+                    <TemperatureBadge lead={lead} />
+                  </span>
                   {lead.statusReason && <div className="mt-1 truncate text-[14px] text-[var(--color-text-dim)]">{lead.statusReason}</div>}
                 </div>
                 <div className="hidden pt-0.5 text-[15px] text-[var(--color-text-muted)] @4xl:block">
@@ -274,7 +300,7 @@ export default function LeadsTableClient({ leads, view, counts, searchQuery, tod
         <div
           role="region"
           aria-label="Selected leads"
-          className="fixed inset-x-4 bottom-[84px] z-40 mx-auto flex max-w-2xl items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-bg-secondary)] px-4 py-3 shadow-[inset_0_0_0_1px_var(--color-border-bright),0_16px_48px_rgba(0,0,0,0.55)] sm:px-5 shell:bottom-6 shell:left-[calc(15rem+2rem)]"
+          className="fixed inset-x-4 bottom-[84px] z-40 mx-auto flex max-w-2xl items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-bg-secondary)] px-4 py-3 shadow-[inset_0_0_0_1px_var(--color-border-bright),0_16px_48px_rgba(0,0,0,0.55)] sm:px-5 shell:bottom-6 shell:left-[calc(var(--nav-w)+2rem)]"
         >
           <div className="min-w-0 flex-1">
             <div className="text-[16px] font-semibold text-[var(--color-text)]">{selected.size} selected</div>

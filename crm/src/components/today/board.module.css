@@ -21,6 +21,16 @@
 .title { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 26px; line-height: 1.15; letter-spacing: 0.01em; color: var(--color-steel); }
 .lede { margin: 8px 0 0; font-size: 16px; color: var(--color-text-muted); }
 .lede b { color: var(--color-text); font-weight: 600; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 12px 0 0; padding: 0; }
+.badge { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px; border-radius: 16px; font-size: 15px; white-space: nowrap; text-decoration: none; color: var(--color-text-muted); background: var(--color-bg-card); }
+.badge b { font-weight: 600; font-variant-numeric: tabular-nums; color: inherit; }
+.badgeSub { color: var(--color-text-dim); font-size: 14px; }
+.bReply { color: var(--color-hot); background: rgba(255, 138, 122, 0.12); }
+.bNew { color: var(--color-success); background: rgba(143, 220, 154, 0.11); }
+.bFollow { color: var(--color-warm); box-shadow: inset 0 0 0 1px rgba(255, 179, 107, 0.28); background: none; }
+.bApprove { color: var(--color-on-accent); background: var(--color-accent); font-weight: 500; transition: background-color var(--duration-fast); }
+.bApprove:hover { background: var(--color-accent-hover); }
+.bClear { color: var(--color-success); }
 .approve { margin: 12px 0 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-size: 15px; color: var(--color-text); padding: 10px 14px; border-left: 3px solid var(--color-livery-red); background: var(--color-bg-card); border-radius: var(--radius-sm); }
 .approve a { color: var(--color-text); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .stats { flex: none; display: flex; list-style: none; margin: 0; padding: 0 0 2px; }
@@ -93,7 +103,8 @@
 .co { color: var(--color-text-dim); }
 .peek { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; color: var(--color-text-dim); }
 .peek q { color: var(--color-text-muted); }
-.when { justify-self: end; font-size: 14px; color: var(--color-text-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.when { justify-self: end; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--color-text-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.timerHot { color: var(--color-hot); font-weight: 500; }
 .acts { position: relative; z-index: 1; justify-self: end; display: none; align-items: center; gap: 4px; }
 .row:hover .when, .row:focus-within .when { display: none; }
 .row:hover .acts, .row:focus-within .acts { display: flex; }

@@ -72,3 +72,9 @@ export const CloseIcon = () => (
     <path d="M5 5l10 10M15 5L5 15" />
   </svg>
 );
+export const TrashIcon = () => (
+  <svg {...base}>
+    <path d="M4 6h12M8 6V4.5A1.5 1.5 0 0 1 9.5 3h1A1.5 1.5 0 0 1 12 4.5V6" />
+    <path d="M5.5 6l.7 9.1a1.5 1.5 0 0 0 1.5 1.4h4.6a1.5 1.5 0 0 0 1.5-1.4L14.5 6" />
+  </svg>
+);

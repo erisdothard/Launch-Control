@@ -139,6 +139,8 @@ export interface Lead {
   statusReason: string; // why the status is what it is ("They replied", "Meeting Oct 21")
   statusChangedAt: string | null;
   awaiting: Awaiting | null;
+  /** Set by hand on the record. Null means the CRM works it out (src/lib/leads/temperature.ts). */
+  temperature: "cold" | "warm" | "hot" | null;
   doNotContact: boolean;
   // signals.call_list from lead-gen (no readable site): phone outreach only, never mass email.
   // Read from the row itself, since prospect is null for a lead with no site and no score.

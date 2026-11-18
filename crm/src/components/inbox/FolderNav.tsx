@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { InboxFolder } from "@/lib/store/messages";
-import { ArchiveIcon, DraftIcon, InboxIcon, PenIcon, ReplyNeededIcon, SentIcon } from "./icons";
+import { ArchiveIcon, DraftIcon, InboxIcon, PenIcon, ReplyNeededIcon, SentIcon, TrashIcon } from "./icons";
 import { inboxHref } from "./url";
 
 export interface FolderCounts {
@@ -15,6 +15,7 @@ const ITEMS: { folder: InboxFolder; label: string; icon: React.ReactNode; count?
   { folder: "drafts", label: "Drafts", icon: <DraftIcon />, count: "drafts" },
   { folder: "sent", label: "Sent", icon: <SentIcon /> },
   { folder: "archive", label: "Archive", icon: <ArchiveIcon /> },
+  { folder: "trash", label: "Trash", icon: <TrashIcon /> },
 ];
 
 interface FolderNavProps {

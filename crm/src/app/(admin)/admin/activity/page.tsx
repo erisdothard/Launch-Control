@@ -9,7 +9,6 @@ export default async function ActivityPage() {
     <>
       <AdminHeader
         title="Activity Log"
-        subtitle="Everything that changed in the CRM, newest first. It records itself; there is nothing to fill in here."
       />
 
       {entries.length === 0 ? (

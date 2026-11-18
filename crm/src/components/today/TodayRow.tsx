@@ -4,6 +4,7 @@ import type { TodayItem } from "@/lib/store/today";
 import Dropdown from "./Dropdown";
 import { Avatar } from "./shared";
 import { canSend, chipFor, labelFor, peekFor, whenFor } from "./groups";
+import WaitTimer from "./WaitTimer";
 import styles from "./board.module.css";
 
 export type RowAct = "edit" | "open" | "skip";
@@ -45,7 +46,7 @@ export default function TodayRow({ item, selected, leaving, onOpen, onSend, onAc
       </div>
       <div className={styles.peek}>{peek.quoted ? <q>{peek.text}</q> : peek.text}</div>
       <Chip item={item} />
-      <span className={styles.when}>{whenFor(item)}</span>
+      {item.kind === "reply" && item.since ? <WaitTimer since={item.since} label={item.waitLabel} /> : <span className={styles.when}>{whenFor(item)}</span>}
       <span className={styles.acts} onClick={(e) => e.stopPropagation()}>
         {sendable && (
           <button type="button" className={`${styles.btn} ${styles.secondary} ${styles.sm}`} aria-label={`Send to ${item.name}`} onClick={onSend}>
