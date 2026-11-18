@@ -4,6 +4,9 @@ One pass:
 1. If an agent-made campaign draft is still waiting for a person, stop: drafts never pile up.
 2. Pick prospects that are usable (metrics.is_usable), status 'new', never emailed, not
    do_not_contact, not on email_suppressions, and not on any live campaign. Best score first.
+   One per company: a prospect is dropped when any lead at the same business (same website or
+   email domain, phone, or name and city) was already contacted, and when a better-fit row for
+   the same business is in this pool (contacted_companies, dedupe.company_keys).
 3. For each (up to MAX_PER_PASS), Claude writes a subject and body that open on one fact we
    actually observed on that business (score evidence, site signals, the outreach hook).
    A regex check rejects time/speed words (copy_rules.py), generic openers, any URL, domain or
@@ -41,6 +44,7 @@ import anthropic
 
 from leadgen import agent_log, draft_feedback, metrics
 from leadgen.copy_rules import has_time_words, strip_names, time_word_hits
+from leadgen.dedupe import company_keys
 from leadgen.research import ClaudeResearch, Researcher
 from leadgen.store import Store
 
@@ -465,7 +469,7 @@ def suppressed(store: Store, emails: list[str]) -> set[str]:
     return out
 
 
-LEAD_FIELDS = ("id,business_name,email,contact_name,contact_title,segment,city,state,website,score,"
+LEAD_FIELDS = ("id,business_name,email,phone,contact_name,contact_title,segment,city,state,website,domain,score,"
                "score_breakdown,score_reason,outreach_hook,signals,status,do_not_contact")
 
 
@@ -492,6 +496,23 @@ def sending_account(store: Store) -> str | None:
     return pick["id"] if pick else None
 
 
+COMPANY_FIELDS = "id,business_name,email,phone,website,domain,city,status,do_not_contact"
+
+
+def contacted_companies(store: Store) -> set[str]:
+    """Company keys (dedupe.company_keys) of every business the team has already dealt with, across
+    every lead in the CRM whatever its source: a lead that was emailed, is on a live campaign, has
+    moved past 'new' (including by hand, for outreach made outside the CRM) or is do-not-contact."""
+    rows = metrics._all(store, "leads", {"select": COMPANY_FIELDS})
+    ids = [r["id"] for r in rows]
+    touched = emailed_leads(store, ids) | leads_on_live_campaigns(store, ids)
+    out: set[str] = set()
+    for r in rows:
+        if r["id"] in touched or r.get("status") != "new" or r.get("do_not_contact"):
+            out |= company_keys(r)
+    return out
+
+
 @dataclass
 class Candidates:
     leads: list[dict[str, Any]] = field(default_factory=list)
@@ -499,7 +520,8 @@ class Candidates:
 
 
 def find_candidates(store: Store) -> Candidates:
-    """Usable, new, never emailed, contactable prospects, best-fit segment then best score first."""
+    """Usable, new, never emailed, contactable prospects at companies not yet contacted, one per
+    company, best-fit segment then best score first."""
     out = Candidates()
     pool = [p for p in metrics.prospects(store) if p.get("status") == "new"]
     usable = [p for p in pool if metrics.is_usable(p)]
@@ -520,7 +542,19 @@ def find_candidates(store: Store) -> Candidates:
             keep.append(p["id"])
     details = lead_details(store, keep)
     out.skipped["do not contact"] = len(keep) - len(details)
-    out.leads = sorted(details.values(), key=fit_order)
+    # One first email per business: never a second person at a company already contacted, and
+    # only the best-fit row when the same company is in the pool twice.
+    taken = contacted_companies(store) if details else set()
+    in_batch: set[str] = set()
+    for lead in sorted(details.values(), key=fit_order):
+        keys = company_keys(lead)
+        if keys & taken:
+            out.skipped["company already contacted"] += 1
+        elif keys & in_batch:
+            out.skipped["same company as another prospect"] += 1
+        else:
+            out.leads.append(lead)
+            in_batch |= keys
     out.skipped = Counter({k: v for k, v in out.skipped.items() if v})
     return out
 

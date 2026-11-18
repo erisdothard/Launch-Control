@@ -1,6 +1,6 @@
 from conftest import make_place
 
-from leadgen.dedupe import dedupe, drop_known, normalize_domain, normalize_phone
+from leadgen.dedupe import company_keys, dedupe, drop_known, normalize_domain, normalize_phone
 
 
 def test_normalize_domain() -> None:
@@ -41,3 +41,12 @@ def test_drop_known() -> None:
 def test_lead_key_fallbacks() -> None:
     lead = dedupe([make_place(website="", phone="", name="Zed")])[0]
     assert lead.key == "zed"
+
+
+def test_company_keys() -> None:
+    keys = company_keys({"business_name": "Apex Racing, LLC", "city": " Tampa ", "phone": "(404) 829-6475",
+                         "website": "https://shop.apex.com/book", "email": "Mike@Apex-Mail.com"})
+    assert keys == {"domain:apex.com", "domain:apex-mail.com", "phone:+14048296475", "name:apexracingllc|tampa"}
+    # A mailbox provider or a social page is not the company; a name alone (no city) is too loose.
+    assert company_keys({"business_name": "Apex", "email": "apex@gmail.com", "website": "facebook.com/apex"}) == set()
+    assert company_keys({}) == set()

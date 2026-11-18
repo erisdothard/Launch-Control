@@ -24,7 +24,7 @@ GOOD_BODY = (
 
 
 def _lead(i: str, **kw: Any) -> dict[str, Any]:
-    base = {"id": i, "email": f"{i}@apex.com", "score": 70, "status": "new", "segment": "Race prep shop",
+    base = {"id": i, "email": f"mike@{i}.com", "score": 70, "status": "new", "segment": "Race prep shop",
             "signals": {"pages_crawled": ["/"], "phrases": ["call to book"]}, "run_id": "r", "created_at": "x"}
     base.update(kw)
     return base
@@ -56,7 +56,8 @@ class DB:
                  emailed: list[str] = (), live: list[dict[str, Any]] = (), suppressed: list[str] = (),
                  waiting: list[str] = (), empty_drafts: list[str] = (), stale: list[str] = (),
                  accounts: list[dict[str, Any]] | None = None,
-                 recipients_fail: bool = False, delete_fails: bool = False) -> None:
+                 recipients_fail: bool = False, delete_fails: bool = False,
+                 crm_leads: list[dict[str, Any]] = ()) -> None:
         self.prospects, self.details = prospects, details
         self.emailed, self.live, self.suppressed, self.waiting = list(emailed), list(live), list(suppressed), list(waiting)
         self.accounts = accounts if accounts is not None else [
@@ -64,6 +65,8 @@ class DB:
             {"id": "acc-max", "address": "maxwell@golaunchcontrol.com", "provider": "outlook", "status": "active", "mailbox": None},
         ]
         self.recipients_fail, self.delete_fails = recipients_fail, delete_fails
+        # Every lead row in the CRM (any source), for the company-level check.
+        self.crm_leads = list(crm_leads)
         self.empty_drafts = list(empty_drafts)
         # Waiting drafts past STALE_DRAFT_AFTER: the writer's PATCH cancels them.
         self.stale, self.cancelled = list(stale), []
@@ -120,6 +123,9 @@ class DB:
         if table == "leads":
             if "source" in p:
                 return httpx.Response(200, json=self.prospects if p.get("offset") == "0" else [])
+            if "id" not in p:
+                assert p["select"] == ow.COMPANY_FIELDS
+                return httpx.Response(200, json=self.crm_leads if p.get("offset") == "0" else [])
             wanted = p["id"][4:-1].split(",")
             return httpx.Response(200, json=[d for d in self.details if d["id"] in wanted and not d["do_not_contact"]])
         if table == "email_messages":
@@ -374,7 +380,7 @@ def test_full_pass_filters_and_writes_one_draft_campaign(store: Store) -> None:
         _lead("dnc"),
     ]
     details = [_detail(x) for x in ("good", "good2", "cancelledcamp")] + [_detail("dnc", do_not_contact=True)]
-    db = DB(prospects, details, emailed=["emailed"], suppressed=["supp@apex.com"], live=[
+    db = DB(prospects, details, emailed=["emailed"], suppressed=["mike@supp.com"], live=[
         {"lead_id": "oncamp", "status": "pending", "email_campaigns": {"status": "draft"}},
         {"lead_id": "cancelledcamp", "status": "cancelled", "email_campaigns": {"status": "cancelled"}},
     ])
@@ -388,7 +394,7 @@ def test_full_pass_filters_and_writes_one_draft_campaign(store: Store) -> None:
     assert "scheduled_at" not in camp
     assert [r["lead_id"] for r in db.recipients] == ["good", "good2", "cancelledcamp"]
     r0 = db.recipients[0]
-    assert r0 == {**r0, "campaign_id": "camp-1", "email": "good@apex.com", "status": "pending", "step": 1,
+    assert r0 == {**r0, "campaign_id": "camp-1", "email": "mike@good.com", "status": "pending", "step": 1,
                   "subject_override": "Booking at Apex", "body_override": GOOD_BODY}
     assert r0["merge"]["first_name"] == "Mike" and r0["merge"]["company"] == "Apex good"
 
@@ -396,6 +402,32 @@ def test_full_pass_filters_and_writes_one_draft_campaign(store: Store) -> None:
     assert run["status"] == "done" and run["evidence"]["drafted"] == 3 and run["evidence"]["campaign_id"] == "camp-1"
     assert run["evidence"]["skipped"] == {"not usable": 3, "already emailed": 1, "already on a campaign": 1,
                                           "suppressed": 1, "do not contact": 1}
+
+
+def test_one_first_email_per_company(store: Store) -> None:
+    prospects = [_lead(x) for x in ("fresh", "samesite", "samemail", "moved", "twin", "gmail1", "gmail2")]
+    details = [
+        _detail("fresh", score=90),
+        # Another row at a business already emailed from a different lead row.
+        _detail("samesite", website="https://shop.oldco.com/book"),
+        _detail("samemail", email="sales@OLDCO.com"),
+        # Max moved this company past 'new' by hand after writing to them outside the CRM.
+        _detail("moved", business_name="Hand Logged Racing", city="Austin"),
+        # The same business twice in the pool: only the better-scored row is written to.
+        _detail("twin", email="info@fresh.com", score=60),
+        # Two unrelated businesses on a mailbox provider are not one company.
+        _detail("gmail1", email="one@gmail.com", score=58), _detail("gmail2", email="two@gmail.com", score=57),
+    ]
+    crm = [
+        {"id": "old", "business_name": "Old Co", "email": "owner@oldco.com", "website": "", "status": "new"},
+        {"id": "byhand", "business_name": "Hand-Logged Racing", "email": "", "city": "austin", "status": "contacted"},
+        {"id": "untouched", "business_name": "Other", "email": "x@fresh.com", "status": "new"},
+    ]
+    db = DB(prospects, details, emailed=["old"], crm_leads=crm)
+    _run(db, store, FakeAsker([{"subject": "Booking at Apex", "body": GOOD_BODY, "fact_index": 1}]))
+
+    assert [r["lead_id"] for r in db.recipients] == ["fresh", "gmail1", "gmail2"]
+    assert db.runs[0]["evidence"]["skipped"] == {"company already contacted": 3, "same company as another prospect": 1}
 
 
 def test_bad_copy_is_rewritten_once(store: Store) -> None:
