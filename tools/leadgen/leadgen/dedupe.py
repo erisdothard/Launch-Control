@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import re
+from typing import Any
+
 import phonenumbers
 import tldextract
 
@@ -16,6 +19,14 @@ NON_BUSINESS_DOMAINS = frozenset({
     "x.com", "youtube.com", "youtu.be", "tiktok.com", "linkedin.com", "yelp.com", "google.com",
     "goo.gl", "business.site", "sites.google.com", "wixsite.com", "square.site", "carrd.co",
     "motorsportreg.com", "eventbrite.com", "bit.ly", "tinyurl.com", "beacons.ai", "allevents.in",
+})
+
+# Mailbox providers: an address there says nothing about which business it belongs to.
+FREE_MAIL_DOMAINS = frozenset({
+    "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "rocketmail.com", "hotmail.com", "outlook.com",
+    "live.com", "msn.com", "aol.com", "icloud.com", "me.com", "mac.com", "proton.me", "protonmail.com",
+    "pm.me", "gmx.com", "mail.com", "zoho.com", "fastmail.com", "hey.com", "comcast.net", "att.net",
+    "sbcglobal.net", "bellsouth.net", "verizon.net", "cox.net", "charter.net", "earthlink.net",
 })
 
 
@@ -89,3 +100,25 @@ def drop_known(leads: list[Lead], known_domains: set[str]) -> tuple[list[Lead], 
     """Remove leads whose domain is already in the CRM. Returns (kept, skipped_count)."""
     kept = [lead for lead in leads if not (lead.domain and lead.domain in known_domains)]
     return kept, len(leads) - len(kept)
+
+
+def company_keys(lead: dict[str, Any]) -> set[str]:
+    """Every key that identifies the business behind a CRM lead row. Two rows sharing any key are
+    the same company: registered website domain, the email address's domain (unless it is a mailbox
+    provider), phone, or business name in the same city."""
+    keys: set[str] = set()
+    for site in (lead.get("website"), lead.get("domain")):
+        domain = normalize_domain(str(site or ""))
+        if domain:
+            keys.add(f"domain:{domain}")
+    mail_domain = normalize_domain(str(lead.get("email") or "").strip().rpartition("@")[2])
+    if mail_domain and mail_domain not in FREE_MAIL_DOMAINS:
+        keys.add(f"domain:{mail_domain}")
+    phone = normalize_phone(str(lead.get("phone") or ""))
+    if phone:
+        keys.add(f"phone:{phone}")
+    name = re.sub(r"[^a-z0-9]", "", str(lead.get("business_name") or "").lower())
+    city = str(lead.get("city") or "").strip().lower()
+    if name and city:
+        keys.add(f"name:{name}|{city}")
+    return keys
