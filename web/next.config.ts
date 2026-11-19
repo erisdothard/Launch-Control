@@ -3,8 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // The dev badge overlaps the bottom-left HUD readout in review captures.
   devIndicators: false,
-  /* Work screenshots are text-heavy UI captured at 2x; 75 softens the type. Next 16 allowlists qualities. */
-  images: { qualities: [75, 90] },
+  /* Images are served as the files in public/, already WebP and under 180 KB each. Vercel's image
+     service answers 402 once the account's allowance is used up, which blanked every screenshot. */
+  images: { unoptimized: true },
   /* Asset filenames are versioned (engine-v2.glb, crm-demo-v1-1080.mp4), never overwritten in place, so they cache for a year.
      The draco decoder keeps three's filenames; it gets a week. */
   async headers() {
