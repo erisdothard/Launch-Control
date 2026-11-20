@@ -7,7 +7,8 @@ import type { Lead } from "./types";
 // thing that told lead gen "we already have this one", so the next run would find the business
 // again. The list lives in system_flags.blocked_companies ({ companies: [...] }); lead gen reads it
 // before it keeps a scraped business or drafts a first email (tools/leadgen/leadgen/store.py
-// blocked_companies, dedupe.company_keys). Mail already in the inbox is untouched.
+// blocked_companies, dedupe.company_keys). Deleting still removes the lead's own emails with it
+// (email_messages cascades); to keep the conversation, close the lead as not a fit instead.
 export const BLOCKED_KEY = "blocked_companies";
 
 export interface BlockedCompany {
