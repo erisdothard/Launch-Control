@@ -54,6 +54,21 @@ Debug URL params: `?debug` exposes `window.__lc.{setProgress,freezeTime,info}`; 
 - Memory: renderer RSS (not JS heap) flat across 3 full scroll loops.
 - Credits: CC BY credits for the engine model and the audio stay in the footer.
 
+## CRM access (for cloud sessions)
+
+- The CRM has two logins, `maxwell@golaunchcontrol.com` (Max) and `eris@golaunchcontrol.com` (Eris). Both
+  open the same CRM and the same data; there is no separate "Max's CRM". Never sign in as Max.
+- No CRM password or service key is stored in the repo or in the cloud environment. Desktop sessions
+  sign in with keys in `crm/.env.local` on Eris's Mac, which is not in git.
+- `eris@golaunchcontrol.com` is an alias on Max's mailbox. The Microsoft 365 connector is a different
+  mailbox (syntraai.tech), so a sign-in email sent to that login cannot be read from a cloud session.
+- To check a screen without a login, use the client demo at `demo.golaunchcontrol.com` (same code,
+  demo data, signs itself in). It has no service key, so lead-page actions that check the team fail there.
+- Supabase project `qpvqfbpibrqxuuwtkqdf` is the live CRM. Eris has given standing permission to read
+  and write it for CRM work (2026-11-20); don't ask again, do show what a write will change.
+- The lead gen worker runs on Railway from `main`. To confirm it restarted on new code, look for the
+  new query in the Supabase API logs.
+
 ## Open
 
 - Real engine asset (Track A). Source files exist in `assets-src/`; part separation and assembly not yet
