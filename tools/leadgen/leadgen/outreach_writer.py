@@ -4,6 +4,7 @@ One pass:
 1. If an agent-made campaign draft is still waiting for a person, stop: drafts never pile up.
 2. Pick prospects that are usable (metrics.is_usable), status 'new', never emailed, not
    do_not_contact, not on email_suppressions, and not on any live campaign. Best score first.
+   A prospect a person took off an earlier agent draft is not drafted again (taken_off_by_a_person).
    One per company: a prospect is dropped when any lead at the same business (same website or
    email domain, phone, or name and city) was already contacted, and when a better-fit row for
    the same business is in this pool (contacted_companies, dedupe.company_keys).
@@ -496,6 +497,34 @@ def sending_account(store: Store) -> str | None:
     return pick["id"] if pick else None
 
 
+def taken_off_by_a_person(store: Store, lead_ids: list[str]) -> set[str]:
+    """Leads a person removed from an earlier agent draft (agent_draft_feedback): the campaign is
+    still there and not cancelled, but the lead is no longer on it. They said no to that one, so it
+    is not drafted again. A cancelled or deleted batch (including one this agent cancelled as
+    stale) is not a judgment on any one lead; those go back in the pool. Best effort: without the
+    feedback table nobody is held back."""
+    try:
+        rows: list[dict[str, Any]] = []
+        for chunk in _chunks(lead_ids):
+            rows += store._req("GET", draft_feedback.TABLE, params={
+                "lead_id": f"in.({','.join(chunk)})", "outcome": "in.(removed,pending)",
+                "select": "lead_id,campaign_id,outcome,detail",
+            }).json()
+        out = {r["lead_id"] for r in rows if r["outcome"] == "removed" and "taken off the campaign" in (r.get("detail") or "")}
+        # Not settled yet (draft_feedback.SETTLE): read the campaign itself. These leads are on no
+        # live campaign (find_candidates checked), so a campaign that still stands has dropped them.
+        open_rows = [r for r in rows if r["outcome"] == "pending" and r["lead_id"] not in out]
+        standing: set[str] = set()
+        for chunk in _chunks(sorted({r["campaign_id"] for r in open_rows})):
+            found = store._req("GET", "email_campaigns", params={
+                "id": f"in.({','.join(chunk)})", "status": "neq.cancelled", "select": "id"}).json()
+            standing.update(c["id"] for c in found)
+        return out | {r["lead_id"] for r in open_rows if r["campaign_id"] in standing}
+    except Exception as exc:
+        log.warning("could not read which drafts a person removed: %s", draft_feedback.safe_error(exc))
+        return set()
+
+
 COMPANY_FIELDS = "id,business_name,email,phone,website,domain,city,status,do_not_contact"
 
 
@@ -540,6 +569,9 @@ def find_candidates(store: Store) -> Candidates:
             out.skipped["suppressed"] += 1
         else:
             keep.append(p["id"])
+    removed = taken_off_by_a_person(store, keep) if keep else set()
+    out.skipped["taken off an earlier batch by a person"] = len(removed)
+    keep = [i for i in keep if i not in removed]
     details = lead_details(store, keep)
     out.skipped["do not contact"] = len(keep) - len(details)
     # One first email per business: never a second person at a company already contacted, and

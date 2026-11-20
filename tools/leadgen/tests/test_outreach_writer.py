@@ -79,6 +79,9 @@ class DB:
         self.feedback: list[dict[str, Any]] = []
         self.feedback_examples: list[dict[str, Any]] = []
         self.feedback_missing = False
+        # Earlier agent drafts per lead (agent_draft_feedback rows) and the campaigns not cancelled.
+        self.drafted_before: list[dict[str, Any]] = []
+        self.standing: list[str] = []
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         table = request.url.path.rsplit("/", 1)[-1]
@@ -97,12 +100,18 @@ class DB:
             if request.method == "POST":
                 self.feedback.extend(body)
                 return httpx.Response(201)
+            if "lead_id" in p:
+                wanted = p["lead_id"][4:-1].split(",")
+                return httpx.Response(200, json=[f for f in self.drafted_before if f["lead_id"] in wanted])
             if p.get("outcome", "").startswith("in."):
                 return httpx.Response(200, json=self.feedback_examples)
             return httpx.Response(200, json=[])
         if table == "email_campaigns":
             if request.method == "GET" and "body_text" in p.get("select", ""):
                 return httpx.Response(200, json=[])  # draft_feedback backfill: no older agent drafts
+            if request.method == "GET" and p.get("select") == "id":
+                assert p["status"] == "neq.cancelled"
+                return httpx.Response(200, json=[{"id": c} for c in self.standing if c in p["id"]])
             if request.method == "GET":
                 assert p["created_by"] == f"eq.{ow.CREATED_BY}" and "campaign_recipients(id)" in p["select"]
                 return httpx.Response(200, json=[{"id": w, "campaign_recipients": [{"id": "r"}]} for w in self.waiting]
@@ -428,6 +437,24 @@ def test_one_first_email_per_company(store: Store) -> None:
 
     assert [r["lead_id"] for r in db.recipients] == ["fresh", "gmail1", "gmail2"]
     assert db.runs[0]["evidence"]["skipped"] == {"company already contacted": 3, "same company as another prospect": 1}
+
+
+def test_a_lead_a_person_took_off_a_batch_is_not_drafted_again(store: Store) -> None:
+    names = ("fresh", "removed", "justremoved", "stale", "deleted")
+    db = DB([_lead(x) for x in names], [_detail(x) for x in names])
+    db.standing = ["camp-sent"]
+    db.drafted_before = [
+        {"lead_id": "removed", "campaign_id": "camp-old", "outcome": "removed", "detail": "taken off the campaign"},
+        # Removed minutes ago: the feedback row is still pending, but the campaign stands without them.
+        {"lead_id": "justremoved", "campaign_id": "camp-sent", "outcome": "pending", "detail": None},
+        # A whole batch that went stale or was deleted says nothing about one lead: back in the pool.
+        {"lead_id": "stale", "campaign_id": "camp-stale", "outcome": "removed", "detail": "campaign cancelled"},
+        {"lead_id": "deleted", "campaign_id": "camp-gone", "outcome": "pending", "detail": None},
+    ]
+    _run(db, store, FakeAsker([{"subject": "Booking at Apex", "body": GOOD_BODY, "fact_index": 1}]))
+
+    assert sorted(r["lead_id"] for r in db.recipients) == ["deleted", "fresh", "stale"]
+    assert db.runs[0]["evidence"]["skipped"] == {"taken off an earlier batch by a person": 2}
 
 
 def test_bad_copy_is_rewritten_once(store: Store) -> None:
