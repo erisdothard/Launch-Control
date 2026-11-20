@@ -53,7 +53,8 @@ log = logging.getLogger(__name__)
 
 TABLE = "agent_draft_feedback"
 APPROVED = ("sent_edited", "sent_as_is")
-MAX_EXAMPLES = 3
+# Max rewrites most first emails (2026-11-20), so the writer studies more of them.
+MAX_EXAMPLES = 8
 MAX_REJECTED = 5
 MAX_EXAMPLE_CHARS = 1200
 EXAMPLES_OPEN = "<approved_examples>"

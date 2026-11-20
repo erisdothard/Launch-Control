@@ -258,3 +258,69 @@ def test_a_hot_lead_is_not_closed_before_its_extra_follow_up() -> None:
     ], pending=[])
     assert automation.close_gone_cold(store, two, now) == 2  # type: ignore[arg-type]
     assert [lead_id for lead_id, _ in store.patches] == ["plain", "hot-done"]
+
+
+FIRST = ("Hi Paul, I saw that Acme runs freight across three states and books every load by phone, "
+         "which is exactly the kind of busy desk our CRM was built for. If now isn't the right time, just let me know.")
+
+
+def test_repeated_lines_finds_copied_wording_but_allows_the_easy_out() -> None:
+    copied = "Quick nudge: Acme runs freight across three states and books every load by phone. If now isn't the right time, just let me know."
+    assert automation.repeated_lines(copied, [FIRST]) == ["acme runs freight across three states and books every load by phone"]
+    fresh = "Paul, one more thought: most shippers lose a quote or two a week to missed calls. If now isn't the right time, just let me know."
+    assert automation.repeated_lines(fresh, [FIRST]) == []
+    assert automation.repeated_lines("", [FIRST]) == []
+
+
+class SequenceWriter:
+    def __init__(self, outputs: list[str]) -> None:
+        self.outputs, self.prompts = outputs, []
+
+    def write(self, system: str, prompt: str) -> str:
+        self.prompts.append(prompt)
+        return self.outputs[min(len(self.prompts) - 1, len(self.outputs) - 1)]
+
+
+def test_a_follow_up_that_repeats_the_first_email_is_written_again() -> None:
+    msgs = [{**MSGS[0], "body_text": FIRST}]
+    writer = SequenceWriter([
+        "Following up: Acme runs freight across three states and books every load by phone.",
+        "Paul, one more idea: a missed call on a Friday is usually a lost load. Worth ten minutes?",
+    ])
+    body = automation.write_follow_up(writer, LEAD, msgs, 1, last=False)  # type: ignore[arg-type]
+    assert body.startswith("Paul, one more idea") and len(writer.prompts) == 2
+    assert "copied these words" in writer.prompts[1] and "books every load by phone" in writer.prompts[1]
+
+
+def test_a_follow_up_still_repeating_after_every_try_is_kept_for_review() -> None:
+    msgs = [{**MSGS[0], "body_text": FIRST}]
+    same = "Following up: Acme runs freight across three states and books every load by phone."
+    writer = SequenceWriter([same])
+    assert automation.write_follow_up(writer, LEAD, msgs, 1, last=False) == same  # type: ignore[arg-type]
+    assert len(writer.prompts) == automation.FOLLOW_UP_TRIES
+
+
+def test_a_lead_sent_with_no_reminder_goes_quiet_after_the_whole_track() -> None:
+    seen: list[dict[str, Any]] = []
+
+    class S(FakeStore):
+        def _req(self, method: str, path: str, **kw: Any) -> Any:
+            if method == "GET" and path == "leads":
+                seen.append(kw["params"])
+                rows = [] if len(seen) == 1 else [{"id": "no-date"}, {"id": "drafting"}]
+
+                class R:
+                    def json(self) -> Any:
+                        return rows
+
+                return R()
+            return super()._req(method, path, **kw)
+
+    store = S([], pending=["drafting"])
+    now = datetime(2026, 11, 30, 15, tzinfo=UTC)
+    assert automation.close_gone_cold(store, automation.Settings(True, 2, 7), now) == 1  # type: ignore[arg-type]
+    assert store.patches == [("no-date", {"status": "nurture", "status_reason": "Gone quiet: no reply in 3 weeks",
+                                          "follow_up_on": None, "next_action": "Check in now and then"})]
+    q = seen[1]
+    assert q["follow_up_on"] == "is.null" and q["follow_up_count"] == "eq.0" and q["status"] == "eq.contacted"
+    assert q["last_contacted_at"].startswith("lt.2026-11-09")

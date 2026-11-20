@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import threading
 import time
 from dataclasses import dataclass
@@ -60,6 +61,7 @@ COMPANY = (
 # comes from the follow-up date the database sets when an email goes out (stamp_lead_contacted,
 # crm/supabase/migrations/20261120000001_weekly_cadence.sql).
 DEFAULT_FOLLOW_UP_DAYS = [7, 7]
+WEEK_DAYS = 7
 EXTRA_FOLLOW_UPS_WHEN_HOT = 1
 
 
@@ -241,8 +243,63 @@ def write_reply(writer: Writer, lead: dict[str, Any], messages: list[dict[str, A
     return writer.write(system_for(style), prompt)
 
 
+# A run of this many words copied from one of our earlier emails counts as repeating it (Max, 2026-11-17:
+# "the language should not be redundant in respect to the initial outreach email").
+REPEAT_RUN = 8
+# The easy-out line the prompt asks for in every follow-up; saying it again is fine.
+EASY_OUT = "If now isn't the right time, just let me know."
+FOLLOW_UP_TRIES = 3
+
+
+def _words(text: str) -> list[str]:
+    return re.findall(r"[a-z0-9']+", (text or "").lower().replace("\u2019", "'"))
+
+
+def _runs(words: list[str], n: int = REPEAT_RUN) -> set[tuple[str, ...]]:
+    return {tuple(words[i : i + n]) for i in range(len(words) - n + 1)}
+
+
+def repeated_lines(body: str, earlier: list[str]) -> list[str]:
+    """Stretches of `body` copied from our earlier emails (REPEAT_RUN words or more), as text."""
+    seen: set[tuple[str, ...]] = set()
+    for text in earlier:
+        seen |= _runs(_words(text))
+    seen -= _runs(_words(EASY_OUT))
+    words = _words(body)
+    hits: list[str] = []
+    i = 0
+    while i <= len(words) - REPEAT_RUN:
+        if tuple(words[i : i + REPEAT_RUN]) in seen:
+            j = i + REPEAT_RUN
+            while j < len(words) and tuple(words[j - REPEAT_RUN + 1 : j + 1]) in seen:
+                j += 1
+            hits.append(" ".join(words[i:j]))
+            i = j
+        else:
+            i += 1
+    return hits
+
+
 def write_follow_up(writer: Writer, lead: dict[str, Any], messages: list[dict[str, Any]], number: int, last: bool,
                     style: str = "") -> str:
+    """The next nudge, checked against everything we already sent them: a draft that copies a line from
+    an earlier email is written again, up to FOLLOW_UP_TRIES times. Every draft goes to a person
+    before it is sent, so the last try is kept even if a line still repeats."""
+    earlier = [m.get("body_text") or "" for m in messages if m.get("direction") == "out"]
+    body = _write_follow_up(writer, lead, messages, number, last, style)
+    for _ in range(FOLLOW_UP_TRIES - 1):
+        repeats = repeated_lines(body, earlier)
+        if not body or not repeats:
+            break
+        body = _write_follow_up(writer, lead, messages, number, last, style, repeats)
+    else:
+        if body and repeated_lines(body, earlier):
+            log.warning("follow-up %d for lead %s still repeats an earlier email", number, lead.get("id"))
+    return body
+
+
+def _write_follow_up(writer: Writer, lead: dict[str, Any], messages: list[dict[str, Any]], number: int, last: bool,
+                     style: str = "", repeats: list[str] | None = None) -> str:
     tone = (
         "This is the last follow-up: thank them, say you won't keep filling their inbox, and leave the door open."
         if last else "Add one new, specific reason it's worth a reply; don't repeat the first email. Keep it light."
@@ -253,6 +310,12 @@ def write_follow_up(writer: Writer, lead: dict[str, Any], messages: list[dict[st
         f"{tone} No guilt, no pressure. Somewhere natural, give them an easy way to say no "
         "(for example: \"If now isn't the right time, just let me know.\"). Under 70 words."
     )
+    if repeats:
+        quoted = "\n".join(f"- {r}" for r in repeats[:5])
+        prompt += (
+            "\n\nYour last draft copied these words from emails we already sent them:\n"
+            f"{quoted}\nWrite it again in new words. Don't reuse sentences or phrases from the earlier emails."
+        )
     return writer.write(system_for(style), prompt)
 
 
@@ -386,6 +449,28 @@ def close_gone_cold(store: Store, settings: Settings, now: datetime) -> int:
         if int(lead.get("follow_up_count") or settings.max_follow_ups) < follow_up_cap(lead, settings):
             continue
         store.patch_lead(lead["id"], patch)
+        closed += 1
+
+    # Emailed with "No reminder" (or the reminder cleared by hand): no follow-up date ever comes, so
+    # they would wait forever. Silent for as long as the whole follow-up track takes, they go the
+    # same way, without a follow-up.
+    track_days = WEEK_DAYS * (settings.max_follow_ups + 1)
+    seen = {lead["id"] for lead in leads}
+    no_date = store._req("GET", "leads", params={
+        "awaiting": "eq.them", "status": "eq.contacted", "do_not_contact": "eq.false",
+        "follow_up_count": "eq.0", "follow_up_on": "is.null",
+        "last_contacted_at": f"lt.{(now - timedelta(days=track_days)).isoformat()}",
+        "select": "id",
+    }).json()
+    weeks = track_days // WEEK_DAYS
+    reason = f"no reply in {weeks} weeks" if weeks > 1 else "no reply in a week"
+    for lead in no_date:
+        if lead["id"] in seen or lead["id"] in pending:
+            continue
+        seen.add(lead["id"])
+        store.patch_lead(lead["id"], {
+            **patch, "status_reason": f"Gone quiet: {reason}" if quiet else f"Went cold: {reason}",
+        })
         closed += 1
     return closed
 
