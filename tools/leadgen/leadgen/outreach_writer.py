@@ -45,7 +45,7 @@ import anthropic
 
 from leadgen import agent_log, draft_feedback, metrics
 from leadgen.copy_rules import has_time_words, strip_names, time_word_hits
-from leadgen.dedupe import company_keys
+from leadgen.dedupe import company_keys, keys_of
 from leadgen.research import ClaudeResearch, Researcher
 from leadgen.store import Store
 
@@ -531,11 +531,12 @@ COMPANY_FIELDS = "id,business_name,email,phone,website,domain,city,status,do_not
 def contacted_companies(store: Store) -> set[str]:
     """Company keys (dedupe.company_keys) of every business the team has already dealt with, across
     every lead in the CRM whatever its source: a lead that was emailed, is on a live campaign, has
-    moved past 'new' (including by hand, for outreach made outside the CRM) or is do-not-contact."""
+    moved past 'new' (including by hand, for outreach made outside the CRM) or is do-not-contact,
+    plus every business a person deleted from the CRM (store.blocked_companies)."""
     rows = metrics._all(store, "leads", {"select": COMPANY_FIELDS})
     ids = [r["id"] for r in rows]
     touched = emailed_leads(store, ids) | leads_on_live_campaigns(store, ids)
-    out: set[str] = set()
+    out = keys_of(store.blocked_companies())
     for r in rows:
         if r["id"] in touched or r.get("status") != "new" or r.get("do_not_contact"):
             out |= company_keys(r)

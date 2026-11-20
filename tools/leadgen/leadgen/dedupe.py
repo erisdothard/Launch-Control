@@ -122,3 +122,21 @@ def company_keys(lead: dict[str, Any]) -> set[str]:
     if name and city:
         keys.add(f"name:{name}|{city}")
     return keys
+
+
+def keys_of(rows: list[dict[str, Any]]) -> set[str]:
+    """Every company key across CRM lead rows or blocked-company entries."""
+    out: set[str] = set()
+    for row in rows:
+        out |= company_keys(row)
+    return out
+
+
+def drop_blocked(leads: list[Lead], blocked: set[str]) -> tuple[list[Lead], int]:
+    """Remove scraped businesses the team deleted from the CRM. Returns (kept, skipped_count)."""
+    def keys(lead: Lead) -> set[str]:
+        p = lead.place
+        return company_keys({"business_name": p.name, "city": p.city, "website": p.website,
+                             "domain": lead.domain, "phone": p.phone})
+    kept = [lead for lead in leads if not (keys(lead) & blocked)]
+    return kept, len(leads) - len(kept)

@@ -13,7 +13,7 @@ from typing import Any
 
 from leadgen import overrides
 from leadgen.config import Config, supabase_env
-from leadgen.dedupe import dedupe, drop_known
+from leadgen.dedupe import dedupe, drop_blocked, drop_known, keys_of
 from leadgen.discover import champcar, directories, gmaps
 from leadgen.discover.queries import build_queries
 from leadgen.discover.seeds import load_seeds
@@ -176,6 +176,9 @@ async def _run(cfg: Config, opts: RunOptions, today: date, out_root: Path, summa
     if store and not opts.refresh_existing:
         known = store.known_domains([lead.domain for lead in leads if lead.domain])
         leads, c["already_in_crm"] = drop_known(leads, known)
+    if store:
+        # Deleted from the CRM by a person: gone for good, even on a refresh of existing leads.
+        leads, c["blocked"] = drop_blocked(leads, keys_of(store.blocked_companies()))
 
     leads = [with_reasons(lead, pre_crawl_reasons(lead, cfg.filters)) for lead in leads]
     leads = [with_reasons(lead, out_of_state_reasons(lead, opts.states, cfg.filters)) for lead in leads]

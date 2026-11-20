@@ -1,6 +1,6 @@
 from conftest import make_place
 
-from leadgen.dedupe import company_keys, dedupe, drop_known, normalize_domain, normalize_phone
+from leadgen.dedupe import company_keys, dedupe, drop_blocked, drop_known, keys_of, normalize_domain, normalize_phone
 
 
 def test_normalize_domain() -> None:
@@ -50,3 +50,19 @@ def test_company_keys() -> None:
     # A mailbox provider or a social page is not the company; a name alone (no city) is too loose.
     assert company_keys({"business_name": "Apex", "email": "apex@gmail.com", "website": "facebook.com/apex"}) == set()
     assert company_keys({}) == set()
+
+
+def test_drop_blocked() -> None:
+    blocked = keys_of([
+        {"business_name": "TLM Racing", "domain": "tlmracing.com", "email": "", "phone": "", "city": None},
+        {"business_name": "89x", "domain": None, "email": "owner@gmail.com", "phone": "(404) 829-6475", "city": "Austin"},
+    ])
+    leads = dedupe([
+        make_place(name="TLM Racing LLC", website="https://shop.tlmracing.com", phone=""),   # same site
+        make_place(name="Eighty Nine X", website="", phone="404-829-6475", city="Dallas"),      # same phone
+        make_place(name="89X", website="https://89x.example", phone="", city="Austin"),         # same name and city
+        make_place(name="Solo Garage", website="https://solo.com", phone="", city="Austin"),
+    ])
+    kept, skipped = drop_blocked(leads, blocked)
+    assert skipped == 3 and [x.place.name for x in kept] == ["Solo Garage"]
+    assert drop_blocked(leads, set()) == (leads, 0)

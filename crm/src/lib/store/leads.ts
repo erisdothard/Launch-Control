@@ -2,6 +2,7 @@ import { getStoreClient, type StoreClient } from "./db";
 import type { Database } from "@/lib/supabase/types";
 import type { ContactFilterKey } from "@/lib/leads/contactFilter";
 import { logActivity } from "./activity";
+import { blockCompany } from "./blocked";
 import { createCustomer, type Customer } from "./customers";
 import { createDeal, type Deal } from "./deals";
 import { parseTemperature, temperatureOf, type Temperature } from "@/lib/leads/temperature";
@@ -482,6 +483,8 @@ export async function deleteLead(id: string, client?: StoreClient): Promise<bool
   const lead = await getLeadById(id, supabase);
   if (!lead) return false;
 
+  // Remembered first: without it lead gen would find the business again on its next run.
+  await blockCompany(lead, "crm delete");
   const { error } = await supabase.from("leads").delete().eq("id", id);
   if (error) throw error;
 

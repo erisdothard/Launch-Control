@@ -87,6 +87,14 @@ class Store:
     def known_domains(self, domains: list[str]) -> set[str]:
         return set(self.existing("domain", domains))
 
+    def blocked_companies(self) -> list[dict[str, Any]]:
+        """Businesses the team deleted from the CRM (system_flags.blocked_companies, written by
+        crm/src/lib/store/blocked.ts). Never scraped back in and never drafted to."""
+        rows = self._req("GET", "system_flags", params={"key": "eq.blocked_companies", "select": "value"}).json()
+        value = rows[0].get("value") if rows else None
+        companies = value.get("companies") if isinstance(value, dict) else None
+        return [c for c in companies if isinstance(c, dict)] if isinstance(companies, list) else []
+
     def start_run(self, config_snapshot: dict[str, Any]) -> str:
         resp = self._req("POST", "lead_gen_runs", prefer="return=representation",
                          json={"status": "running", "config": config_snapshot})

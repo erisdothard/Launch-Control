@@ -82,6 +82,8 @@ class DB:
         # Earlier agent drafts per lead (agent_draft_feedback rows) and the campaigns not cancelled.
         self.drafted_before: list[dict[str, Any]] = []
         self.standing: list[str] = []
+        # Businesses a person deleted from the CRM (system_flags.blocked_companies).
+        self.blocked: list[dict[str, Any]] = []
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         table = request.url.path.rsplit("/", 1)[-1]
@@ -149,6 +151,8 @@ class DB:
             return httpx.Response(201)
         if table == "email_suppressions":
             return httpx.Response(200, json=[{"email": e} for e in self.suppressed])
+        if table == "system_flags":
+            return httpx.Response(200, json=[{"value": {"companies": self.blocked}}] if self.blocked else [])
         if table == "email_accounts":
             return httpx.Response(200, json=self.accounts)
         raise AssertionError(f"unexpected {request.method} {table}")
@@ -455,6 +459,15 @@ def test_a_lead_a_person_took_off_a_batch_is_not_drafted_again(store: Store) -> 
 
     assert sorted(r["lead_id"] for r in db.recipients) == ["deleted", "fresh", "stale"]
     assert db.runs[0]["evidence"]["skipped"] == {"taken off an earlier batch by a person": 2}
+
+
+def test_a_business_deleted_from_the_crm_is_never_drafted(store: Store) -> None:
+    db = DB([_lead("fresh"), _lead("back")], [_detail("fresh"), _detail("back", website="https://www.gone.com")])
+    db.blocked = [{"business_name": "Gone Racing", "domain": "gone.com", "email": "", "phone": "", "city": None}]
+    _run(db, store, FakeAsker([{"subject": "Booking at Apex", "body": GOOD_BODY, "fact_index": 1}]))
+
+    assert [r["lead_id"] for r in db.recipients] == ["fresh"]
+    assert db.runs[0]["evidence"]["skipped"] == {"company already contacted": 1}
 
 
 def test_bad_copy_is_rewritten_once(store: Store) -> None:

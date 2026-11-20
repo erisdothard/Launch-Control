@@ -322,7 +322,7 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
               )}
               {confirm === "delete" && (
                 <div className="w-full">
-                  <p className="text-[15px] text-[var(--color-hot)]">Delete this lead and its history? This can&apos;t be undone.</p>
+                  <p className="text-[15px] text-[var(--color-hot)]">Delete this lead and its history? Lead gen won&apos;t bring this business back. This can&apos;t be undone.</p>
                   <div className="mt-3 flex items-center gap-3">
                     <button
                       type="button"

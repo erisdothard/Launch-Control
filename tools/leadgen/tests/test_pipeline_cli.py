@@ -95,6 +95,9 @@ async def test_pipeline_gmaps_path_and_store(cfg: Config, monkeypatch: pytest.Mo
         def known_domains(self, domains: list[str]) -> set[str]:
             return set()
 
+        def blocked_companies(self) -> list[dict]:
+            return []
+
         def upsert_leads(self, rows: list[dict], run_id: str) -> dict[str, int]:
             calls["rows"] = rows
             return {"inserted": len(rows), "updated": 0, "skipped": 0}
