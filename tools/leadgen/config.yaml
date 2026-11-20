@@ -202,6 +202,9 @@ filters:
     - enterprise rent
     - hertz
     - turo
+    # Max, 2026-11-20: never bring this one in. (The others on his list are already in the CRM and
+    # blocked there, which also keeps lead gen from finding them again.)
+    - tlm racing
   # Factor rating at or below which a scored lead is excluded, not just capped. On the 2026-10-17
   # run, booking_need <= 1 matched 0 of Max's 32 contacted and 8 of his 13 lost (parts stores).
   factor_floors:
