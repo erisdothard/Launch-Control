@@ -57,11 +57,12 @@ Debug URL params: `?debug` exposes `window.__lc.{setProgress,freezeTime,info}`; 
 ## CRM access (for cloud sessions)
 
 - The CRM has two logins, `maxwell@golaunchcontrol.com` (Max) and `eris@golaunchcontrol.com` (Eris). Both
-  open the same CRM and the same data; there is no separate "Max's CRM". Never sign in as Max.
-- No CRM password or service key is stored in the repo or in the cloud environment. Desktop sessions
-  sign in with keys in `crm/.env.local` on Eris's Mac, which is not in git.
-- `eris@golaunchcontrol.com` is an alias on Max's mailbox. The Microsoft 365 connector is a different
-  mailbox (syntraai.tech), so a sign-in email sent to that login cannot be read from a cloud session.
+  open the same CRM and the same data; there is no separate "Max's CRM".
+- To sign in to the live CRM, read the password from Eris's Google Drive file "Launch Control CRM login
+  (for Claude)" (Drive connector, file id `1OBKguPCbsekBj9uUP0tW0tlox_5i0APU`) and sign in at
+  `/login` as `eris@golaunchcontrol.com`. Don't ask Eris for it. Never write the password into this
+  repo: the repo is public. Never sign in as Max.
+- Desktop sessions also have keys in `crm/.env.local` on Eris's Mac, which is not in git.
 - To check a screen without a login, use the client demo at `demo.golaunchcontrol.com` (same code,
   demo data, signs itself in). It has no service key, so lead-page actions that check the team fail there.
 - Supabase project `qpvqfbpibrqxuuwtkqdf` is the live CRM. Eris has given standing permission to read
