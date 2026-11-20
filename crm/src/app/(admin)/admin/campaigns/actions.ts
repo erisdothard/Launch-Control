@@ -21,6 +21,7 @@ import { renderMerge, renderRecipient, teamLocalToUtc, type MergeValues } from "
 import { sendEmail } from "@/lib/email/send";
 import { currentCrmUserEmail } from "@/lib/email/session";
 import {
+  changeCampaignReminder,
   controlCampaign,
   createCampaign,
   getAudienceLeads,
@@ -449,6 +450,25 @@ export async function controlCampaignAction(id: string, action: CampaignControl)
     return error ? { ok: false, error } : { ok: true };
   } catch {
     return { ok: false, error: "Couldn't change the campaign. Try again in a moment." };
+  }
+}
+
+/** Change the follow-up reminder on a campaign that is already going or gone; its waiting leads move too. */
+export async function changeCampaignReminderAction(id: string, reminderDays: unknown): Promise<ActionResult<{ moved: number }>> {
+  const user = await currentCrmUserEmail();
+  if (!user) return { ok: false, error: "Sign in again to continue." };
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, error: "That campaign doesn't exist." };
+  const reminder = reminderChoice(reminderDays);
+  if (reminder === undefined || reminder === "invalid") return { ok: false, error: "Pick when to be reminded to follow up, or No reminder." };
+  try {
+    const result = await changeCampaignReminder(id, reminder);
+    if (typeof result === "string") return { ok: false, error: result };
+    revalidateCampaigns(id);
+    revalidatePath("/admin/leads");
+    revalidatePath("/admin/dashboard");
+    return { ok: true, moved: result.moved };
+  } catch {
+    return { ok: false, error: "Couldn't change the reminder. Try again in a moment." };
   }
 }
 

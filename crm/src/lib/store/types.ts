@@ -54,6 +54,9 @@ export type LeadView = (typeof LEAD_VIEWS)[number]["key"];
 
 const CLOSED: readonly LeadStatus[] = ["converted", "lost"];
 
+/** status_reason on a lead the team blocked by hand (store/leads.ts blockLead), as opposed to one that asked to stop. */
+export const TEAM_BLOCK_REASON = "Blocked by the team";
+
 // Source on leads created by the marketing site's booking form (src/app/api/inquiry/route.ts).
 export const WEBSITE_LEAD_SOURCE = "Website";
 

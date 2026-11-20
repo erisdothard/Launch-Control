@@ -6,7 +6,7 @@ import { blockCompany } from "./blocked";
 import { createCustomer, type Customer } from "./customers";
 import { createDeal, type Deal } from "./deals";
 import { parseTemperature, temperatureOf, type Temperature } from "@/lib/leads/temperature";
-import { LEAD_VIEWS, matchesView, type Awaiting, type Lead, type LeadStatus, type LeadView, type Prospect, type ScoreFactor } from "./types";
+import { LEAD_VIEWS, TEAM_BLOCK_REASON, matchesView, type Awaiting, type Lead, type LeadStatus, type LeadView, type Prospect, type ScoreFactor } from "./types";
 
 export type { Lead, LeadStatus } from "./types";
 export { LEAD_STATUSES } from "./types";
@@ -468,6 +468,55 @@ export async function markLeadQuiet(id: string, client?: StoreClient): Promise<L
     .eq("status", "pending");
   if (error) throw error;
   return lead;
+}
+
+/**
+ * Never contact this business again, and keep everything about it. Do-not-contact is what every
+ * send path, the follow-up writer and the outreach writer already refuse on, and because the row
+ * stays, lead gen can't find the business again (deleting would erase its emails and its record).
+ * Anything queued for it goes: pending drafts, and its place on campaigns still waiting for approval.
+ */
+export async function blockLead(id: string, client?: StoreClient): Promise<Lead | null> {
+  const supabase = await getStoreClient(client);
+  const lead = await getLeadById(id, supabase);
+  if (!lead) return null;
+
+  const { error } = await supabase.from("leads").update({ do_not_contact: true }).eq("id", id);
+  if (error) throw error;
+  const { error: draftError } = await supabase
+    .from("email_drafts")
+    .update({ status: "discarded", updated_at: new Date().toISOString() })
+    .eq("lead_id", id)
+    .eq("status", "pending");
+  if (draftError) throw draftError;
+  const { data: drafts, error: campaignError } = await supabase.from("email_campaigns").select("id").eq("status", "draft");
+  if (campaignError) throw campaignError;
+  if (drafts.length) {
+    const { error: recipientError } = await supabase
+      .from("campaign_recipients")
+      .delete()
+      .eq("lead_id", id)
+      .eq("status", "pending")
+      .is("sent_at", null)
+      .in("campaign_id", drafts.map((c) => c.id));
+    if (recipientError) throw recipientError;
+  }
+  return updateLead(
+    id,
+    { status: lead.status === "converted" ? "converted" : "lost", statusReason: TEAM_BLOCK_REASON, awaiting: null, followUpOn: null, nextAction: "" },
+    supabase
+  );
+}
+
+/** Undo a block the team made. A lead that asked not to be contacted is never unblocked here. */
+export async function unblockLead(id: string, client?: StoreClient): Promise<Lead | null> {
+  const supabase = await getStoreClient(client);
+  const lead = await getLeadById(id, supabase);
+  if (!lead || !lead.doNotContact || lead.statusReason !== TEAM_BLOCK_REASON) return null;
+  const { error } = await supabase.from("leads").update({ do_not_contact: false }).eq("id", id);
+  if (error) throw error;
+  if (lead.status === "converted") return updateLead(id, { statusReason: "Unblocked" }, supabase);
+  return updateLead(id, { status: lead.lastContactedAt ? "contacted" : "new", statusReason: "Unblocked", nextAction: "", followUpOn: null }, supabase);
 }
 
 /** Back on the active list from Gone quiet or Closed (never undoes "asked not to be contacted"). */

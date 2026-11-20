@@ -11,11 +11,13 @@ interface LeadGenPageProps {
 
 export default async function LeadGenPage({ searchParams }: LeadGenPageProps) {
   const filters = parseLeadGenFilters(await searchParams);
-  const [prospects, runs, facets] = await Promise.all([
+  const [found, runs, facets] = await Promise.all([
     getLeads({ detail: true, source: AUTOMATED_LEAD_SOURCE, sortByScore: true, ...filters }),
     getRuns(5),
     getFacets(),
   ]);
+  // Blocked or asked-to-stop businesses are kept (so they are never found again) but not listed.
+  const prospects = found.filter((lead) => !lead.doNotContact);
 
   return (
     <>

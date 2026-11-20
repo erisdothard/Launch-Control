@@ -105,10 +105,19 @@ function gapFor(perMinute: number): number {
 
 // The same check sendEmail makes (lib/email/optOut.ts), asked first so the recipient is marked
 // skipped with the reason instead of failed. Undefined: couldn't check, leave them for the next pass.
-async function blocked(admin: Admin, email: string, leadId: string | null): Promise<string | null | undefined> {
+async function blocked(admin: Admin, email: string, leadId: string | null, since: string | null): Promise<string | null | undefined> {
   const hit = await findOptOut(admin, [email], leadId).catch(() => undefined);
   if (hit === undefined) return undefined;
-  if (!hit) return null;
+  if (!hit) {
+    // Closed by hand (Not a fit) after they went on this list, or after its last email to them:
+    // "follow-ups stop" has to hold here too. A lead already closed when someone chose to add it
+    // (a win-back campaign to lost leads) is that person's call and still sends.
+    if (!leadId || !since) return null;
+    const { data: lead, error } = await admin.from("leads").select("status, status_reason, status_changed_at").eq("id", leadId).maybeSingle();
+    if (error) return undefined;
+    const closedSince = lead?.status === "lost" && Boolean(lead.status_changed_at) && Date.parse(lead.status_changed_at!) > Date.parse(since);
+    return closedSince ? `Closed: ${lead!.status_reason || "not a fit"}` : null;
+  }
   return hit.reason === "bounced before" ? "Address bounced before" : hit.reason === "unsubscribed" ? "Unsubscribed" : "Asked not to be contacted";
 }
 
@@ -338,7 +347,7 @@ export async function POST(request: NextRequest) {
     if (allowance > 0) {
       const { data: pending } = await admin
         .from("campaign_recipients")
-        .select("id, email, lead_id, merge, subject_override, body_override")
+        .select("id, email, lead_id, merge, subject_override, body_override, created_at")
         .eq("campaign_id", c.id)
         .eq("status", "pending")
         .is("sent_at", null)
@@ -350,7 +359,7 @@ export async function POST(request: NextRequest) {
         // Paused or cancelled from the CRM while this call was running: stop here.
         const { data: live } = await admin.from("email_campaigns").select("status").eq("id", c.id).maybeSingle();
         if (live?.status !== "sending") break;
-        const optedOut = await blocked(admin, r.email, r.lead_id);
+        const optedOut = await blocked(admin, r.email, r.lead_id, r.created_at);
         if (optedOut === undefined) continue;
         // Defence in depth behind the check at save: an address that can now only bounce (dead
         // domain, provider typo) is skipped with the reason. A DNS timeout reads as fine, never a skip.
@@ -446,7 +455,7 @@ export async function POST(request: NextRequest) {
           break;
         }
         const previous = k === 1 ? null : r.follow_up_sent_at;
-        const why = await blocked(admin, r.email, r.lead_id);
+        const why = await blocked(admin, r.email, r.lead_id, previous ?? r.sent_at);
         if (why === undefined) continue;
         // Anything else they wrote, or anything we sent them since (a reply by hand, the CRM's own
         // follow-up), makes this automatic nudge wrong. Record why and end their sequence.

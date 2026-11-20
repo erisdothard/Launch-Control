@@ -98,8 +98,8 @@ export interface ComposerPrefill {
  * follow date when creating campaigns"). Value is days out; null means no reminder.
  */
 export const REMINDER_CHOICES: { days: number | null; label: string }[] = [
-  { days: 3, label: "In 3 days" },
   { days: 7, label: "In 1 week" },
+  { days: 3, label: "In 3 days" },
   { days: 14, label: "In 2 weeks" },
   { days: null, label: "No reminder" },
 ];

@@ -7,6 +7,7 @@ import type { Database, Json } from "@/lib/supabase/types";
 import type { EmailAttachment } from "@/lib/email/send";
 import type { AudienceLead } from "@/components/compose/audience";
 import { getLeads } from "./leads";
+import { reminderDate } from "@/lib/leads/followUp";
 import { matchesView, LEAD_VIEWS } from "./types";
 
 export type CampaignStatus = "draft" | "scheduled" | "sending" | "paused" | "sent" | "cancelled";
@@ -548,6 +549,70 @@ export async function sendDraft(
     .select("id");
   if (error) throw error;
   return data.length ? null : NOT_A_DRAFT;
+}
+
+/**
+ * Change a campaign's follow-up reminder after it was sent. The new choice applies to emails it
+ * still has to send (the database reads it per email) and re-dates the leads it already emailed
+ * who are still waiting on that first email: nobody replied, nothing else was sent to them since,
+ * and no follow-up has been written. Returns how many leads moved, or why it couldn't.
+ */
+export async function changeCampaignReminder(campaignId: string, days: number | null, client?: StoreClient): Promise<{ moved: number } | string> {
+  const supabase = await getStoreClient(client);
+  const { data: c, error } = await supabase.from("email_campaigns").select("status").eq("id", campaignId).maybeSingle();
+  if (error) throw error;
+  if (!c) return "That campaign doesn't exist.";
+  if (c.status === "draft") return "Pick the reminder when you send it.";
+  if (c.status === "cancelled") return "That campaign was cancelled.";
+  const { error: upError } = await supabase
+    .from("email_campaigns")
+    .update({ follow_up_reminder_days: days, updated_at: new Date().toISOString() })
+    .eq("id", campaignId);
+  if (upError) throw upError;
+
+  const sentAt = new Map<string, string>();
+  for (let from = 0; ; from += PAGE) {
+    const { data, error: rError } = await supabase
+      .from("campaign_recipients")
+      .select("id, lead_id, sent_at")
+      .eq("campaign_id", campaignId)
+      .eq("status", "sent")
+      .not("lead_id", "is", null)
+      .not("sent_at", "is", null)
+      .order("id")
+      .range(from, from + PAGE - 1);
+    if (rError) throw rError;
+    for (const r of data) sentAt.set(r.lead_id!, r.sent_at!);
+    if (data.length < PAGE) break;
+  }
+
+  // Leads grouped by the date they move to (null clears it), so each date is one update.
+  const byDate = new Map<string | null, string[]>();
+  const ids = [...sentAt.keys()];
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data, error: lError } = await supabase
+      .from("leads")
+      .select("id, awaiting, status, follow_up_count, last_contacted_at")
+      .in("id", ids.slice(i, i + 200));
+    if (lError) throw lError;
+    for (const lead of data) {
+      const sent = sentAt.get(lead.id)!;
+      const stillTheirLastEmail = lead.last_contacted_at !== null && Date.parse(lead.last_contacted_at) - Date.parse(sent) < 5 * 60_000;
+      if (lead.awaiting !== "them" || lead.status !== "contacted" || lead.follow_up_count !== 0 || !stillTheirLastEmail) continue;
+      const date = days === null ? null : reminderDate(sent, days);
+      byDate.set(date, [...(byDate.get(date) ?? []), lead.id]);
+    }
+  }
+  let moved = 0;
+  for (const [date, leadIds] of byDate) {
+    const { error: mError } = await supabase
+      .from("leads")
+      .update({ follow_up_on: date, follow_up_soft: false, next_action: date === null ? "" : "Follow up if no reply" })
+      .in("id", leadIds);
+    if (mError) throw mError;
+    moved += leadIds.length;
+  }
+  return { moved };
 }
 
 /** Addresses never to email again (opt-outs, bounces, manual). */

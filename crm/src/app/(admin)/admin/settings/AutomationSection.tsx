@@ -6,8 +6,9 @@ import Link from "next/link";
 import type { AfterLastFollowUp, AutomationSettings, AutopilotPulse } from "@/lib/store/drafts";
 import { updateAutomationAction } from "../drafts/actions";
 
-// The worker spaces follow-ups three business days apart; only how many there are is a setting.
-const FOLLOW_UP_GAP = "3 business days";
+// Follow-ups go a week apart (the follow-up date the database sets when an email is sent, migration
+// 20261120000001); only how many there are is a setting. A lead rated hot gets one more.
+const FOLLOW_UP_GAP = "1 week";
 const MAX_FOLLOW_UPS = 6;
 // Same limit as WRITING_STYLE_MAX in the drafts store (server-only, so not imported here).
 const STYLE_MAX = 2000;
@@ -129,7 +130,7 @@ function FollowUpTrack({ count, wait, outcome, pulse }: { count: number; wait: n
     { name: "First email", gap: null as string | null, kind: "start" as const, leads: here[0] as number | null },
     ...Array.from({ length: count }, (_, i) => ({
       name: `Follow-up ${i + 1}`,
-      gap: `+${FOLLOW_UP_GAP.replace(" business", " biz")}`,
+      gap: `+${FOLLOW_UP_GAP}`,
       kind: "follow" as const,
       leads: here[i + 1] as number | null,
     })),
@@ -235,7 +236,7 @@ export default function AutomationSection({ settings, pulse }: { settings: Autom
   function changeCount(next: number) {
     setCount(next);
     // Only the length matters to the worker; keep any days already stored and pad with the default gap.
-    const days = Array.from({ length: next }, (_, i) => settings.followUpDays[i] ?? 3);
+    const days = Array.from({ length: next }, (_, i) => settings.followUpDays[i] ?? 7);
     save({ followUpDays: days });
   }
 
@@ -305,7 +306,7 @@ export default function AutomationSection({ settings, pulse }: { settings: Autom
       <div className="card p-5 sm:p-8">
         <h3 className="text-[19px] font-semibold text-[var(--color-text)]">When a lead doesn&apos;t answer</h3>
         <p className="mt-1.5 text-[15px] text-[var(--color-text-muted)]">
-          The track stops the moment they reply, and anyone who asks to stop is never emailed again. A follow-up date you set on a lead by hand always wins.
+          The track stops the moment they reply, and anyone who asks to stop is never emailed again. A follow-up date you set on a lead by hand always wins. A lead you mark hot gets one more follow-up than the number below.
         </p>
 
         <div className="mt-8 sm:mt-10 sm:px-2">

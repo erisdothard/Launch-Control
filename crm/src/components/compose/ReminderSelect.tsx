@@ -2,8 +2,11 @@
 
 import { REMINDER_CHOICES } from "./types";
 
-/** "" until Max picks; then "none" or the number of days. */
+/** "none" or the number of days ("" only while nothing is chosen). */
 export type ReminderValue = string;
+
+/** A week, the cadence Max settled on (2026-11-20); he can still pick another before sending. */
+export const DEFAULT_REMINDER: ReminderValue = "7";
 
 export function reminderDays(value: ReminderValue): number | null | undefined {
   if (!value) return undefined;

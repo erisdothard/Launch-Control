@@ -8,7 +8,8 @@
    stores the whole mailbox) is never drafted for: every read here starts from a lead.
 3. Follow-ups. When a lead we emailed hasn't answered and its follow-up date has come, write the
    next short nudge into Drafts (the CRM sends it on its own when automatic sending is on), up to
-   the configured number of nudges, then asks the CRM to send what's due. A lead still silent
+   the configured number of nudges (one more for a lead rated hot), then asks the CRM to send
+   what's due. A lead still silent
    cold_after_days after the last one goes where Settings says (after_last_follow_up): "Gone quiet"
    (status nurture, the default: off the chase, not lost), closed as lost, or nowhere. A follow-up
    date a person set by hand is respected: the lead waits until that day.
@@ -52,6 +53,14 @@ COMPANY = (
     "Launch Control builds the commercial system behind a business (brand, website, CRM, lead "
     "generation, outreach and automation) and then helps run it."
 )
+
+
+# The cadence Max asked for (2026-11-20): one email a week, three in all, then the lead goes quiet.
+# Only the length of follow_up_days is read here (the number of follow-ups). The week between them
+# comes from the follow-up date the database sets when an email goes out (stamp_lead_contacted,
+# crm/supabase/migrations/20261120000001_weekly_cadence.sql).
+DEFAULT_FOLLOW_UP_DAYS = [7, 7]
+EXTRA_FOLLOW_UPS_WHEN_HOT = 1
 
 
 @dataclass(frozen=True)
@@ -110,7 +119,7 @@ def load_settings(store: Store) -> Settings:
     row = rows[0] if rows else {}
     return Settings(
         draft_replies=bool(row.get("draft_replies", True)),
-        max_follow_ups=len(row.get("follow_up_days") or [3, 4, 7]),
+        max_follow_ups=len(row.get("follow_up_days") or DEFAULT_FOLLOW_UP_DAYS),
         cold_after_days=int(row.get("cold_after_days", 7)),
         after_last_follow_up=str(row.get("after_last_follow_up") or "nurture"),
         writing_style=str(row.get("writing_style") or "").strip(),
@@ -294,11 +303,20 @@ def draft_replies(store: Store, writer: Writer, limit: int = MAX_DRAFTS_PER_PASS
     return made
 
 
+def follow_up_cap(lead: dict[str, Any], settings: Settings) -> int:
+    """How many follow-ups this lead gets: the number in Settings, plus one for a lead the team
+    rated hot. With two in Settings that is three emails over three weeks, and a fourth only for
+    the leads worth it (Max, 2026-11-20). Only the hand-set rating counts, never a guess."""
+    return settings.max_follow_ups + (EXTRA_FOLLOW_UPS_WHEN_HOT if lead.get("temperature") == "hot" else 0)
+
+
 def queue_follow_ups(store: Store, writer: Writer, settings: Settings, today: date,
                      limit: int = MAX_DRAFTS_PER_PASS) -> int:
     leads = store._req("GET", "leads", params={
         "awaiting": "eq.them", "do_not_contact": "eq.false", "status": "in.(contacted,replied)",
-        "follow_up_on": f"lte.{today.isoformat()}", "follow_up_count": f"lt.{settings.max_follow_ups}",
+        "follow_up_on": f"lte.{today.isoformat()}",
+        # Wide enough for a hot lead's extra one; follow_up_cap decides per lead below.
+        "follow_up_count": f"lt.{settings.max_follow_ups + EXTRA_FOLLOW_UPS_WHEN_HOT}",
         "email": "neq.",
         "select": f"{LEAD_BRIEF_COLUMNS},follow_up_count",
         "order": "follow_up_on.asc", "limit": "200",
@@ -310,13 +328,16 @@ def queue_follow_ups(store: Store, writer: Writer, settings: Settings, today: da
             break
         if lead["id"] in pending:
             continue
+        number = int(lead.get("follow_up_count") or 0) + 1
+        cap = follow_up_cap(lead, settings)
+        if number > cap:
+            continue
         msgs = thread(store, lead["id"])
         last_out = next((m for m in reversed(msgs) if m["direction"] == "out"), None)
         if not msgs or msgs[-1]["direction"] != "out" or last_out is None:
             continue
-        number = int(lead.get("follow_up_count") or 0) + 1
         try:
-            last = number >= settings.max_follow_ups
+            last = number >= cap
             body = write_follow_up(writer, lead, msgs, number, last=last, style=settings.writing_style)
         except Exception:
             log.exception("follow-up draft failed for lead %s", lead["id"])
@@ -346,7 +367,7 @@ def close_gone_cold(store: Store, settings: Settings, now: datetime) -> int:
         "last_contacted_at": f"lt.{cutoff}",
         # A date set by hand in the future means someone is still on it.
         "or": f"(follow_up_on.is.null,follow_up_on.lte.{today})",
-        "select": "id",
+        "select": "id,temperature,follow_up_count",
     }).json()
     pending = pending_draft_leads(store)
     quiet = settings.after_last_follow_up == "nurture"
@@ -360,6 +381,9 @@ def close_gone_cold(store: Store, settings: Settings, now: datetime) -> int:
     closed = 0
     for lead in leads:
         if lead["id"] in pending:
+            continue
+        # A hot lead still has its extra follow-up to come.
+        if int(lead.get("follow_up_count") or settings.max_follow_ups) < follow_up_cap(lead, settings):
             continue
         store.patch_lead(lead["id"], patch)
         closed += 1

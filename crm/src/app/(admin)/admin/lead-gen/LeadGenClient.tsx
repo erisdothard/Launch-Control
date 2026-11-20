@@ -9,7 +9,7 @@ import { LEAD_STATUSES, type Lead, type LeadGenRun } from "@/lib/store/types";
 import { readSignals, scoreBand } from "@/lib/leadgen/factors";
 import { FactorBars, SignalChips } from "@/components/admin/ProspectInsights";
 import type { LeadGenFilters } from "./filters";
-import { markProspectNotAFitAction } from "./actions";
+import { blockProspectAction, markProspectNotAFitAction } from "./actions";
 import FindLeadsPanel from "./FindLeadsPanel";
 import ContactFilterChips from "@/components/admin/ContactFilterChips";
 
@@ -91,7 +91,7 @@ function ScoreFigure({ score }: { score: number | null }) {
   );
 }
 
-function ProspectRow({ lead, onNotAFit, pending }: { lead: Lead; onNotAFit: () => void; pending: boolean }) {
+function ProspectRow({ lead, onNotAFit, onBlock, pending }: { lead: Lead; onNotAFit: () => void; onBlock: () => void; pending: boolean }) {
   const [open, setOpen] = useState(false);
   const p = lead.prospect;
   const location = [p?.city, p?.state].filter(Boolean).join(", ");
@@ -200,6 +200,9 @@ function ProspectRow({ lead, onNotAFit, pending }: { lead: Lead; onNotAFit: () =
             <button type="button" disabled={pending || lead.status === "lost"} onClick={onNotAFit} className="btn-quiet text-[15px] disabled:opacity-50">
               Not a fit
             </button>
+            <button type="button" disabled={pending} onClick={onBlock} title="Never email them and never find them again. Their emails stay." className="btn-quiet text-[15px] disabled:opacity-50">
+              Block
+            </button>
           </div>
         </div>
       )}
@@ -230,11 +233,15 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
   }
 
   function handleNotAFit(id: string) {
+    change(id, markProspectNotAFitAction);
+  }
+
+  function change(id: string, action: (id: string) => Promise<void>) {
     setPendingId(id);
     setError(null);
     startTransition(async () => {
       try {
-        await markProspectNotAFitAction(id);
+        await action(id);
         router.refresh();
       } catch {
         setError("Couldn't update that lead. Try again.");
@@ -350,6 +357,7 @@ export default function LeadGenClient({ prospects, runs, facets, filters }: Lead
             lead={lead}
             pending={pendingId === lead.id}
             onNotAFit={() => handleNotAFit(lead.id)}
+            onBlock={() => change(lead.id, blockProspectAction)}
           />
         ))}
         {prospects.length === 0 && (

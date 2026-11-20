@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import AdminHeader from "@/components/admin/AdminHeader";
 import CampaignControls, { AutoRefresh } from "@/components/compose/CampaignControls";
 import RecipientTable from "@/components/compose/RecipientTable";
+import ReminderChange from "@/components/compose/ReminderChange";
 import ReviewList from "@/components/compose/ReviewList";
 import { mailboxDailyCap } from "@/lib/email/mailboxCap";
 import { DEMO_CAMPAIGNS } from "@/components/compose/demo";
@@ -160,6 +161,7 @@ export default async function CampaignPage({ params, searchParams }: CampaignPag
                 </div>
               </>
             )}
+            {c.status !== "cancelled" && <ReminderChange id={c.id} days={c.followUpReminderDays} demo={demo} />}
             {c.followUpAfterDays && (
               <p className="mt-3 text-[15px] text-[var(--color-text-dim)]">
                 {c.followUpMore.length

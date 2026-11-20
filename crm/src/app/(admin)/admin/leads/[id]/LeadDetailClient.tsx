@@ -4,11 +4,13 @@ import LocalDate from "@/components/admin/LocalDate";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { type Lead, type ActivityEntry, type CalendarEvent, type Deal } from "@/lib/store/types";
+import { TEAM_BLOCK_REASON, type Lead, type ActivityEntry, type CalendarEvent, type Deal } from "@/lib/store/types";
 import { FactorBars, SignalChips } from "@/components/admin/ProspectInsights";
 import { scoreBand } from "@/lib/leadgen/factors";
 import { BackIcon, SparkIcon } from "@/components/records/icons";
 import {
+  blockLeadAction,
+  unblockLeadAction,
   markLeadNotAFitAction,
   markLeadQuietAction,
   reopenLeadAction,
@@ -168,7 +170,7 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
-  const [confirm, setConfirm] = useState<"delete" | "not-a-fit" | "quiet" | null>(null);
+  const [confirm, setConfirm] = useState<"delete" | "not-a-fit" | "quiet" | "block" | null>(null);
   const [dealValue, setDealValue] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const closed = lead.status === "converted" || lead.status === "lost";
@@ -194,6 +196,17 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
     run(async () => {
       await markLeadQuietAction(lead.id);
       setConfirm(null);
+      router.refresh();
+    });
+  const handleBlock = () =>
+    run(async () => {
+      await blockLeadAction(lead.id);
+      setConfirm(null);
+      router.refresh();
+    });
+  const handleUnblock = () =>
+    run(async () => {
+      await unblockLeadAction(lead.id);
       router.refresh();
     });
   const handleReopen = () =>
@@ -287,6 +300,16 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
                       Not a fit
                     </button>
                   )}
+                  {!lead.doNotContact && (
+                    <button type="button" onClick={() => setConfirm("block")} className="btn-quiet">
+                      Block
+                    </button>
+                  )}
+                  {lead.doNotContact && lead.statusReason === TEAM_BLOCK_REASON && (
+                    <button type="button" onClick={handleUnblock} disabled={isPending} className="btn-quiet">
+                      Unblock
+                    </button>
+                  )}
                   <button type="button" onClick={() => setConfirm("delete")} className="btn-quiet hover:!text-[var(--color-hot)]">
                     Delete lead
                   </button>
@@ -301,6 +324,21 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
                     </button>
                     <button type="button" onClick={() => setConfirm(null)} className="btn-quiet">
                       Keep it open
+                    </button>
+                  </div>
+                </div>
+              )}
+              {confirm === "block" && (
+                <div className="w-full">
+                  <p className="text-[15px] text-[var(--color-text)]">
+                    Block this business? The CRM never emails them again, they stop coming up in new batches, and lead gen won&apos;t bring them back. Their emails stay.
+                  </p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <button type="button" onClick={handleBlock} disabled={isPending} className="btn btn-secondary btn-sm">
+                      Block them
+                    </button>
+                    <button type="button" onClick={() => setConfirm(null)} className="btn-quiet">
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -322,7 +360,7 @@ export default function LeadDetailClient({ lead, deal, draft, lastFromThem, acti
               )}
               {confirm === "delete" && (
                 <div className="w-full">
-                  <p className="text-[15px] text-[var(--color-hot)]">Delete this lead and its emails? Lead gen won&apos;t bring this business back. To keep the emails, use Not a fit. This can&apos;t be undone.</p>
+                  <p className="text-[15px] text-[var(--color-hot)]">Delete this lead and its emails? Lead gen won&apos;t bring this business back. To keep the emails, use Block. This can&apos;t be undone.</p>
                   <div className="mt-3 flex items-center gap-3">
                     <button
                       type="button"

@@ -6,7 +6,7 @@ import StatusBadge, { statusLabel } from "@/components/admin/StatusBadge";
 import { Avatar, formatMoney } from "@/components/records/format";
 import { CalendarIcon, PhoneIcon, SparkIcon } from "@/components/records/icons";
 import { TemperaturePicker } from "@/components/records/Temperature";
-import type { Deal, Lead } from "@/lib/store/types";
+import { TEAM_BLOCK_REASON, type Deal, type Lead } from "@/lib/store/types";
 import NextStep, { type StepDraft } from "./NextStepCard";
 
 // The record's one hero object (the Today mock's hero card): who this is, where it stands, what
@@ -74,7 +74,11 @@ export default function LeadHero({ lead, deal, draft, lastFromThem, today, onEdi
               )}
             </span>
           )}
-          {lead.doNotContact && <span className="font-medium text-[var(--color-hot)] sm:ml-auto">Asked not to be contacted. The CRM won&apos;t email them.</span>}
+          {lead.doNotContact && (
+            <span className="font-medium text-[var(--color-hot)] sm:ml-auto">
+              {lead.statusReason === TEAM_BLOCK_REASON ? "Blocked by the team." : "Asked not to be contacted."} The CRM won&apos;t email them.
+            </span>
+          )}
         </div>
 
         <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">

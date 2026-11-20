@@ -7,7 +7,9 @@ import {
   markLeadNotAFit,
   markLeadQuiet,
   reopenLead,
+  blockLead,
   deleteLead,
+  unblockLead,
   convertLeadToCustomer,
   convertLeadToDeal,
   findDuplicateLead,
@@ -67,6 +69,21 @@ export async function markLeadQuietAction(id: string) {
   await requireTeam();
   await markLeadQuiet(id);
   revalidateLeads(id);
+}
+
+export async function blockLeadAction(id: string) {
+  await requireTeam();
+  await blockLead(id);
+  revalidateLeads(id);
+  revalidatePath("/admin/lead-gen");
+  revalidatePath("/admin/campaigns");
+}
+
+export async function unblockLeadAction(id: string) {
+  await requireTeam();
+  await unblockLead(id);
+  revalidateLeads(id);
+  revalidatePath("/admin/lead-gen");
 }
 
 export async function reopenLeadAction(id: string) {

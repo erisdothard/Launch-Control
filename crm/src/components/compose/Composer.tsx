@@ -1,6 +1,6 @@
 "use client";
 
-import ReminderSelect, { reminderDays, type ReminderValue } from "./ReminderSelect";
+import ReminderSelect, { DEFAULT_REMINDER, reminderDays, type ReminderValue } from "./ReminderSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -94,7 +94,7 @@ export default function Composer({ leads, suppressed, accounts, templates: initi
   const [testState, setTestState] = useState({ busy: false, message: "", error: false });
   const [optionsOpen, setOptionsOpen] = useState(initialOptionsOpen);
   const [confirming, setConfirming] = useState(false);
-  const [reminder, setReminder] = useState<ReminderValue>("");
+  const [reminder, setReminder] = useState<ReminderValue>(DEFAULT_REMINDER);
   const [saving, setSaving] = useState<"draft" | "send" | null>(null);
   /** A failed save, from the server. */
   const [error, setError] = useState("");

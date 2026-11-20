@@ -12,6 +12,12 @@ export function teamTodayISO(now: Date = new Date(), timeZone = "America/Chicago
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
 }
 
+/** The team's calendar day a timestamp falls on, plus `days`: the follow-up date the database sets (team_today() + days). */
+export function reminderDate(sentAt: string, days: number, timeZone = "America/Chicago"): string {
+  const [y, m, d] = teamTodayISO(new Date(sentAt), timeZone).split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
 export interface FollowUpState {
   label: string;
   className: string;

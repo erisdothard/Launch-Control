@@ -233,3 +233,28 @@ def test_hand_set_temperature_orders_the_drafting_queue() -> None:
     leads = [{"id": "c", "temperature": "cold"}, {"id": "n1", "temperature": None}, {"id": "w", "temperature": "warm"},
              {"id": "h", "temperature": "hot"}, {"id": "n2"}]
     assert [lead["id"] for lead in automation.by_temperature(leads)] == ["h", "w", "n1", "n2", "c"]
+
+
+def test_a_hot_lead_gets_one_more_follow_up_than_settings() -> None:
+    two = automation.Settings(True, 2, 7)
+    done = {**LEAD, "follow_up_count": 2}
+    store = FakeStore([done, {**done, "id": "hot", "temperature": "hot"}, {**done, "id": "warm", "temperature": "warm"}], pending=[])
+    writer = RecordingWriter()
+    assert automation.queue_follow_ups(store, writer, two, date(2026, 10, 26)) == 1  # type: ignore[arg-type]
+    assert store.drafts[0]["lead_id"] == "hot" and store.drafts[0]["follow_up_number"] == 3
+    assert "last follow-up" in writer.prompts[0]
+    # The one before it is not the last for a hot lead, and is for everyone else.
+    assert automation.follow_up_cap({"temperature": "hot"}, two) == 3
+    assert automation.follow_up_cap({"temperature": None}, two) == 2
+
+
+def test_a_hot_lead_is_not_closed_before_its_extra_follow_up() -> None:
+    two = automation.Settings(True, 2, 7)
+    now = datetime(2026, 10, 27, 15, tzinfo=UTC)
+    store = FakeStore([
+        {"id": "plain", "temperature": None, "follow_up_count": 2},
+        {"id": "hot-waiting", "temperature": "hot", "follow_up_count": 2},
+        {"id": "hot-done", "temperature": "hot", "follow_up_count": 3},
+    ], pending=[])
+    assert automation.close_gone_cold(store, two, now) == 2  # type: ignore[arg-type]
+    assert [lead_id for lead_id, _ in store.patches] == ["plain", "hot-done"]

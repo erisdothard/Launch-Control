@@ -13,7 +13,7 @@ import { renderRecipient, type MergeValues } from "@/lib/email/merge";
 import type { CampaignRecipient } from "@/lib/store/campaigns";
 import { DEFAULT_DAILY_LIMIT } from "./types";
 import { Spinner } from "./ui";
-import ReminderSelect, { reminderDays, type ReminderValue } from "./ReminderSelect";
+import ReminderSelect, { DEFAULT_REMINDER, reminderDays, type ReminderValue } from "./ReminderSelect";
 
 interface ReviewListProps {
   campaignId: string;
@@ -70,7 +70,7 @@ export default function ReviewList({ campaignId, fromAddress, subject, body, dai
   const options = paceOptions(mailboxCap, dailyLimit);
   const [limit, setLimit] = useState(options.includes(dailyLimit) ? dailyLimit : Math.min(DEFAULT_DAILY_LIMIT, mailboxCap));
   const [confirming, setConfirming] = useState(false);
-  const [reminder, setReminder] = useState<ReminderValue>("");
+  const [reminder, setReminder] = useState<ReminderValue>(DEFAULT_REMINDER);
   const [error, setError] = useState("");
   const [sending, start] = useTransition();
   const n = emails.length;

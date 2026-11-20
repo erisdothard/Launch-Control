@@ -39,7 +39,11 @@ export async function POST(request: NextRequest) {
   const { error } = await admin.from("email_suppressions").upsert({ email: target.email, reason: "opt_out" }, { onConflict: "email", ignoreDuplicates: true });
   if (error) return page("Try again", "<h1>Something went wrong</h1><p>Try again in a minute.</p>", 500);
   // The lead the email went to, and any other lead on that address.
-  if (target.leadId) await admin.from("leads").update({ do_not_contact: true }).eq("id", target.leadId);
+  if (target.leadId) {
+    await admin.from("leads").update({ do_not_contact: true }).eq("id", target.leadId);
+    // Nothing written for them is left waiting in Drafts (a send would be refused anyway).
+    await admin.from("email_drafts").update({ status: "discarded", updated_at: new Date().toISOString() }).eq("lead_id", target.leadId).eq("status", "pending");
+  }
   await admin.from("leads").update({ do_not_contact: true }).ilike("email", target.email.replace(/[\\%_]/g, "\\$&"));
   return page("Unsubscribed", `<h1>You're unsubscribed</h1><p>${escapeHtml(target.email)} won't get any more emails from Launch Control.</p>`);
 }
