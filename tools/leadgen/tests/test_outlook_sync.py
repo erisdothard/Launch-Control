@@ -280,3 +280,14 @@ def test_account_id_uses_cc_then_falls_back_to_the_mailbox() -> None:
     stray = msg("m2", "c", "x@y.com", "someone@else.com", "hi", "<2>")
     rows = outlook_sync.to_rows({"id": "acc"}, [cc, stray], own, {}, {}, aliases)
     assert [r["account_id"] for r in rows] == ["acc-eris", "acc"]
+
+
+def test_a_message_with_no_received_date_still_gets_a_date() -> None:
+    account = {"id": "acc", "address": "maxwell@golaunchcontrol.com"}
+    own = {"maxwell@golaunchcontrol.com"}
+    sent = msg("x-1", "c", "a@b.com", "maxwell@golaunchcontrol.com", "hi", "<x1>", receivedDateTime=None,
+               sentDateTime="2026-11-24T02:50:00Z")
+    bare = msg("x-2", "c", "a@b.com", "maxwell@golaunchcontrol.com", "hi", "<x2>", receivedDateTime=None)
+    rows = outlook_sync.to_rows(account, [sent, bare], own, {}, {})
+    assert rows[0]["created_at"] == "2026-11-24T02:50:00Z"
+    assert rows[1]["created_at"] and rows[1]["created_at"].startswith("20")

@@ -41,7 +41,7 @@ FIRST_RUN_LOOKBACK = timedelta(days=30)
 # once, so the lookback window is walked again and the new rows fill in (inserts are idempotent).
 CURSOR_VERSION = 2
 SELECT = ("id,conversationId,internetMessageId,from,toRecipients,ccRecipients,subject,body,receivedDateTime,"
-          "isDraft,isRead,hasAttachments")
+          "sentDateTime,createdDateTime,isDraft,isRead,hasAttachments")
 _PREFER = 'IdType="ImmutableId", outlook.body-content-type="text", odata.maxpagesize=50'
 _SIGNATURE_START = re.compile(r"^(-- ?|_{5,})$")
 
@@ -177,7 +177,11 @@ def to_rows(account: dict[str, Any], messages: list[dict[str, Any]], own: set[st
         other = next((r for r in recipients if r not in own), "") if outbound else sender
         lead_id = by_thread.get(m.get("conversationId") or "") or by_email.get(other) or None
         text = str((m.get("body") or {}).get("content") or "")
-        received = m.get("receivedDateTime")
+        # Outlook leaves receivedDateTime empty on some items (2026-11-24: one in Max's mailbox stopped
+        # the whole sync, because email_messages.created_at can't be empty). Fall back to when it
+        # was sent or made, and as a last resort to now, so one odd item never blocks the rest.
+        received = (m.get("receivedDateTime") or m.get("sentDateTime") or m.get("createdDateTime")
+                    or datetime.now(UTC).isoformat())
         rows.append({
             "lead_id": lead_id,
             "account_id": account_for(account, aliases or {}, sender, recipients + cc, outbound),
